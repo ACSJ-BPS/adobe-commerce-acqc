@@ -239,12 +239,3 @@ ai:
   enabled: true
   default_provider: local
   
-  # AI Provider configurations
-  providers:
-    
-      
-    local:
-      enabled: true
-      base_url: "http://localhost:11434"
-      model: "codellama:latest"
-      timeout: 120
