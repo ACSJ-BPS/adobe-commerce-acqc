@@ -1,0 +1,11 @@
+schema_version: '1'
+version: 2.3.5-p1
+release_date: '2020-04-28'
+release_type: unknown
+breaking_changes: {  }
+deprecated_symbols:
+  classes: {  }
+  methods: {  }
+  events: {  }
+db_schema_changes: {  }
+security_advisories: {  }

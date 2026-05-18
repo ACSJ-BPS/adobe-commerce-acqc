@@ -1,0 +1,151 @@
+{
+  "name": "Developer Configuration",
+  "description": "Configuration optimized for day-to-day development work",
+  "extends": "config/rules/magento2-core.yaml",
+  
+  "analyzers": [
+    "phpcs",
+    "phpmd",
+    "security",
+    "magento"
+  ],
+  
+  "rules": {
+    "severity": "warning",
+    "exclude_patterns": [
+      "vendor/*",
+      "var/*",
+      "pub/static/*",
+      "generated/*",
+      "*.min.js",
+      "*.min.css"
+    ],
+    "include_patterns": [
+      "app/code/**/*.php",
+      "app/design/**/*.php",
+      "app/design/**/*.phtml",
+      "app/design/**/*.js",
+      "app/design/**/*.css"
+    ]
+  },
+  
+  "analyzers_config": {
+    "phpcs": {
+      "standard": ["Magento2"],
+      "severity": 5,
+      "warning_severity": 5,
+      "ignore_annotations": false,
+      "parallel": 4,
+      "cache": true,
+      "sniffs": {
+        "exclude": [
+          "Magento2.Functions.DiscouragedFunction.Discouraged"
+        ]
+      }
+    },
+    
+    "phpmd": {
+      "rulesets": ["cleancode", "codesize", "design", "naming"],
+      "minimum_priority": 3,
+      "rules": {
+        "CyclomaticComplexity": {
+          "reportLevel": 15
+        },
+        "ExcessiveMethodLength": {
+          "minimum": 150
+        }
+      }
+    },
+    
+    "security": {
+      "check_sql_injection": true,
+      "check_xss": true,
+      "check_file_inclusion": true,
+      "severity_mapping": {
+        "sql_injection": "error",
+        "xss": "error",
+        "file_inclusion": "warning"
+      }
+    },
+    
+    "magento": {
+      "check_di_usage": true,
+      "validate_observers": true,
+      "check_plugin_patterns": true,
+      "rules": {
+        "object_manager_usage": "error",
+        "missing_type_hints": "warning",
+        "plugin_naming": "info"
+      }
+    }
+  },
+  
+  "performance": {
+    "enable_caching": true,
+    "enable_parallel": true,
+    "max_parallel_processes": 4,
+    "cache_ttl": 1800,
+    "memory_threshold": 0.8,
+    "batch_size": 25
+  },
+  
+  "ai": {
+    "provider": "openai",
+    "model": "gpt-4",
+    "role_perspective": "developer",
+    "enable_explanations": true,
+    "enable_suggestions": true,
+    "enable_learning": true,
+    "focus_areas": [
+      "code_quality",
+      "best_practices",
+      "magento_patterns"
+    ]
+  },
+  
+  "reporting": {
+    "formats": ["console", "html"],
+    "output_dir": "reports",
+    "include_recommendations": true,
+    "include_examples": true,
+    "html": {
+      "theme": "light",
+      "interactive": true
+    }
+  },
+  
+  "integrations": {
+    "git": {
+      "enable_hooks": true,
+      "pre_commit": true,
+      "staged_files_only": true
+    },
+    "ide": {
+      "enable_realtime": false,
+      "show_inline_suggestions": true
+    }
+  },
+  
+  "baseline": {
+    "file": "baseline-dev.json",
+    "auto_update": false,
+    "track_new_issues": true
+  },
+  
+  "custom_rules": [
+    {
+      "name": "no-debug-code",
+      "pattern": "var_dump\\(|print_r\\(|die\\(|exit\\(",
+      "message": "Debug code should not be committed",
+      "severity": "warning",
+      "file_types": ["php"]
+    },
+    {
+      "name": "no-todo-comments",
+      "pattern": "(?i)\\b(todo|fixme|hack)\\b",
+      "message": "TODO/FIXME comments should be converted to tickets",
+      "severity": "info",
+      "file_types": ["php", "js", "css"]
+    }
+  ]
+} 

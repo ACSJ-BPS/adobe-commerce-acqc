@@ -1,0 +1,66 @@
+schema_version: "1.0"
+id: "AC_GQL_002"
+name: "ac-gql-002-n-plus-one-resolver"
+title: "N+1 Query Pattern in GraphQL Resolver"
+description: >
+  GraphQL resolvers that iterate over a list and perform a database query per item
+  create N+1 query patterns that are amplified by GraphQL's field-level resolution.
+  A query for 20 products with nested reviews can generate 21+ database queries per
+  field resolver. Use DataLoaders or batch-loading patterns to aggregate queries
+  into a single lookup when resolving nested fields.
+category: "graphql"
+severity: "critical"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-graphql.mdc"
+tags:
+  - graphql
+  - performance
+  - n-plus-one
+  - resolvers
+globs:
+  - "**/Resolver/**/*.php"
+  - "**/Resolvers/**/*.php"
+check:
+  type: regex
+  pattern: '\bforeach\s*\('
+recommendation: >
+  Implement a DataLoader / batch-load pattern: collect all needed IDs from the
+  $value array, perform a single getList() call with 'in' filter, then map results
+  back by ID. Consider using GraphQL's deferred resolution via ValueInterface to
+  batch queries across the entire response graph.
+examples:
+  bad: |
+    public function resolve(...): array
+    {
+        $results = [];
+        foreach ($value['product_ids'] as $id) {
+            $product   = $this->productRepository->getById($id); // 1 query per product
+            $results[] = ['name' => $product->getName()];
+        }
+        return $results;
+    }
+  good: |
+    public function resolve(...): array
+    {
+        $ids    = $value['product_ids'];
+        $search = $this->searchCriteriaBuilder
+            ->addFilter('entity_id', $ids, 'in')->create();
+        $products = $this->productRepository->getList($search)->getItems();
+        $map = [];
+        foreach ($products as $p) { $map[$p->getId()] = $p; }
+        return array_map(fn($id) => ['name' => $map[$id]->getName()], $ids);
+    }
+references:
+  - "https://developer.adobe.com/commerce/webapi/graphql/develop/resolvers/"
+  - "https://developer.adobe.com/commerce/php/development/components/service-contracts/"

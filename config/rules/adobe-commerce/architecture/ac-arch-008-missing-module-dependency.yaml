@@ -1,0 +1,62 @@
+schema_version: "1.0"
+id: "AC_ARCH_008"
+name: "ac-arch-008-missing-module-dependency"
+title: "Module Uses Another Module's Class Without sequence Dependency"
+description: >
+  When a module's PHP code references classes from another Adobe Commerce module but
+  that module is not declared in the <sequence> element of module.xml, Magento cannot
+  guarantee the referenced module is loaded and configured before the current one.
+  This causes class-not-found errors after setup:upgrade on fresh installations, and
+  intermittent failures on deployments where module load order differs from development.
+category: "architecture"
+severity: "error"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+introduced_in: "3.0.0"
+source: "conflict-types.md"
+tags:
+  - architecture
+  - module
+  - dependency
+  - sequence
+  - upgrade-risk
+globs:
+  - "**/etc/module.xml"
+check:
+  type: structural
+  requires:
+    - "etc/module.xml"
+  expression: "module[@setup_version or @schema_version][not(sequence)]"
+  message: "Module has no <sequence> declarations in module.xml — verify all cross-module class references have corresponding sequence dependencies."
+recommendation: >
+  Add all modules whose classes you reference to the <sequence> block in module.xml:
+    <module name="Vendor_MyModule">
+        <sequence>
+            <module name="Magento_Catalog"/>
+            <module name="Magento_Sales"/>
+        </sequence>
+    </module>
+  This ensures setup:upgrade installs modules in the correct order and DI compilation
+  resolves classes in the right sequence. Run `bin/magento module:status` to verify.
+examples:
+  bad: |
+    <!-- module.xml — no sequence despite using Magento_Sales classes -->
+    <module name="Vendor_MyModule"/>
+  good: |
+    <module name="Vendor_MyModule">
+        <sequence>
+            <module name="Magento_Sales"/>
+            <module name="Magento_Catalog"/>
+        </sequence>
+    </module>
+references:
+  - "https://developer.adobe.com/commerce/php/development/build/module-file-structure/"
+  - "https://developer.adobe.com/commerce/php/development/components/module-anatomy/"

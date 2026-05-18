@@ -1,0 +1,667 @@
+# Role-Based Quality Configuration
+# This file defines quality standards and checklists for different developer roles
+
+roles:
+  junior-developer:
+    name: "Junior Developer"
+    level: 1
+    description: "Entry-level developer with focus on code quality basics and Magento 2 fundamentals"
+    
+    quality_standards:
+      code_quality_basics:
+        name: "Code Quality Basics"
+        items:
+          syntax_structure:
+            name: "Syntax & Structure"
+            checks:
+              no_php_syntax_errors:
+                name: "No PHP syntax errors"
+                severity: "error"
+                tools: ["phpcs", "phpstan"]
+                description: "Ensure no PHP syntax errors in code"
+                threshold: 0
+              proper_indentation:
+                name: "Proper indentation and formatting"
+                severity: "warning"
+                tools: ["phpcs"]
+                description: "Follow PSR-12 indentation standards"
+                threshold: 0
+              naming_conventions:
+                name: "Consistent naming conventions"
+                severity: "warning"
+                tools: ["phpcs", "phpstan"]
+                description: "Follow PSR-12 naming conventions"
+                threshold: 0
+              psr12_compliance:
+                name: "Basic PSR-12 compliance"
+                severity: "warning"
+                tools: ["phpcs"]
+                description: "Follow PSR-12 coding standards"
+                threshold: 0
+          
+          magento2_fundamentals:
+            name: "Magento 2 Fundamentals"
+            checks:
+              module_structure:
+                name: "Proper module structure (registration.php, module.xml)"
+                severity: "error"
+                tools: ["magento-specific"]
+                description: "Ensure proper Magento 2 module structure"
+                threshold: 0
+              namespace_usage:
+                name: "Correct namespace usage"
+                severity: "error"
+                tools: ["magento-specific"]
+                description: "Follow Magento 2 namespace conventions"
+                threshold: 0
+              dependency_injection:
+                name: "Basic dependency injection usage"
+                severity: "warning"
+                tools: ["magento-specific"]
+                description: "Use dependency injection instead of ObjectManager"
+                threshold: 0
+              magento_apis:
+                name: "Proper use of Magento APIs"
+                severity: "warning"
+                tools: ["magento-specific"]
+                description: "Use proper Magento 2 APIs and service contracts"
+                threshold: 0
+          
+          security_basics:
+            name: "Security Basics"
+            checks:
+              input_validation:
+                name: "Input validation on user data"
+                severity: "error"
+                tools: ["security"]
+                description: "Validate all user inputs"
+                threshold: 0
+              template_escaping:
+                name: "Proper escaping in templates"
+                severity: "error"
+                tools: ["security"]
+                description: "Escape output in templates"
+                threshold: 0
+              no_hardcoded_credentials:
+                name: "No hardcoded credentials"
+                severity: "critical"
+                tools: ["security"]
+                description: "Never hardcode credentials in code"
+                threshold: 0
+              xss_prevention:
+                name: "Basic XSS prevention"
+                severity: "error"
+                tools: ["security"]
+                description: "Prevent cross-site scripting attacks"
+                threshold: 0
+          
+          performance_awareness:
+            name: "Performance Awareness"
+            checks:
+              no_n_plus_one:
+                name: "No obvious N+1 query patterns"
+                severity: "warning"
+                tools: ["performance"]
+                description: "Avoid N+1 query problems"
+                threshold: 0
+              collection_usage:
+                name: "Proper collection usage"
+                severity: "warning"
+                tools: ["magento-specific"]
+                description: "Use collections efficiently"
+                threshold: 0
+              caching_awareness:
+                name: "Basic caching awareness"
+                severity: "info"
+                tools: ["performance"]
+                description: "Understand basic caching concepts"
+                threshold: 0
+              no_infinite_loops:
+                name: "No infinite loops or recursion"
+                severity: "error"
+                tools: ["performance"]
+                description: "Avoid infinite loops and excessive recursion"
+                threshold: 0
+      
+      frontend_basics:
+        name: "Frontend Basics"
+        items:
+          html_css:
+            name: "HTML/CSS"
+            checks:
+              valid_html:
+                name: "Valid HTML structure"
+                severity: "error"
+                tools: ["accessibility"]
+                description: "Ensure valid HTML markup"
+                threshold: 0
+              responsive_design:
+                name: "Responsive design basics"
+                severity: "warning"
+                tools: ["accessibility"]
+                description: "Implement basic responsive design"
+                threshold: 0
+              css_organization:
+                name: "Proper CSS organization"
+                severity: "info"
+                tools: ["frontend-performance"]
+                description: "Organize CSS properly"
+                threshold: 0
+              basic_accessibility:
+                name: "Basic accessibility (alt tags, labels)"
+                severity: "warning"
+                tools: ["accessibility"]
+                description: "Implement basic accessibility features"
+                threshold: 0
+          
+          javascript_react:
+            name: "JavaScript/React"
+            checks:
+              no_console_errors:
+                name: "No console errors"
+                severity: "error"
+                tools: ["react"]
+                description: "Ensure no JavaScript console errors"
+                threshold: 0
+              react_patterns:
+                name: "Basic React patterns"
+                severity: "warning"
+                tools: ["react"]
+                description: "Follow basic React patterns"
+                threshold: 0
+              event_handling:
+                name: "Proper event handling"
+                severity: "warning"
+                tools: ["react"]
+                description: "Handle events properly"
+                threshold: 0
+              component_structure:
+                name: "Component structure"
+                severity: "info"
+                tools: ["react"]
+                description: "Organize components properly"
+                threshold: 0
+    
+    tools:
+      phpcs: "PHP CodeSniffer with Magento 2 standards"
+      phpstan: "PHPStan level 1-3"
+      eslint: "ESLint for JavaScript"
+      browser_tools: "Browser developer tools"
+    
+    metrics:
+      test_coverage: 70
+      cyclomatic_complexity: 10
+      maintainability_index: 60
+      technical_debt_ratio: 15
+
+  senior-developer:
+    name: "Senior Developer"
+    level: 2
+    description: "Experienced developer with advanced patterns, performance optimization, and security"
+    
+    quality_standards:
+      advanced_code_quality:
+        name: "Advanced Code Quality"
+        items:
+          design_patterns:
+            name: "Design Patterns"
+            checks:
+              proper_patterns:
+                name: "Proper use of design patterns"
+                severity: "warning"
+                tools: ["phpstan"]
+                description: "Implement appropriate design patterns"
+                threshold: 0
+              solid_principles:
+                name: "SOLID principles adherence"
+                severity: "warning"
+                tools: ["phpstan"]
+                description: "Follow SOLID principles"
+                threshold: 0
+              clean_architecture:
+                name: "Clean architecture principles"
+                severity: "info"
+                tools: ["phpstan"]
+                description: "Apply clean architecture principles"
+                threshold: 0
+              abstraction_levels:
+                name: "Proper abstraction levels"
+                severity: "warning"
+                tools: ["phpstan"]
+                description: "Maintain proper abstraction levels"
+                threshold: 0
+          
+          magento2_advanced:
+            name: "Magento 2 Advanced"
+            checks:
+              efficient_plugins:
+                name: "Efficient plugin usage"
+                severity: "warning"
+                tools: ["magento-specific"]
+                description: "Use plugins efficiently"
+                threshold: 0
+              observer_implementation:
+                name: "Proper observer implementation"
+                severity: "warning"
+                tools: ["magento-specific"]
+                description: "Implement observers properly"
+                threshold: 0
+              advanced_di:
+                name: "Advanced DI configuration"
+                severity: "info"
+                tools: ["magento-specific"]
+                description: "Use advanced dependency injection"
+                threshold: 0
+              custom_api:
+                name: "Custom API development"
+                severity: "warning"
+                tools: ["magento-specific"]
+                description: "Develop custom APIs properly"
+                threshold: 0
+              extension_attributes:
+                name: "Extension attributes usage"
+                severity: "info"
+                tools: ["magento-specific"]
+                description: "Use extension attributes properly"
+                threshold: 0
+          
+          performance_optimization:
+            name: "Performance Optimization"
+            checks:
+              query_optimization:
+                name: "Database query optimization"
+                severity: "warning"
+                tools: ["performance"]
+                description: "Optimize database queries"
+                threshold: 0
+              indexing_strategies:
+                name: "Proper indexing strategies"
+                severity: "info"
+                tools: ["performance"]
+                description: "Implement proper indexing"
+                threshold: 0
+              caching_implementation:
+                name: "Caching implementation"
+                severity: "warning"
+                tools: ["performance"]
+                description: "Implement proper caching"
+                threshold: 0
+              memory_optimization:
+                name: "Memory usage optimization"
+                severity: "warning"
+                tools: ["performance"]
+                description: "Optimize memory usage"
+                threshold: 0
+              lazy_loading:
+                name: "Lazy loading patterns"
+                severity: "info"
+                tools: ["performance"]
+                description: "Implement lazy loading"
+                threshold: 0
+          
+          security_advanced:
+            name: "Security Advanced"
+            checks:
+              csrf_protection:
+                name: "CSRF protection"
+                severity: "error"
+                tools: ["security"]
+                description: "Implement CSRF protection"
+                threshold: 0
+              sql_injection_prevention:
+                name: "SQL injection prevention"
+                severity: "critical"
+                tools: ["security"]
+                description: "Prevent SQL injection attacks"
+                threshold: 0
+              authentication_authorization:
+                name: "Proper authentication/authorization"
+                severity: "error"
+                tools: ["security"]
+                description: "Implement proper auth"
+                threshold: 0
+              data_encryption:
+                name: "Data encryption where needed"
+                severity: "warning"
+                tools: ["security"]
+                description: "Encrypt sensitive data"
+                threshold: 0
+              security_headers:
+                name: "Security headers implementation"
+                severity: "warning"
+                tools: ["security"]
+                description: "Implement security headers"
+                threshold: 0
+      
+      frontend_advanced:
+        name: "Frontend Advanced"
+        items:
+          react_pwa:
+            name: "React/PWA"
+            checks:
+              advanced_react:
+                name: "Advanced React patterns (hooks, context)"
+                severity: "info"
+                tools: ["react"]
+                description: "Use advanced React patterns"
+                threshold: 0
+              state_management:
+                name: "State management (Redux/Context)"
+                severity: "info"
+                tools: ["react"]
+                description: "Implement proper state management"
+                threshold: 0
+              performance_optimization:
+                name: "Performance optimization"
+                severity: "warning"
+                tools: ["frontend-performance"]
+                description: "Optimize frontend performance"
+                threshold: 0
+              bundle_optimization:
+                name: "Bundle size optimization"
+                severity: "warning"
+                tools: ["frontend-performance"]
+                description: "Optimize bundle sizes"
+                threshold: 0
+              pwa_features:
+                name: "PWA features implementation"
+                severity: "info"
+                tools: ["pwa"]
+                description: "Implement PWA features"
+                threshold: 0
+          
+          seo_analytics:
+            name: "SEO & Analytics"
+            checks:
+              meta_tags:
+                name: "Meta tags optimization"
+                severity: "warning"
+                tools: ["seo"]
+                description: "Optimize meta tags"
+                threshold: 0
+              structured_data:
+                name: "Structured data implementation"
+                severity: "info"
+                tools: ["seo"]
+                description: "Implement structured data"
+                threshold: 0
+              core_web_vitals:
+                name: "Core Web Vitals optimization"
+                severity: "warning"
+                tools: ["frontend-performance"]
+                description: "Optimize Core Web Vitals"
+                threshold: 0
+              analytics_tracking:
+                name: "Analytics tracking"
+                severity: "info"
+                tools: ["seo"]
+                description: "Implement analytics tracking"
+                threshold: 0
+              search_optimization:
+                name: "Search engine optimization"
+                severity: "warning"
+                tools: ["seo"]
+                description: "Optimize for search engines"
+                threshold: 0
+    
+    tools:
+      phpstan: "PHPStan level 4-6"
+      phpmd: "PHPMD with custom rules"
+      sonarqube: "SonarQube integration"
+      performance_profiling: "Performance profiling tools"
+      security_scanning: "Security scanning tools"
+    
+    metrics:
+      test_coverage: 85
+      cyclomatic_complexity: 7
+      maintainability_index: 70
+      technical_debt_ratio: 10
+
+  architect:
+    name: "Architect"
+    level: 3
+    description: "System architect with focus on scalability, technical debt, and enterprise patterns"
+    
+    quality_standards:
+      system_architecture:
+        name: "System Architecture"
+        items:
+          scalability_design:
+            name: "Scalability Design"
+            checks:
+              horizontal_scaling:
+                name: "Horizontal scaling considerations"
+                severity: "info"
+                tools: ["performance"]
+                description: "Design for horizontal scaling"
+                threshold: 0
+              load_balancing:
+                name: "Load balancing strategies"
+                severity: "info"
+                tools: ["performance"]
+                description: "Implement load balancing"
+                threshold: 0
+              database_sharding:
+                name: "Database sharding/partitioning"
+                severity: "info"
+                tools: ["performance"]
+                description: "Design database sharding"
+                threshold: 0
+              microservices:
+                name: "Microservices architecture"
+                severity: "info"
+                tools: ["performance"]
+                description: "Design microservices architecture"
+                threshold: 0
+              api_design:
+                name: "API design and versioning"
+                severity: "warning"
+                tools: ["magento-specific"]
+                description: "Design APIs with versioning"
+                threshold: 0
+          
+          technical_debt:
+            name: "Technical Debt Management"
+            checks:
+              complexity_analysis:
+                name: "Code complexity analysis"
+                severity: "warning"
+                tools: ["phpstan"]
+                description: "Analyze code complexity"
+                threshold: 0
+              dependency_management:
+                name: "Dependency management"
+                severity: "warning"
+                tools: ["phpstan"]
+                description: "Manage dependencies properly"
+                threshold: 0
+              upgrade_planning:
+                name: "Upgrade path planning"
+                severity: "info"
+                tools: ["magento-specific"]
+                description: "Plan upgrade paths"
+                threshold: 0
+              legacy_refactoring:
+                name: "Legacy code refactoring"
+                severity: "info"
+                tools: ["phpstan"]
+                description: "Refactor legacy code"
+                threshold: 0
+              documentation:
+                name: "Documentation completeness"
+                severity: "warning"
+                tools: ["phpstan"]
+                description: "Maintain complete documentation"
+                threshold: 0
+          
+          integration_architecture:
+            name: "Integration Architecture"
+            checks:
+              third_party_integration:
+                name: "Third-party integration patterns"
+                severity: "info"
+                tools: ["magento-specific"]
+                description: "Design third-party integrations"
+                threshold: 0
+              event_driven:
+                name: "Event-driven architecture"
+                severity: "info"
+                tools: ["magento-specific"]
+                description: "Implement event-driven architecture"
+                threshold: 0
+              message_queues:
+                name: "Message queue implementation"
+                severity: "info"
+                tools: ["performance"]
+                description: "Implement message queues"
+                threshold: 0
+              api_gateway:
+                name: "API gateway patterns"
+                severity: "info"
+                tools: ["magento-specific"]
+                description: "Design API gateways"
+                threshold: 0
+              service_mesh:
+                name: "Service mesh considerations"
+                severity: "info"
+                tools: ["performance"]
+                description: "Consider service mesh patterns"
+                threshold: 0
+      
+      advanced_performance:
+        name: "Advanced Performance"
+        items:
+          system_performance:
+            name: "System Performance"
+            checks:
+              application_profiling:
+                name: "Application profiling"
+                severity: "info"
+                tools: ["performance"]
+                description: "Profile application performance"
+                threshold: 0
+              database_tuning:
+                name: "Database performance tuning"
+                severity: "warning"
+                tools: ["performance"]
+                description: "Tune database performance"
+                threshold: 0
+              caching_strategies:
+                name: "Caching strategies (Redis, Varnish)"
+                severity: "info"
+                tools: ["performance"]
+                description: "Implement caching strategies"
+                threshold: 0
+              cdn_implementation:
+                name: "CDN implementation"
+                severity: "info"
+                tools: ["frontend-performance"]
+                description: "Implement CDN"
+                threshold: 0
+              resource_optimization:
+                name: "Resource optimization"
+                severity: "warning"
+                tools: ["performance"]
+                description: "Optimize system resources"
+                threshold: 0
+          
+          monitoring_observability:
+            name: "Monitoring & Observability"
+            checks:
+              application_monitoring:
+                name: "Application monitoring"
+                severity: "info"
+                tools: ["performance"]
+                description: "Monitor application health"
+                threshold: 0
+              error_tracking:
+                name: "Error tracking and alerting"
+                severity: "warning"
+                tools: ["performance"]
+                description: "Track errors and alert"
+                threshold: 0
+              performance_metrics:
+                name: "Performance metrics"
+                severity: "info"
+                tools: ["performance"]
+                description: "Collect performance metrics"
+                threshold: 0
+              log_aggregation:
+                name: "Log aggregation"
+                severity: "info"
+                tools: ["performance"]
+                description: "Aggregate logs properly"
+                threshold: 0
+              health_checks:
+                name: "Health check implementation"
+                severity: "warning"
+                tools: ["performance"]
+                description: "Implement health checks"
+                threshold: 0
+      
+      security_architecture:
+        name: "Security Architecture"
+        items:
+          enterprise_security:
+            name: "Enterprise Security"
+            checks:
+              security_architecture:
+                name: "Security architecture review"
+                severity: "critical"
+                tools: ["security"]
+                description: "Review security architecture"
+                threshold: 0
+              threat_modeling:
+                name: "Threat modeling"
+                severity: "warning"
+                tools: ["security"]
+                description: "Perform threat modeling"
+                threshold: 0
+              compliance_requirements:
+                name: "Compliance requirements (PCI, GDPR)"
+                severity: "critical"
+                tools: ["security"]
+                description: "Meet compliance requirements"
+                threshold: 0
+              security_testing:
+                name: "Security testing automation"
+                severity: "warning"
+                tools: ["security"]
+                description: "Automate security testing"
+                threshold: 0
+              incident_response:
+                name: "Incident response planning"
+                severity: "warning"
+                tools: ["security"]
+                description: "Plan incident response"
+                threshold: 0
+    
+    tools:
+      phpstan: "PHPStan level 7-8"
+      custom_static_analysis: "Custom static analysis tools"
+      architecture_analysis: "Architecture analysis tools"
+      performance_monitoring: "Performance monitoring (New Relic, DataDog)"
+      security_scanning: "Security scanning (OWASP ZAP, Snyk)"
+    
+    metrics:
+      test_coverage: 90
+      cyclomatic_complexity: 5
+      maintainability_index: 80
+      technical_debt_ratio: 5
+
+# Global configuration for role-based analysis
+global:
+  default_role: "senior-developer"
+  enable_role_switching: true
+  role_specific_rules: true
+  adaptive_thresholds: true
+  
+  reporting:
+    include_role_metrics: true
+    show_role_progression: true
+    generate_role_reports: true
+    
+  integration:
+    ci_cd_role_checks: true
+    pr_role_validation: true
+    automated_role_assessment: true 

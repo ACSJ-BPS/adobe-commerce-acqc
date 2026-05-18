@@ -1,0 +1,266 @@
+# Version-Specific Rules Configuration
+# Rules are applied based on detected Magento and PHP versions
+
+version_aware_rules:
+  enabled: true
+  auto_detect: true
+  
+# Magento 2 Version-Specific Rules
+magento_rules:
+  
+  # ObjectManager Direct Usage
+  objectmanager-direct-usage:
+    pattern: 'ObjectManager::getInstance'
+    type: 'anti-pattern'
+    versions:
+      "2.3.x":
+        severity: warning
+        message: "Direct ObjectManager usage discouraged"
+      "2.4.0":
+        severity: error
+        message: "Direct ObjectManager usage strongly discouraged"
+      "2.4.4":
+        severity: critical
+        message: "Direct ObjectManager usage deprecated"
+    fix: "Use dependency injection in constructor"
+    
+  # Setup Scripts
+  setup-install-schema:
+    pattern: 'implements\s+InstallSchemaInterface'
+    type: 'deprecated'
+    versions:
+      "2.3.x":
+        severity: info
+        message: "Setup scripts will be deprecated"
+      "2.4.0":
+        severity: error
+        message: "Setup scripts deprecated. Use declarative schema"
+    fix: "Convert to db_schema.xml"
+    migration_guide: "https://devdocs.magento.com/guides/v2.4/extension-dev-guide/declarative-schema/"
+    
+  setup-upgrade-schema:
+    pattern: 'implements\s+UpgradeSchemaInterface'
+    type: 'deprecated'
+    versions:
+      "2.3.x":
+        severity: info
+        message: "Setup scripts will be deprecated"
+      "2.4.0":
+        severity: error
+        message: "Setup scripts deprecated. Use declarative patches"
+    fix: "Convert to db_schema_whitelist.json and patches"
+    
+  # Zend Framework
+  zend-framework-usage:
+    pattern: 'use\s+Zend\\'
+    type: 'breaking'
+    versions:
+      "2.3.x":
+        severity: info
+        message: "Zend Framework will be replaced"
+      "2.4.4":
+        severity: critical
+        message: "Zend Framework replaced with Laminas"
+    fix: "Replace 'use Zend\\' with 'use Laminas\\'"
+    auto_fixable: true
+    
+  # jQuery UI
+  jquery-ui-components:
+    pattern: 'jquery/ui|jquery-ui'
+    type: 'deprecated'
+    versions:
+      "2.4.0":
+        severity: info
+        message: "jQuery UI components being phased out"
+      "2.4.6":
+        severity: warning
+        message: "jQuery UI components deprecated"
+    fix: "Use UI Components instead"
+    
+  # Legacy Layout XML
+  legacy-layout-handle:
+    pattern: '<action\s+method='
+    type: 'deprecated'
+    versions:
+      "2.3.x":
+        severity: warning
+        message: "Legacy layout XML action method deprecated"
+      "2.4.0":
+        severity: error
+        message: "Use arguments instead of action methods"
+    fix: "Convert to <arguments> and <argument> tags"
+
+# PHP Version-Specific Rules
+php_rules:
+  
+  # Nullable Return Types (PHP 8.0+)
+  nullable-return-type:
+    pattern: ':\s*\w+\s*\{[^}]*return\s+null'
+    type: 'compatibility'
+    php_versions:
+      "7.4":
+        severity: warning
+        message: "Consider explicit nullable return type for PHP 8.0 compatibility"
+      "8.0":
+        severity: error
+        message: "Nullable return type must be explicit"
+    fix: "Add ? before return type or use |null"
+    example: |
+      // Before:
+      function getValue(): string { return null; }
+      // After:
+      function getValue(): ?string { return null; }
+      
+  # Dynamic Properties (PHP 8.2+)
+  dynamic-properties:
+    pattern: '\$this->\w+\s*='
+    type: 'deprecated'
+    php_versions:
+      "8.1":
+        severity: info
+        message: "Dynamic properties will be deprecated"
+      "8.2":
+        severity: warning
+        message: "Dynamic properties deprecated"
+    fix: "Declare all properties explicitly or use #[AllowDynamicProperties]"
+    example: |
+      // Before:
+      $this->newProperty = $value;
+      // After:
+      class MyClass {
+          private $newProperty;
+      }
+      
+  # create_function (Removed in PHP 8.0)
+  create-function:
+    pattern: 'create_function\s*\('
+    type: 'removed'
+    php_versions:
+      "7.4":
+        severity: warning
+        message: "create_function deprecated, removed in PHP 8.0"
+      "8.0":
+        severity: critical
+        message: "create_function removed in PHP 8.0"
+    fix: "Use anonymous functions (closures)"
+    example: |
+      // Before:
+      $func = create_function('$a', 'return $a * 2;');
+      // After:
+      $func = function($a) { return $a * 2; };
+      
+  # Serializable Interface (Deprecated PHP 8.1+)
+  serializable-interface:
+    pattern: 'implements\s+.*Serializable'
+    type: 'deprecated'
+    php_versions:
+      "8.1":
+        severity: warning
+        message: "Serializable interface deprecated"
+    fix: "Implement __serialize() and __unserialize() methods"
+    
+  # UTF-8 Functions (Deprecated PHP 8.2+)
+  utf8-functions:
+    pattern: 'utf8_encode|utf8_decode'
+    type: 'deprecated'
+    php_versions:
+      "8.2":
+        severity: warning
+        message: "utf8_encode/decode deprecated"
+    fix: "Use mb_convert_encoding() instead"
+
+# Combined Version Rules (Magento + PHP)
+combined_rules:
+  
+  magento-2.4.6-php-8.2:
+    magento_version: "2.4.6"
+    php_version: "8.2"
+    rules:
+      - check: "dynamic-properties"
+        severity: error
+      - check: "deprecated-serializable"
+        severity: warning
+      - check: "laminas-migration"
+        severity: critical
+        
+  magento-2.4.4-php-8.1:
+    magento_version: "2.4.4"
+    php_version: "8.1"
+    rules:
+      - check: "zend-to-laminas"
+        severity: critical
+      - check: "nullable-returns"
+        severity: error
+
+# Deprecation Timeline
+deprecation_timeline:
+  
+  "2.4.0":
+    - feature: "setup_scripts"
+      description: "InstallSchema/UpgradeSchema classes"
+      alternative: "Declarative schema (db_schema.xml)"
+      
+  "2.4.4":
+    - feature: "zend_framework"
+      description: "Zend Framework libraries"
+      alternative: "Laminas Framework"
+      
+  "2.4.6":
+    - feature: "jquery_ui"
+      description: "jQuery UI widgets"
+      alternative: "Magento UI Components"
+      
+  "php-8.0":
+    - feature: "create_function"
+      description: "create_function() function"
+      alternative: "Anonymous functions/closures"
+      
+  "php-8.1":
+    - feature: "serializable"
+      description: "Serializable interface"
+      alternative: "__serialize()/__unserialize()"
+      
+  "php-8.2":
+    - feature: "dynamic_properties"
+      description: "Dynamic property creation"
+      alternative: "Explicit property declaration"
+
+# Upgrade Paths
+upgrade_paths:
+  
+  "2.4.3-to-2.4.6":
+    steps:
+      - check: "zend_framework"
+        blocker: true
+        description: "Replace all Zend usages with Laminas"
+      - check: "php_8.2_compatibility"
+        blocker: true
+        description: "Fix PHP 8.2 incompatibilities"
+      - check: "deprecated_apis"
+        blocker: false
+        description: "Update deprecated API calls"
+        
+  "php-7.4-to-8.2":
+    steps:
+      - check: "nullable_returns"
+        blocker: true
+        description: "Fix nullable return types"
+      - check: "dynamic_properties"
+        blocker: false
+        description: "Declare dynamic properties"
+      - check: "deprecated_functions"
+        blocker: true
+        description: "Replace deprecated functions"
+
+# Auto-fix Configuration
+auto_fix:
+  enabled: false  # Safety first - disabled by default
+  
+  safe_fixes:
+    - "zend-to-laminas"      # Simple search-replace
+    - "nullable-return-type"  # Can be automated safely
+    
+  manual_fixes:
+    - "setup-scripts"         # Requires understanding of schema
+    - "dynamic-properties"    # Requires class analysis
+

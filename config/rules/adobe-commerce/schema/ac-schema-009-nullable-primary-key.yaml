@@ -1,0 +1,58 @@
+schema_version: "1.0"
+id: "AC_SCHEMA_009"
+name: "ac-schema-009-nullable-primary-key"
+title: "Primary Key Column Declared as Nullable"
+description: >
+  A primary key column declared with nullable="true" in db_schema.xml contradicts SQL
+  standards — primary keys cannot be NULL. MySQL ignores the nullable flag on PK
+  columns but the Commerce schema validator and SARIF reports flag this as a schema
+  inconsistency. It also misleads developers reading the schema and may cause issues
+  with future declarative schema validators.
+category: "schema"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "schema-patterns.md"
+tags:
+  - schema
+  - primary-key
+  - database
+  - data-integrity
+globs:
+  - "**/db_schema.xml"
+check:
+  type: xml_xpath
+  expression: "//constraint[@xsi:type='primary']/column/@name/parent::constraint/preceding-sibling::column[@name=current() and @nullable='true'] | //table/constraint[@xsi:type='primary']/column[@name=//table/column[@nullable='true']/@name]"
+  attribute: "name"
+  message: "Primary key column appears to be declared as nullable=\"true\" — primary keys must be NOT NULL."
+recommendation: >
+  Change nullable="true" to nullable="false" on the primary key column:
+    <column name="entity_id" xsi:type="int" unsigned="true" nullable="false"
+            identity="true" comment="Entity ID"/>
+  Primary keys are implicitly NOT NULL in SQL. Having nullable="true" is a mistake
+  that will be caught by strict schema validation.
+examples:
+  bad: |
+    <column name="entity_id" xsi:type="int" unsigned="true" nullable="true"
+            identity="true" comment="Entity ID"/>
+    <constraint xsi:type="primary" referenceId="PRIMARY">
+        <column name="entity_id"/>
+    </constraint>
+  good: |
+    <column name="entity_id" xsi:type="int" unsigned="true" nullable="false"
+            identity="true" comment="Entity ID"/>
+    <constraint xsi:type="primary" referenceId="PRIMARY">
+        <column name="entity_id"/>
+    </constraint>
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/declarative-schema/configuration/"
+  - "https://dev.mysql.com/doc/refman/8.0/en/create-table.html"

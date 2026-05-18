@@ -1,0 +1,62 @@
+schema_version: "1.0"
+id: "AC_SCHEMA_006"
+name: "ac-schema-006-missing-fk-constraint"
+title: "Reference Column Missing Foreign Key Constraint"
+description: >
+  Columns with standard FK names (customer_id, order_id, product_id, store_id, etc.)
+  that have no corresponding <constraint xsi:type="foreign"> declaration create orphaned
+  records when parent rows are deleted. Without a FK constraint, MySQL cannot enforce
+  referential integrity, leading to data inconsistency that is difficult to detect and
+  repair. All FK columns in custom tables should have explicit constraints with an
+  appropriate onDelete action.
+category: "schema"
+severity: "error"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - ci
+  - sarif
+introduced_in: "3.0.0"
+source: "schema-patterns.md"
+tags:
+  - schema
+  - foreign-key
+  - data-integrity
+  - database
+globs:
+  - "**/db_schema.xml"
+check:
+  type: xml_xpath
+  expression: "//column[contains('customer_id order_id product_id store_id website_id', @name) and not(parent::table/constraint[@xsi:type='foreign'][@column=current()/@name])]"
+  attribute: "name"
+  message: "Column '{{value}}' looks like a foreign key but has no <constraint xsi:type=\"foreign\"> declared."
+recommendation: >
+  Add a foreign key constraint for this column specifying referenceTable,
+  referenceColumn, and an onDelete action:
+    CASCADE — delete child row when parent is deleted (most common)
+    SET NULL — set column to NULL (column must be nullable)
+    RESTRICT — prevent parent deletion while child exists
+  Also add a matching <index> element for query performance (see AC_IDX_005).
+examples:
+  bad: |
+    <table name="vendor_wishlist_item" ...>
+        <column name="customer_id" xsi:type="int" unsigned="true" nullable="false"/>
+    </table>
+  good: |
+    <table name="vendor_wishlist_item" ...>
+        <column name="customer_id" xsi:type="int" unsigned="true" nullable="false"/>
+        <index referenceId="VENDOR_WISHLIST_ITEM_CUSTOMER_ID" indexType="btree">
+            <column name="customer_id"/>
+        </index>
+        <constraint xsi:type="foreign"
+            referenceId="VENDOR_WISHLIST_ITEM_CUSTOMER_ID_CUSTOMER_ENTITY_ENTITY_ID"
+            table="vendor_wishlist_item" column="customer_id"
+            referenceTable="customer_entity" referenceColumn="entity_id"
+            onDelete="CASCADE"/>
+    </table>
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/declarative-schema/configuration/"

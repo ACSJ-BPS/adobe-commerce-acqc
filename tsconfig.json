@@ -1,0 +1,56 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "allowJs": false,
+
+    /* Module resolution */
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
+
+    /* Path mapping */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@dashboard/*": ["src/Dashboard/*"],
+      "@components/*": ["src/Dashboard/components/*"],
+      "@pages/*": ["src/Dashboard/pages/*"],
+      "@hooks/*": ["src/Dashboard/hooks/*"],
+      "@utils/*": ["src/Dashboard/utils/*"],
+      "@types/*": ["src/Dashboard/types/*"],
+      "@stores/*": ["src/Dashboard/stores/*"]
+    },
+
+    /* Additional options */
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "types": ["vite/client"]
+  },
+  "include": [
+    "src",
+    "src/**/*",
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build"
+  ]
+} 

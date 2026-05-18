@@ -1,0 +1,74 @@
+schema_version: "1.0"
+id: "AC_SEC_008"
+name: "ac-sec-008-admin-form-key"
+title: "Admin Controller POST Without Form Key Validation"
+description: >
+  Admin area controllers that handle POST requests without validating the form key are
+  vulnerable to Cross-Site Request Forgery (CSRF) attacks. Authenticated admin users
+  can be tricked into submitting unauthorised state-changing requests. Magento's
+  \Magento\Backend\App\Action base class provides _validateSecretKey() and
+  _isAllowed() — both must be present for safe admin POST handling.
+category: "security"
+severity: "critical"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "security-checks.md"
+tags:
+  - security
+  - csrf
+  - admin
+  - owasp-a01
+  - form-key
+globs:
+  - "**/Controller/Adminhtml/**/*.php"
+check:
+  type: regex
+  pattern: 'function\s+execute\s*\(\s*\)(?![\s\S]{0,500}validateSecretKey|_isAllowed)'
+recommendation: >
+  Ensure admin POST actions call $this->_validateSecretKey() at the start of execute()
+  and that _isAllowed() returns true only for authorised ACL resources. The easiest
+  approach is to extend \Magento\Backend\App\Action which provides both. In the admin
+  layout, always use the form_key hidden input or the Magento AJAX form key helper.
+examples:
+  bad: |
+    class Save extends \Magento\Backend\App\Action
+    {
+        public function execute()
+        {
+            // No form key validation — CSRF vulnerable
+            $data = $this->getRequest()->getPostValue();
+            $this->model->setData($data)->save();
+            return $this->resultRedirectFactory->create()->setPath('*/*/');
+        }
+    }
+  good: |
+    class Save extends \Magento\Backend\App\Action
+    {
+        protected function _isAllowed(): bool
+        {
+            return $this->_authorization->isAllowed('Vendor_Module::manage');
+        }
+
+        public function execute()
+        {
+            if (!$this->_validateSecretKey()) {
+                return $this->resultRedirectFactory->create()->setPath('*/*/');
+            }
+            $data = $this->getRequest()->getPostValue();
+            $this->model->setData($data)->save();
+            return $this->resultRedirectFactory->create()->setPath('*/*/');
+        }
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/security/cross-site-request-forgery/"
+  - "https://owasp.org/www-community/attacks/csrf"

@@ -1,0 +1,53 @@
+schema_version: "1.0"
+id: "AC_DI_003"
+name: "ac-di-003-concrete-injection"
+title: "Constructor Injection of Concrete Model Class"
+description: >
+  Injecting a concrete Model class (e.g., \Magento\Catalog\Model\Product) directly
+  into a constructor couples the module to a specific implementation and prevents
+  preferences and plugins from intercepting the dependency. Service contracts
+  (interfaces in the Api namespace) should be used instead, allowing other modules
+  to substitute implementations via di.xml preferences.
+category: "dependency_injection"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - ci
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-di.mdc"
+tags:
+  - di
+  - interfaces
+  - service-contracts
+  - magento2
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: regex
+  pattern: '\\Model\\[A-Z][A-Za-z]+\s+\$'
+recommendation: >
+  Replace concrete Model type hints with service contract interfaces from the Api
+  namespace. Use \Magento\Catalog\Api\Data\ProductInterface instead of
+  \Magento\Catalog\Model\Product. Configure the binding in di.xml if needed:
+  <preference for="Vendor\Module\Api\MyInterface" type="Vendor\Module\Model\My"/>
+examples:
+  bad: |
+    public function __construct(
+        private readonly \Magento\Catalog\Model\Product $product,
+        private readonly \Magento\Customer\Model\Customer $customer
+    ) {}
+  good: |
+    public function __construct(
+        private readonly \Magento\Catalog\Api\Data\ProductInterface $product,
+        private readonly \Magento\Customer\Api\Data\CustomerInterface $customer
+    ) {}
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/service-contracts/"
+  - "https://developer.adobe.com/commerce/php/development/components/dependency-injection/"

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Report — {{ report.project_name|default('ACQC') }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        h1 { color: #e67e22; border-bottom: 3px solid #e67e22; padding-bottom: 10px; }
+        h2 { color: #34495e; margin-top: 28px; font-size: 1.1rem; }
+        .meta { color: #7f8c8d; font-size: 13px; margin-bottom: 20px; }
+        .metrics { display: flex; gap: 14px; flex-wrap: wrap; margin: 16px 0; }
+        .metric { flex: 1 1 140px; padding: 16px 20px; background: #fef9e7; border-radius: 6px; text-align: center; border-top: 3px solid #e67e22; }
+        .metric-label { font-size: 11px; color: #7f8c8d; text-transform: uppercase; }
+        .metric-value { font-size: 26px; font-weight: bold; color: #e67e22; margin-top: 4px; }
+        .metric-value.good { color: #27ae60; }
+        table { width: 100%; border-collapse: collapse; margin: 14px 0; }
+        th { background: #e67e22; color: white; padding: 10px 12px; text-align: left; font-size: 13px; }
+        td { padding: 9px 12px; border-bottom: 1px solid #ecf0f1; font-size: 13px; }
+        tr:hover { background: #fef9e7; }
+        .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .pill-critical { background: #fdecea; color: #e74c3c; }
+        .pill-error    { background: #fef3e2; color: #e67e22; }
+        .pill-warning  { background: #fef9e7; color: #f39c12; }
+        .pill-info     { background: #e8f4fd; color: #3498db; }
+        .footer { margin-top: 40px; text-align: center; color: #7f8c8d; font-size: 12px; border-top: 1px solid #ecf0f1; padding-top: 16px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>⚡ Performance Analysis Report</h1>
+    <div class="meta">
+        Project: {{ report.project_name|default('N/A') }} &nbsp;|&nbsp;
+        Generated: {{ report.generated_at|default('N/A') }} &nbsp;|&nbsp;
+        Role: {{ report.user_role|default('developer') }}
+    </div>
+
+    {% set violations = data.violations|default({}) %}
+    {% set total = violations.total_count|default(0) %}
+    {% set by_sev = violations.by_severity|default({}) %}
+
+    <div class="metrics">
+        <div class="metric">
+            <div class="metric-label">Critical</div>
+            <div class="metric-value {% if by_sev.critical|default(0) == 0 %}good{% endif %}">{{ by_sev.critical|default(0) }}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Errors</div>
+            <div class="metric-value {% if by_sev.error|default(0) == 0 %}good{% endif %}">{{ by_sev.error|default(0) }}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Warnings</div>
+            <div class="metric-value">{{ by_sev.warning|default(0) }}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Files</div>
+            <div class="metric-value">{{ data.metrics.files_analyzed|default('—') }}</div>
+        </div>
+    </div>
+
+    {% if violations.top_violations is defined and violations.top_violations|length > 0 %}
+    <h2>Performance Findings (Top 50)</h2>
+    <table>
+        <thead><tr><th>Severity</th><th>Rule</th><th>File</th><th>Line</th><th>Finding</th></tr></thead>
+        <tbody>
+        {% for v in violations.top_violations|slice(0, 50) %}
+        <tr>
+            <td><span class="pill pill-{{ v.severity|default('warning') }}">{{ v.severity|upper|default('WARN') }}</span></td>
+            <td>{{ v.rule_id|default('—') }}</td>
+            <td>{{ v.file|default(v.file_path|default('—'))|split('/')|last }}</td>
+            <td>{{ v.line|default('—') }}</td>
+            <td>{{ v.message|default('')|slice(0, 100) }}{% if v.message|default('')|length > 100 %}…{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#27ae60;font-size:1.1rem;margin-top:20px">✅ No performance violations found.</p>
+    {% endif %}
+
+    <div class="footer">Adobe Commerce Quality Control (ACQC) — {{ report.generated_at|default('') }}</div>
+</div>
+</body>
+</html>

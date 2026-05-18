@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predictive Analytics — {{ report.project_name|default('ACQC') }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        h1 { color: #8e44ad; border-bottom: 3px solid #8e44ad; padding-bottom: 10px; }
+        h2 { color: #34495e; margin-top: 28px; font-size: 1.1rem; }
+        .meta { color: #7f8c8d; font-size: 13px; margin-bottom: 20px; }
+        .metrics { display: flex; gap: 14px; flex-wrap: wrap; margin: 16px 0; }
+        .metric { flex: 1 1 140px; padding: 16px 20px; background: #f5eef8; border-radius: 6px; text-align: center; border-top: 3px solid #8e44ad; }
+        .metric-label { font-size: 11px; color: #7f8c8d; text-transform: uppercase; }
+        .metric-value { font-size: 26px; font-weight: bold; color: #8e44ad; margin-top: 4px; }
+        .metric-value.good { color: #27ae60; }
+        .metric-value.bad  { color: #e74c3c; }
+        .trend-card { background: #f5eef8; border-radius: 6px; padding: 16px 20px; margin: 12px 0; border-left: 4px solid #8e44ad; }
+        .trend-label { font-size: 12px; text-transform: uppercase; color: #8e44ad; font-weight: 600; }
+        .trend-value { font-size: 1.3rem; color: #2c3e50; margin-top: 4px; }
+        table { width: 100%; border-collapse: collapse; margin: 14px 0; }
+        th { background: #8e44ad; color: white; padding: 10px 12px; text-align: left; font-size: 13px; }
+        td { padding: 9px 12px; border-bottom: 1px solid #ecf0f1; font-size: 13px; }
+        tr:hover { background: #f5eef8; }
+        .footer { margin-top: 40px; text-align: center; color: #7f8c8d; font-size: 12px; border-top: 1px solid #ecf0f1; padding-top: 16px; }
+        .note { background: #fef9e7; border-left: 4px solid #f39c12; padding: 12px 16px; border-radius: 4px; font-size: 13px; color: #666; margin: 16px 0; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📈 Predictive Analytics Report</h1>
+    <div class="meta">
+        Project: {{ report.project_name|default('N/A') }} &nbsp;|&nbsp;
+        Generated: {{ report.generated_at|default('N/A') }}
+    </div>
+
+    {% set violations = data.violations|default({}) %}
+    {% set total = violations.total_count|default(0) %}
+    {% set score = data.metrics.quality_score|default(data.score|default(0)) %}
+    {% set prediction = data.prediction|default({}) %}
+    {% set trends = data.trends|default({}) %}
+
+    <div class="metrics">
+        <div class="metric">
+            <div class="metric-label">Current Score</div>
+            <div class="metric-value {% if score >= 80 %}good{% elseif score < 60 %}bad{% endif %}">{{ score|number_format(0) }}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Projected Score</div>
+            <div class="metric-value">{{ prediction.projected_score|default('—') }}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Trend</div>
+            <div class="metric-value">{{ trends.direction|default('—') }}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Debt (hrs)</div>
+            <div class="metric-value">{{ prediction.technical_debt_hours|default('—') }}</div>
+        </div>
+    </div>
+
+    {% if prediction.forecast is defined and prediction.forecast|length > 0 %}
+    <h2>30-Day Forecast</h2>
+    <table>
+        <thead><tr><th>Period</th><th>Projected Score</th><th>Expected Violations</th><th>Confidence</th></tr></thead>
+        <tbody>
+        {% for item in prediction.forecast %}
+        <tr>
+            <td>{{ item.period|default('—') }}</td>
+            <td>{{ item.score|default('—') }}</td>
+            <td>{{ item.violations|default('—') }}</td>
+            <td>{{ item.confidence|default('—') }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="note">
+        📊 Run multiple scans over time to generate trend forecasts. Predictive analytics require at least 3 historical data points from <code>acqc history</code>.
+    </div>
+
+    <h2>Current Snapshot</h2>
+    <div class="trend-card">
+        <div class="trend-label">Quality Score</div>
+        <div class="trend-value">{{ score|number_format(0) }} / 100</div>
+    </div>
+    <div class="trend-card">
+        <div class="trend-label">Total Violations</div>
+        <div class="trend-value">{{ total }}</div>
+    </div>
+    <div class="trend-card">
+        <div class="trend-label">Files Analyzed</div>
+        <div class="trend-value">{{ data.metrics.files_analyzed|default('—') }}</div>
+    </div>
+    {% endif %}
+
+    {% if prediction.recommendations is defined and prediction.recommendations|length > 0 %}
+    <h2>Recommendations</h2>
+    <table>
+        <thead><tr><th>#</th><th>Recommendation</th><th>Impact</th></tr></thead>
+        <tbody>
+        {% for i, rec in prediction.recommendations %}
+        <tr>
+            <td>{{ i + 1 }}</td>
+            <td>{{ rec.description|default(rec|default('')) }}</td>
+            <td>{{ rec.impact|default('—') }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <div class="footer">Adobe Commerce Quality Control (ACQC) — {{ report.generated_at|default('') }}</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,68 @@
+schema_version: "1.0"
+id: "AC_SEC_009"
+name: "ac-sec-009-file-upload"
+title: "Unsafe File Upload — Missing MIME/Size Validation"
+description: >
+  File upload handlers that call move_uploaded_file() without first validating file
+  extension, MIME type, and size allow attackers to upload malicious files (PHP
+  webshells, oversized files for DoS). Files must be validated before moving, and
+  must be stored outside the web root or in a location that blocks PHP execution.
+category: "security"
+severity: "critical"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "security-checks.md"
+tags:
+  - security
+  - file-upload
+  - owasp-a04
+  - malware
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: 'move_uploaded_file\s*\('
+recommendation: >
+  Use Magento\Framework\File\Uploader (or UploaderFactory) instead of calling
+  move_uploaded_file() directly. The Uploader class validates allowed extensions,
+  checks MIME types using finfo, enforces size limits, and generates safe filenames.
+  Store uploaded files under pub/media (served by nginx without PHP execution) and
+  never under pub/static or any directory in the include path.
+examples:
+  bad: |
+    $file = $_FILES['import_file'];
+    move_uploaded_file($file['tmp_name'], '/var/www/html/pub/media/import/' . $file['name']);
+  good: |
+    use Magento\Framework\File\UploaderFactory;
+
+    class ImportController extends \Magento\Backend\App\Action
+    {
+        public function __construct(
+            \Magento\Backend\App\Action\Context $context,
+            private readonly UploaderFactory $uploaderFactory
+        ) {
+            parent::__construct($context);
+        }
+
+        public function execute()
+        {
+            $uploader = $this->uploaderFactory->create(['fileId' => 'import_file']);
+            $uploader->setAllowedExtensions(['csv', 'xml']);
+            $uploader->setAllowRenameFiles(true);
+            $uploader->setFilesDispersion(false);
+            $result = $uploader->save($this->getMediaDir() . '/import');
+        }
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/file-uploader/"
+  - "https://owasp.org/www-community/vulnerabilities/Unrestricted_File_Upload"

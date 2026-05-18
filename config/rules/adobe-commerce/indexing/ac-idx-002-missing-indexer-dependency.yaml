@@ -1,0 +1,63 @@
+schema_version: "1.0"
+id: "AC_IDX_002"
+name: "ac-idx-002-missing-indexer-dependency"
+title: "Custom Indexer Missing Dependency Declaration"
+description: >
+  Custom indexers that depend on data from other indexers (e.g., a price indexer
+  that needs product attribute data) must declare their dependencies in indexer.xml.
+  Without dependency declarations, parallel indexing can run dependent indexers
+  simultaneously, causing race conditions where the custom indexer reads incomplete
+  data from an indexer that hasn't finished yet.
+category: "indexing"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-indexing.mdc"
+tags:
+  - indexing
+  - dependencies
+  - magento2
+  - performance
+globs:
+  - "**/indexer.xml"
+check:
+  type: xml_xpath
+  expression: "//indexer[not(dependencies)]"
+  attribute: "id"
+recommendation: >
+  Add a <dependencies> section to your indexer.xml declaration listing all indexers
+  that must complete before this one can run:
+  <indexer id="vendor_module_custom" ... >
+    <dependencies>
+      <dependsOn id="catalog_product_attribute"/>
+    </dependencies>
+  </indexer>
+examples:
+  bad: |
+    <indexer id="vendor_module_product_custom"
+             view_id="vendor_module_product"
+             class="Vendor\Module\Model\Indexer\ProductIndexer"
+             label="Vendor Product Custom Index">
+    </indexer>
+  good: |
+    <indexer id="vendor_module_product_custom"
+             view_id="vendor_module_product"
+             class="Vendor\Module\Model\Indexer\ProductIndexer"
+             label="Vendor Product Custom Index">
+        <dependencies>
+            <dependsOn id="catalog_product_attribute"/>
+            <dependsOn id="catalog_product_price"/>
+        </dependencies>
+    </indexer>
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/indexing/"
+  - "https://developer.adobe.com/commerce/php/development/components/indexing/custom-indexer/"

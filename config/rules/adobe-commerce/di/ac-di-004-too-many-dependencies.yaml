@@ -1,0 +1,50 @@
+schema_version: "1.0"
+id: "AC_DI_004"
+name: "ac-di-004-too-many-dependencies"
+title: "Constructor with Too Many Injected Dependencies"
+description: >
+  A constructor with more than seven injected dependencies is a strong signal that the
+  class has too many responsibilities and violates the Single Responsibility Principle.
+  Bloated constructors make classes difficult to test, understand, and maintain. The
+  class should be refactored by extracting cohesive groups of dependencies into dedicated
+  service or strategy classes.
+category: "dependency_injection"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-di.mdc"
+tags:
+  - di
+  - design
+  - srp
+  - refactoring
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: regex
+  pattern: 'function\s+__construct\s*\((?:[^,)]+,){7}'
+recommendation: >
+  Extract related dependencies into a dedicated context or aggregate service class.
+  For example, group all payment-related dependencies into a PaymentContext service,
+  then inject that single context object. Also consider if the class is doing too much
+  and can be split into smaller, focused services.
+examples:
+  bad: |
+    public function __construct(ServiceA $a, ServiceB $b, ServiceC $c, ServiceD $d, ServiceE $e, ServiceF $f, ServiceG $g, ServiceH $h) {}
+  good: |
+    public function __construct(
+        private readonly OrderProcessorInterface $orderProcessor,
+        private readonly PaymentContextInterface $paymentContext,
+        private readonly NotificationServiceInterface $notifier
+    ) {}
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/dependency-injection/"
+  - "https://developer.adobe.com/commerce/php/best-practices/extensions/"

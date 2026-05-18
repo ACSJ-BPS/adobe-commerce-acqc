@@ -1,0 +1,57 @@
+schema_version: "1.0"
+id: "AC_CLOUD_004"
+name: "ac-cloud-004-cron-wrong-group"
+title: "Cron Job Not Using Cloud-Compatible Cron Group"
+description: >
+  Adobe Commerce Cloud manages cron execution differently from on-premises installations.
+  Custom cron jobs must be registered in a dedicated cron group with the correct
+  configuration for cloud compatibility. Using the default cron group without proper
+  configuration can cause jobs to compete with Magento core cron jobs, leading to
+  timeouts and missed executions in cloud environments with strict resource limits.
+category: "cloud"
+severity: "warning"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-cloud.mdc"
+tags:
+  - cloud
+  - cron
+  - configuration
+globs:
+  - "**/crontab.xml"
+check:
+  type: structural
+  strategy: cron_group_check
+recommendation: >
+  Create a dedicated cron group for your module in crontab.xml with appropriate
+  schedule and timeout settings. Assign all module jobs to this group to prevent
+  interference with core Magento cron execution in cloud environments.
+examples:
+  bad: |
+    <group id="default">
+        <job name="vendor_module_sync" instance="Vendor\Module\Cron\Sync" method="execute">
+            <schedule>*/5 * * * *</schedule>
+        </job>
+    </group>
+  good: |
+    <group id="vendor_module">
+        <schedule_generate_every>1</schedule_generate_every>
+        <schedule_ahead_for>4</schedule_ahead_for>
+        <schedule_lifetime>2</schedule_lifetime>
+        <history_cleanup_every>10</history_cleanup_every>
+        <history_success_lifetime>60</history_success_lifetime>
+        <history_failure_lifetime>600</history_failure_lifetime>
+        <job name="vendor_module_sync" instance="Vendor\Module\Cron\Sync" method="execute">
+            <schedule>*/5 * * * *</schedule>
+        </job>
+    </group>
+references:
+  - "https://experienceleague.adobe.com/docs/commerce-cloud-service/user-guide/configure/app/properties.html"
+  - "https://developer.adobe.com/commerce/php/development/components/cron-groups/"

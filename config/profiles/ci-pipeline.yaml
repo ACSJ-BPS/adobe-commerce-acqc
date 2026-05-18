@@ -1,0 +1,238 @@
+# CI/CD Pipeline Configuration Profile
+# Optimized for continuous integration with fast execution and critical issue focus
+
+profile:
+  name: "CI/CD Pipeline"
+  description: "Fast, focused analysis for continuous integration pipelines"
+  role: "ci"
+  focus: ["security", "critical-errors", "breaking-changes", "performance-critical"]
+
+analyzers:
+  # Essential Magento checks only
+  magento:
+    structure:
+      enabled: true
+      severity_missing_required: "error"
+      severity_wrong_placement: "error"  
+      severity_naming_convention: "warning"
+      check_composer_structure: true
+      check_module_xml: true
+      # Disable less critical checks for speed
+      check_acl_structure: false
+      check_webapi_structure: false
+    
+    dependency_injection:
+      enabled: true
+      severity_objectmanager_usage: "error"
+      severity_concrete_injection: "warning"
+      # Focus on critical DI issues only
+      allow_objectmanager_in_factories: true
+      allow_objectmanager_in_tests: true
+      check_constructor_arguments: false  # Skip for speed
+    
+    plugins:
+      enabled: true
+      severity_method_signature: "error"
+      severity_performance_sensitive: "error"
+      severity_sort_order: "info"
+      check_around_plugins: true
+      check_method_naming: false  # Skip for speed
+    
+    observers:
+      enabled: false  # Skip in CI for speed unless critical
+    
+    database:
+      enabled: true
+      severity_schema_issues: "error"
+      severity_query_performance: "error"
+      check_db_schema_xml: true
+      check_install_upgrade_scripts: false  # Skip for speed
+    
+    performance:
+      enabled: true
+      severity_n_plus_one: "error"
+      severity_inefficient_loops: "warning"
+      severity_memory_issues: "info"
+      # Focus on critical performance issues
+      check_collection_loading: true
+      check_model_loading: false
+    
+    security:
+      enabled: true
+      severity_sql_injection: "critical"
+      severity_xss_vulnerabilities: "critical"
+      severity_hardcoded_secrets: "critical"
+      check_input_validation: true
+      check_output_encoding: true
+      # Security is critical in CI
+    
+    upgrade:
+      enabled: true
+      severity_deprecated_usage: "error"
+      severity_removed_apis: "critical"
+      target_version: "2.4.7"
+      check_deprecated_classes: true
+      check_backward_compatibility: false  # Skip for speed
+
+  # Essential frontend checks
+  frontend:
+    react:
+      enabled: true
+      severity_naming_issues: "warning"
+      severity_hook_issues: "error"
+      severity_performance_issues: "warning"
+      severity_security_issues: "critical"
+      check_pwa_studio_patterns: false  # Skip for speed
+    
+    pwa:
+      enabled: true
+      severity_manifest_issues: "error"
+      severity_service_worker_issues: "error"
+      check_pwa_studio_compliance: false  # Skip for speed
+    
+    seo:
+      enabled: false  # Skip in CI unless specifically needed
+    
+    accessibility:
+      enabled: false  # Skip in CI, run in separate job
+    
+    performance:
+      enabled: true
+      severity_critical_performance: "error"
+      severity_performance_warning: "warning"
+      check_bundle_size: true
+      check_core_web_vitals: false  # Skip for speed
+    
+    security:
+      enabled: true
+      severity_critical_security: "critical"
+      severity_high_security: "error"
+      check_csp_implementation: true
+      check_xss_vulnerabilities: true
+
+  # Fast PHP quality checks
+  php:
+    phpcs:
+      enabled: true
+      standard: "Magento2"
+      severity: "error"
+      # Fast mode settings
+      cache: true
+      parallel: 4
+      exclude_patterns:
+        - "*/Test/*"
+        - "*/generated/*"
+        - "*/vendor/*"
+    
+    phpstan:
+      enabled: true
+      level: "5"  # Balanced for CI speed
+      severity: "error"
+      magento_compatibility: true
+      # Performance optimizations
+      clear_result_cache: false
+      parallel: true
+    
+    phpmd:
+      enabled: false  # Too slow for CI, run separately
+    
+    phpcpd:
+      enabled: false  # Too slow for CI, run separately
+
+# CI-optimized rules
+rules:
+  max_violations_per_file: 5   # Fail fast
+  exclude_test_files: true     # Skip tests in CI
+  exclude_generated_files: true
+  
+  # Focus on blockers
+  severity_overrides:
+    "magento-objectmanager-usage": "critical"
+    "frontend-security-xss": "critical"
+    "magento-sql-injection": "critical"
+    "magento-deprecated-removed": "critical"
+
+# Minimal file set for speed
+files:
+  include_patterns:
+    - "app/code/**/*.php"
+    - "app/code/**/*.xml"
+    - "pwa-studio/src/**/*.js"
+    - "pwa-studio/src/**/*.jsx"
+    - "pwa-studio/src/**/*.ts"
+    - "pwa-studio/src/**/*.tsx"
+    # Skip templates and styles for speed
+  
+  exclude_patterns:
+    - "*/vendor/*"
+    - "*/node_modules/*"
+    - "*/var/*"
+    - "*/generated/*"
+    - "*/pub/static/*"
+    - "*/Test/*"
+    - "*/tests/*"
+    - "*/dev/*"
+    - "*/setup/*"
+
+# CI-optimized output
+output:
+  format: "json"  # Machine readable
+  show_context: false  # Reduce output size
+  group_by_severity: true
+  max_violations_shown: 20  # Limit for performance
+  show_fix_suggestions: false  # Skip to save time
+  include_metrics: false
+  
+# Performance optimized for CI
+performance:
+  parallel_processing: true
+  max_workers: 2  # Conservative for CI environments
+  cache_enabled: true
+  incremental_mode: true  # Only analyze changed files
+  timeout: 300  # 5 minute timeout
+
+# CI integration settings
+integration:
+  ci_mode: true
+  fail_on_error: true
+  fail_on_critical: true
+  exit_code_mapping:
+    critical: 2
+    error: 1
+    warning: 0
+    info: 0
+
+# Quality gates for CI
+quality_gates:
+  max_critical_violations: 0   # Zero tolerance for critical
+  max_error_violations: 3      # Low tolerance for errors
+  max_warning_violations: 20   # Reasonable for warnings
+  timeout_seconds: 300         # Fail if analysis takes too long
+
+# CI-specific rules
+ci_rules:
+  # Only analyze changed files by default
+  analyze_only_changed: true
+  
+  # Skip certain checks in different CI contexts
+  pull_request_mode:
+    enabled: true
+    skip_performance_checks: true
+    focus_on_security: true
+  
+  main_branch_mode:
+    enabled: true
+    full_analysis: false  # Still keep it fast
+    
+  release_mode:
+    enabled: false  # Use different profile for releases
+
+# Notifications and reporting
+notifications:
+  slack_on_failure: true
+  email_on_critical: true
+  github_status_checks: true
+  
+  # Minimal reporting for speed
+  generate_detailed_report: false
+  upload_artifacts: true 

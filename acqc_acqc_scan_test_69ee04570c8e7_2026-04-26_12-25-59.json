@@ -1,0 +1,48 @@
+{
+    "violations": {
+        "target": "\/private\/var\/folders\/c9\/sm05zqy91l51c_6sqs8dy86h0000gq\/T\/acqc_scan_test_69ee04570c8e7",
+        "files_processed": 1,
+        "issues": [
+            {
+                "file": "\/private\/var\/folders\/c9\/sm05zqy91l51c_6sqs8dy86h0000gq\/T\/acqc_scan_test_69ee04570c8e7\/test.php",
+                "line": 3,
+                "severity": "warning",
+                "type": "missing_documentation",
+                "message": "Class Test is missing documentation"
+            }
+        ],
+        "metrics": {
+            "magento_compliance_score": 100,
+            "dependency_injection_usage": 0,
+            "security_score": 100,
+            "vulnerable_patterns_found": 0,
+            "performance_score": 100,
+            "potential_bottlenecks": 0,
+            "code_quality_score": 95,
+            "total_issues": 1
+        }
+    },
+    "issues": {
+        "target": "\/private\/var\/folders\/c9\/sm05zqy91l51c_6sqs8dy86h0000gq\/T\/acqc_scan_test_69ee04570c8e7",
+        "files_processed": 1,
+        "issues": [
+            {
+                "file": "\/private\/var\/folders\/c9\/sm05zqy91l51c_6sqs8dy86h0000gq\/T\/acqc_scan_test_69ee04570c8e7\/test.php",
+                "line": 3,
+                "severity": "warning",
+                "type": "missing_documentation",
+                "message": "Class Test is missing documentation"
+            }
+        ],
+        "metrics": {
+            "magento_compliance_score": 100,
+            "dependency_injection_usage": 0,
+            "security_score": 100,
+            "vulnerable_patterns_found": 0,
+            "performance_score": 100,
+            "potential_bottlenecks": 0,
+            "code_quality_score": 95,
+            "total_issues": 1
+        }
+    }
+}

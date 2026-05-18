@@ -1,0 +1,59 @@
+schema_version: "1.0"
+id: "AC_ARCH_003"
+name: "ac-arch-003-god-class"
+title: "God Class with Excessive Responsibilities"
+description: >
+  A class that accumulates too many responsibilities (god class) becomes hard to
+  test, maintain, and extend. In Magento 2 this often manifests as a Model class
+  containing business logic, data transformation, external API calls, and rendering
+  concerns all in one place. God classes resist the plugin interception model because
+  any modification to their interface affects many unrelated consumers.
+category: "architecture"
+severity: "warning"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-architecture.mdc"
+tags:
+  - architecture
+  - design
+  - solid
+  - maintainability
+globs:
+  - "**/*.php"
+check:
+  type: structural
+  strategy: god_class_check
+recommendation: >
+  Apply the Single Responsibility Principle. Split large classes by concern:
+  separate data models from business logic, extract service classes for complex
+  operations, use dedicated formatters/transformers for data transformation, and
+  move external API interactions into dedicated gateway classes. Each class should
+  have a single reason to change.
+examples:
+  bad: |
+    class ProductManager
+    {
+        // 500+ lines with: database access, price calculation,
+        // inventory checks, email sending, API calls, XML generation
+        public function saveProduct() { ... }
+        public function calculatePrice() { ... }
+        public function sendConfirmationEmail() { ... }
+        public function syncToErp() { ... }
+        public function generateFeed() { ... }
+    }
+  good: |
+    class ProductRepository implements ProductRepositoryInterface { /* data access only */ }
+    class ProductPriceCalculator { /* pricing logic only */ }
+    class ProductNotifier { /* email/notification only */ }
+    class ErpProductGateway { /* ERP integration only */ }
+    class ProductFeedGenerator { /* feed generation only */ }
+references:
+  - "https://developer.adobe.com/commerce/php/best-practices/extensions/"
+  - "https://developer.adobe.com/commerce/php/development/components/service-contracts/"

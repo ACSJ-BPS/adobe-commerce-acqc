@@ -1,0 +1,57 @@
+schema_version: "1.0"
+id: "AC_GQL_005"
+name: "ac-gql-005-resolver-direct-model"
+title: "GraphQL Resolver Bypassing Service Layer"
+description: >
+  GraphQL resolvers that access model or resource model objects directly bypass the
+  service contract layer, coupling the API to internal implementation details. This
+  prevents proper authorization checks, cache invalidation, and breaks the ability
+  for other modules to intercept or modify behavior via plugins. All data access in
+  resolvers must go through repository interfaces or service layer contracts.
+category: "graphql"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-graphql.mdc"
+tags:
+  - graphql
+  - service-contracts
+  - architecture
+  - resolvers
+globs:
+  - "**/Resolver/**/*.php"
+  - "**/Resolvers/**/*.php"
+check:
+  type: regex
+  pattern: '\$this->\w*[Mm]odel\w*->'
+recommendation: >
+  Replace direct model property access with repository or service contract calls.
+  Inject \Magento\Catalog\Api\ProductRepositoryInterface instead of the Model class
+  and use getById() or getList() to retrieve data through the proper service layer.
+examples:
+  bad: |
+    private readonly \Magento\Catalog\Model\ProductFactory $productModel;
+
+    public function resolve(...): array
+    {
+        $product = $this->productModel->create()->load($id);
+        return ['sku' => $product->getSku()];
+    }
+  good: |
+    private readonly \Magento\Catalog\Api\ProductRepositoryInterface $productRepository;
+
+    public function resolve(...): array
+    {
+        $product = $this->productRepository->getById($id);
+        return ['sku' => $product->getSku()];
+    }
+references:
+  - "https://developer.adobe.com/commerce/webapi/graphql/develop/resolvers/"
+  - "https://developer.adobe.com/commerce/php/development/components/service-contracts/"

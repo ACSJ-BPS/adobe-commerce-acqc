@@ -1,0 +1,44 @@
+schema_version: "1.0"
+id: "AC_SCHEMA_004"
+name: "ac-schema-004-missing-table-comment"
+title: "Database Table Missing comment Attribute"
+description: >
+  Custom tables in db_schema.xml without a comment attribute make the schema
+  harder to understand and audit. Comments are displayed in database administration
+  tools (MySQL Workbench, phpMyAdmin, DataGrip) and are preserved across upgrades.
+  They are especially important in team environments and for compliance audits.
+category: "schema"
+severity: "minor"
+tier: 3
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "naming-conventions.md"
+tags:
+  - schema
+  - documentation
+  - database
+  - maintainability
+globs:
+  - "**/db_schema.xml"
+check:
+  type: xml_xpath
+  expression: "//table[not(@comment) or @comment='']"
+  attribute: "name"
+  message: "Table '{{value}}' is missing a comment attribute describing its purpose."
+recommendation: >
+  Add a comment attribute to every <table> element describing its business purpose.
+  Keep comments concise (under 80 characters) and avoid technical jargon.
+  Example: comment="Stores custom order attributes added at checkout"
+examples:
+  bad: |
+    <table name="vendor_checkout_attributes" resource="default" engine="innodb">
+  good: |
+    <table name="vendor_checkout_attributes" resource="default" engine="innodb"
+           comment="Custom attributes captured at checkout for vendor reporting">
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/declarative-schema/configuration/"

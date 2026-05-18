@@ -1,0 +1,71 @@
+schema_version: "1.0"
+id: "AC_GQL_007"
+name: "ac-gql-007-unbounded-list-field"
+title: "GraphQL List Field Missing Pagination Arguments"
+description: >
+  A GraphQL schema field returning a list type ([Type] or [Type!]) without pageSize
+  and currentPage pagination arguments allows clients to request unlimited records in
+  a single query. On large datasets this causes memory exhaustion, timeout failures,
+  and denial-of-service conditions. Adobe Commerce's built-in product queries all use
+  the SearchResultPageInfo pattern with pageSize, currentPage, and total_count.
+category: "graphql"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "graphql-patterns.md"
+tags:
+  - graphql
+  - pagination
+  - performance
+  - dos
+  - api-design
+globs:
+  - "**/*.graphqls"
+check:
+  type: regex
+  pattern: ':\s*\[[A-Z][a-zA-Z!]+\](?!\s*@|.*pageSize|.*currentPage)'
+recommendation: >
+  Add pageSize and currentPage arguments to all list fields, and return a result
+  type that includes total_count and page_info. Follow the SearchResultPageInfo
+  pattern used by Magento's built-in product queries:
+    type MyItemSearchResults {
+        items: [MyItem]
+        total_count: Int!
+        page_info: SearchResultPageInfo
+    }
+    type Query {
+        myItems(pageSize: Int = 20, currentPage: Int = 1): MyItemSearchResults
+    }
+  In the resolver, apply SearchCriteria with setPageSize() and setCurrentPage().
+examples:
+  bad: |
+    type Query {
+        customerOrders: [Order]  # No pagination — could return thousands of records
+        wishlistItems: [WishlistItem!]!  # Same problem
+    }
+  good: |
+    type CustomerOrdersOutput {
+        items: [Order]!
+        total_count: Int!
+        page_info: SearchResultPageInfo
+    }
+
+    type Query {
+        customerOrders(
+            pageSize: Int = 20 @doc(description: "Maximum items to return")
+            currentPage: Int = 1 @doc(description: "Page number")
+        ): CustomerOrdersOutput @resolver(class: "Vendor\\Module\\GraphQl\\Resolver\\CustomerOrders")
+    }
+references:
+  - "https://developer.adobe.com/commerce/webapi/graphql/develop/resolvers/"
+  - "https://developer.adobe.com/commerce/webapi/graphql/schema/products/queries/products/"

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Report — {{ report.project_name|default('ACQC') }}</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; background: #f0f2f5; }
+        .header { background: linear-gradient(135deg, #1a237e, #283593); color: white; padding: 40px; }
+        .header h1 { margin: 0 0 8px; font-size: 2rem; }
+        .header p { margin: 0; opacity: .85; font-size: 14px; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 30px 20px; }
+        .card { background: white; border-radius: 8px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
+        .card h2 { margin: 0 0 16px; color: #1a237e; font-size: 1.15rem; border-bottom: 2px solid #e8eaf6; padding-bottom: 8px; }
+        .kpi-row { display: flex; gap: 16px; flex-wrap: wrap; }
+        .kpi { flex: 1 1 160px; text-align: center; padding: 20px; border-radius: 6px; }
+        .kpi.green  { background: #e8f5e9; }
+        .kpi.amber  { background: #fff8e1; }
+        .kpi.red    { background: #ffebee; }
+        .kpi.blue   { background: #e3f2fd; }
+        .kpi-val  { font-size: 2.2rem; font-weight: 700; color: #1a237e; }
+        .kpi-val.green-text { color: #2e7d32; }
+        .kpi-val.amber-text { color: #e65100; }
+        .kpi-val.red-text   { color: #c62828; }
+        .kpi-label { font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: #546e7a; margin-top: 6px; }
+        .risk-table { width: 100%; border-collapse: collapse; }
+        .risk-table th { text-align: left; padding: 8px 12px; background: #e8eaf6; color: #1a237e; font-size: 13px; }
+        .risk-table td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+        .pill { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .pill-red  { background: #ffcdd2; color: #b71c1c; }
+        .pill-amber{ background: #ffe0b2; color: #bf360c; }
+        .pill-green{ background: #c8e6c9; color: #1b5e20; }
+        .footer { text-align: center; color: #90a4ae; font-size: 11px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+<div class="header">
+    <div style="max-width:1000px;margin:0 auto">
+        <h1>Executive Quality Report</h1>
+        <p>{{ report.project_name|default('Project') }} &nbsp;·&nbsp; Generated {{ report.generated_at|default('') }}</p>
+    </div>
+</div>
+<div class="container">
+
+    {% set violations = data.violations|default({}) %}
+    {% set total = violations.total_count|default(0) %}
+    {% set by_sev = violations.by_severity|default({}) %}
+    {% set score = data.metrics.quality_score|default(data.score|default(0)) %}
+    {% set critical = by_sev.critical|default(0) %}
+    {% set errors = by_sev.error|default(0) %}
+
+    <div class="card">
+        <h2>At a Glance</h2>
+        <div class="kpi-row">
+            <div class="kpi {% if score >= 80 %}green{% elseif score >= 60 %}amber{% else %}red{% endif %}">
+                <div class="kpi-val {% if score >= 80 %}green-text{% elseif score >= 60 %}amber-text{% else %}red-text{% endif %}">{{ score|number_format(0) }}</div>
+                <div class="kpi-label">Quality Score / 100</div>
+            </div>
+            <div class="kpi {% if critical == 0 %}green{% else %}red{% endif %}">
+                <div class="kpi-val {% if critical == 0 %}green-text{% else %}red-text{% endif %}">{{ critical }}</div>
+                <div class="kpi-label">Critical Issues</div>
+            </div>
+            <div class="kpi {% if errors == 0 %}green{% elseif errors < 10 %}amber{% else %}red{% endif %}">
+                <div class="kpi-val {% if errors == 0 %}green-text{% elseif errors < 10 %}amber-text{% else %}red-text{% endif %}">{{ errors }}</div>
+                <div class="kpi-label">Errors</div>
+            </div>
+            <div class="kpi blue">
+                <div class="kpi-val">{{ total }}</div>
+                <div class="kpi-label">Total Violations</div>
+            </div>
+            <div class="kpi blue">
+                <div class="kpi-val">{{ data.metrics.files_analyzed|default('—') }}</div>
+                <div class="kpi-label">Files Analyzed</div>
+            </div>
+        </div>
+    </div>
+
+    {% if executive_summary is defined %}
+    <div class="card">
+        <h2>Key Findings</h2>
+        {% if executive_summary.key_risks is defined %}
+        <table class="risk-table">
+            <thead><tr><th>Area</th><th>Severity</th><th>Finding</th></tr></thead>
+            <tbody>
+            {% for risk in executive_summary.key_risks|slice(0, 10) %}
+            <tr>
+                <td>{{ risk.area|default('—') }}</td>
+                <td><span class="pill pill-{{ risk.severity == 'critical' ? 'red' : (risk.severity == 'error' ? 'amber' : 'green') }}">{{ risk.severity|upper|default('INFO') }}</span></td>
+                <td>{{ risk.description|default('')|slice(0, 100) }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if violations.by_category is defined and violations.by_category|length > 0 %}
+    <div class="card">
+        <h2>Violations by Category</h2>
+        <table class="risk-table">
+            <thead><tr><th>Category</th><th>Count</th><th>% of Total</th></tr></thead>
+            <tbody>
+            {% for category, count in violations.by_category %}
+            <tr>
+                <td>{{ category }}</td>
+                <td>{{ count }}</td>
+                <td>{{ total > 0 ? ((count / total) * 100)|number_format(1) : 0 }}%</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <div class="footer">Adobe Commerce Quality Control (ACQC) — Confidential</div>
+</div>
+</body>
+</html>

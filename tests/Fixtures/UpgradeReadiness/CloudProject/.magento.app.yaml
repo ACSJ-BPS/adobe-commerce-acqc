@@ -1,0 +1,31 @@
+name: myapp
+type: php:8.1
+build:
+  flavor: composer
+relationships:
+  database: "mysql:mysql"
+  redis: "redis:redis"
+  opensearch: "opensearch:opensearch"
+mounts:
+  "/var": "shared:files/var"
+  "/app/etc": "shared:files/etc"
+  "/pub/media": "shared:files/media"
+  "/pub/static": "shared:files/static"
+hooks:
+  build: |
+    set -e
+    php ./vendor/bin/ece-tools build:generate
+    php ./vendor/bin/ece-tools build:transfer
+  deploy: |
+    php ./vendor/bin/ece-tools deploy
+  post_deploy: |
+    php ./vendor/bin/ece-tools post-deploy
+web:
+  locations:
+    "/":
+      root: "pub"
+      passthru: "/index.php"
+      allow: false
+      rules:
+        \.(css|js|map|hmap|gif|png|jpg|jpeg|ico|webp|html|htm)$:
+          allow: true

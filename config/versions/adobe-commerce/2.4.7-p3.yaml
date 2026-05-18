@@ -1,0 +1,35 @@
+schema_version: "1"
+version: "2.4.7-p3"
+release_date: "2025-02-11"
+eol_date: "2026-04-09"
+release_type: "security"
+parent_version: "2.4.7"
+
+php_support:
+  minimum: "8.2"
+  maximum: "8.3"
+  recommended: "8.3"
+  dropped: []
+
+search_engine_support:
+  opensearch: ["2.12", "2.13"]
+  elasticsearch: []
+
+breaking_changes: []
+
+deprecated_symbols:
+  classes: []
+  methods: []
+  events: []
+
+db_schema_changes: []
+
+security_advisories:
+  - id: "APSB25-008"
+    cve: "CVE-2025-20057"
+    severity: high
+    description: "Reflected XSS in admin order search via crafted query parameter"
+    affected_versions: ["2.4.7", "2.4.7-p1", "2.4.7-p2"]
+    fixed_in: "2.4.7-p3"
+    patch_available: true
+    patch_url: "https://experienceleague.adobe.com/docs/commerce-operations/release/notes/security-patches/2-4-7-patches.html"

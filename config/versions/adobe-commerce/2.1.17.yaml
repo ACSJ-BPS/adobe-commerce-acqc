@@ -1,0 +1,11 @@
+schema_version: '1'
+version: 2.1.17
+release_date: '2019-03-12'
+release_type: unknown
+breaking_changes: {  }
+deprecated_symbols:
+  classes: {  }
+  methods: {  }
+  events: {  }
+db_schema_changes: {  }
+security_advisories: {  }

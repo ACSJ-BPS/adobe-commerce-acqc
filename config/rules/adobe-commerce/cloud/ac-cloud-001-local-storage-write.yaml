@@ -1,0 +1,46 @@
+schema_version: "1.0"
+id: "AC_CLOUD_001"
+name: "ac-cloud-001-local-storage-write"
+title: "Writing to Local Filesystem in Cloud Environment"
+description: >
+  Adobe Commerce Cloud uses a read-only filesystem except for designated writable
+  directories (var/, pub/media/, pub/static/). Writing files to arbitrary paths
+  will fail silently or throw exceptions in cloud environments where the
+  application code directory is read-only. All dynamic file writes must target
+  the configured writable directories.
+category: "cloud"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-cloud.mdc"
+tags:
+  - cloud
+  - filesystem
+  - magento2
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: 'file_put_contents\s*\(\s*(?:BP|__DIR__|dirname)\s*\.'
+recommendation: >
+  Use writable directories provided by the Magento filesystem abstraction.
+  Inject \Magento\Framework\Filesystem and use getDirectoryWrite(DirectoryList::VAR_DIR)
+  to obtain a writable directory handle. Never write relative to BP or __DIR__.
+examples:
+  bad: |
+    file_put_contents(BP . '/app/code/Vendor/Module/data.json', $content);
+  good: |
+    $varDir = $this->filesystem->getDirectoryWrite(\Magento\Framework\App\Filesystem\DirectoryList::VAR_DIR);
+    $varDir->writeFile('vendor_module/data.json', $content);
+references:
+  - "https://experienceleague.adobe.com/docs/commerce-cloud-service/user-guide/develop/storage/manage-disk-space.html"
+  - "https://developer.adobe.com/commerce/php/development/framework/filesystem/"

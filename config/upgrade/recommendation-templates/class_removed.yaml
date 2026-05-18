@@ -1,0 +1,14 @@
+root_cause: "The class was removed as part of Adobe Commerce's modernization. Direct usage must be replaced with the recommended interface or service."
+code_example: |
+  // Before
+  $obj = new RemovedClass();
+  // After — inject via constructor DI
+  public function __construct(private ReplacementInterface $service) {}
+step_by_step: |
+  1. Identify the replacement class in the Adobe Commerce DevDocs migration guide.
+  2. Declare the replacement in di.xml if it's an interface.
+  3. Replace direct instantiation with constructor injection.
+  4. Run: bin/magento setup:di:compile to verify.
+doc_links:
+  - "https://developer.adobe.com/commerce/php/development/backward-incompatible-changes/"
+confidence_score: 5

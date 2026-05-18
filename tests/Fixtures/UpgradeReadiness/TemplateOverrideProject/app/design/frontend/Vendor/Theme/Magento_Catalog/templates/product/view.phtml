@@ -1,0 +1,46 @@
+<?php
+/**
+ * Custom override of Magento_Catalog::product/view.phtml
+ *
+ * Adds a custom badge and extended product info section.
+ */
+
+/** @var \Magento\Catalog\Block\Product\View $block */
+$_product = $block->getProduct();
+?>
+<div class="product-info-main">
+    <?php if ($_product->getData('is_new')): ?>
+        <div class="custom-new-badge"><?= $block->escapeHtml(__('New Arrival')) ?></div>
+    <?php endif; ?>
+
+    <div class="page-title-wrapper product">
+        <h1 class="page-title">
+            <span class="base" data-ui-id="page-title-wrapper"><?= $block->escapeHtml($_product->getName()) ?></span>
+        </h1>
+    </div>
+
+    <?php if ($block->displayProductStockStatus()): ?>
+        <div class="stock <?= $_product->isAvailable() ? 'available' : 'unavailable' ?>">
+            <span><?= $_product->isAvailable() ? $block->escapeHtml(__('In stock')) : $block->escapeHtml(__('Out of stock')) ?></span>
+        </div>
+    <?php endif; ?>
+
+    <div class="product-info-price">
+        <?= $block->getChildHtml('product.info.price') ?>
+    </div>
+
+    <!-- Custom: extended info panel -->
+    <div class="custom-product-extended-info">
+        <dl>
+            <?php if ($_product->getData('sku')): ?>
+                <dt><?= $block->escapeHtml(__('SKU')) ?></dt>
+                <dd><?= $block->escapeHtml($_product->getSku()) ?></dd>
+            <?php endif; ?>
+        </dl>
+    </div>
+
+    <div class="product-add-form">
+        <?= $block->getChildHtml('product_form_top') ?>
+        <?= $block->getChildHtml('product.info.form') ?>
+    </div>
+</div>

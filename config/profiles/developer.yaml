@@ -1,0 +1,14 @@
+name: developer
+description: "Standard developer profile — all tiers, file paths visible, fails on error+"
+tiers: [1, 2, 3]
+min_severity: warning
+categories: []
+format: console
+fail_on: [error, critical, blocker]
+personal_rules: true
+hide_file_paths: false
+hide_line_numbers: false
+hide_rule_ids: false
+tier2_as_warnings: false
+secondary_format: ~
+severity_labels: {}

@@ -1,0 +1,60 @@
+schema_version: "1.0"
+id: "AC_SEC_010"
+name: "ac-sec-010-shell-exec"
+title: "Shell Execution With Variable Input — Command Injection Risk"
+description: >
+  Calls to exec(), shell_exec(), system(), passthru(), or popen() that include PHP
+  variables in the command string are vulnerable to OS command injection. An attacker
+  who controls any part of the variable can break out of the intended command and
+  execute arbitrary system commands with the web server's privileges.
+category: "security"
+severity: "blocker"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "security-checks.md"
+tags:
+  - security
+  - command-injection
+  - owasp-a03
+  - rce
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: '(exec|shell_exec|system|passthru|popen)\s*\(\s*[^''"][^)]*\$'
+recommendation: >
+  Avoid shell execution functions entirely; prefer PHP library equivalents (e.g.
+  Imagick instead of exec('convert ...')). If system commands are unavoidable,
+  use escapeshellarg() on every user-controlled value and escapeshellcmd() on the
+  full command string. Prefer allow-listed commands where only known-safe strings
+  are accepted. Consider Symfony Process component for structured command building.
+examples:
+  bad: |
+    $filename = $this->getRequest()->getParam('file');
+    exec('convert /tmp/' . $filename . ' /tmp/output.jpg');
+
+    $dir = $_POST['directory'];
+    shell_exec('ls -la ' . $dir);
+  good: |
+    use Symfony\Component\Process\Process;
+
+    $allowedFiles = ['image1.png', 'image2.png'];
+    if (!in_array($filename, $allowedFiles, true)) {
+        throw new \InvalidArgumentException('Invalid file');
+    }
+    $process = new Process(['convert', '/tmp/' . $filename, '/tmp/output.jpg']);
+    $process->mustRun();
+references:
+  - "https://owasp.org/www-community/attacks/Command_Injection"
+  - "https://www.php.net/manual/en/function.escapeshellarg.php"
+  - "https://symfony.com/doc/current/components/process.html"

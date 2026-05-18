@@ -1,0 +1,53 @@
+schema_version: "1.0"
+id: "AC_ARCH_001"
+name: "ac-arch-001-plugin-on-plugin"
+title: "Plugin Declared on Another Plugin Class"
+description: >
+  Declaring a plugin on another plugin class (interceptor) is not supported by
+  Magento's interception framework. The generated interceptor classes in
+  generated/code/ are internal implementation details that change across Magento
+  versions. Plugins must only be declared on original class names, not on the
+  generated \Interceptor subclasses, as this leads to unpredictable behavior
+  and will silently fail in production.
+category: "architecture"
+severity: "error"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-architecture.mdc"
+tags:
+  - architecture
+  - plugins
+  - di
+  - magento2
+globs:
+  - "**/di.xml"
+check:
+  type: structural
+  strategy: plugin_on_plugin_check
+recommendation: >
+  Always declare plugins on the original class or interface, not on generated
+  interceptor classes. In di.xml, the 'type' attribute of a <plugin> declaration
+  must reference the original service class. If you need to modify behavior of
+  a method that is already intercepted by another plugin, add your plugin to the
+  same original type — Magento will sequence the plugins via sortOrder.
+examples:
+  bad: |
+    <!-- Plugin on a generated interceptor — will break -->
+    <type name="Magento\Catalog\Model\Product\Interceptor">
+        <plugin name="vendor_module_product_plugin" type="Vendor\Module\Plugin\ProductPlugin"/>
+    </type>
+  good: |
+    <!-- Plugin on the original class -->
+    <type name="Magento\Catalog\Model\Product">
+        <plugin name="vendor_module_product_plugin" type="Vendor\Module\Plugin\ProductPlugin"/>
+    </type>
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/plugins/"
+  - "https://developer.adobe.com/commerce/php/development/framework/interception/"

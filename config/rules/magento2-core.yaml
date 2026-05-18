@@ -1,0 +1,501 @@
+# Magento 2 Core Quality Rules
+# Comprehensive rule set for Magento 2 development best practices
+
+name: "Magento 2 Core Rules"
+description: "Essential quality rules for Magento 2 development"
+version: "2.0.0"
+extends: []
+
+# Rule Categories
+categories:
+  dependency_injection: "Dependency Injection"
+  object_manager: "Object Manager Usage"
+  plugins: "Plugin Development"
+  observers: "Event Observers"
+  module_structure: "Module Structure"
+  api_usage: "API Usage"
+  data_handling: "Data Handling"
+  layout_xml: "Layout XML"
+  templates: "Template Development"
+  database: "Database Operations"
+
+# Severity Levels
+severity_levels:
+  critical: "Critical - Must fix immediately"
+  error: "Error - Should fix before release"
+  warning: "Warning - Should fix when possible"
+  info: "Info - Consider fixing for best practices"
+
+rules:
+  # ================================
+  # DEPENDENCY INJECTION RULES
+  # ================================
+  
+  no_object_manager_direct_usage:
+    name: "No Direct ObjectManager Usage"
+    category: object_manager
+    severity: error
+    description: "Direct usage of ObjectManager is prohibited. Use dependency injection instead."
+    rationale: "ObjectManager bypasses dependency injection and makes code harder to test and maintain."
+    examples:
+      bad:
+        - '$objectManager = \Magento\Framework\App\ObjectManager::getInstance();'
+        - '$product = $objectManager->create(\Magento\Catalog\Model\Product::class);'
+      good:
+        - 'public function __construct(\Magento\Catalog\Api\ProductRepositoryInterface $productRepository)'
+        - '$this->productRepository = $productRepository;'
+    fix_suggestion: "Inject the required dependency through constructor injection"
+    tags: [dependency_injection, best_practices]
+    patterns:
+      - 'ObjectManager::getInstance'
+      - '\Magento\Framework\App\ObjectManager::getInstance'
+
+  require_constructor_injection:
+    name: "Require Constructor Injection"
+    category: dependency_injection
+    severity: warning
+    description: "Dependencies should be injected through constructor"
+    rationale: "Constructor injection ensures dependencies are available and makes code testable"
+    examples:
+      bad:
+        - 'protected function getProductRepository() { return ObjectManager::getInstance()->get(...); }'
+      good:
+        - 'public function __construct(ProductRepositoryInterface $productRepository) { $this->productRepository = $productRepository; }'
+    fix_suggestion: "Move dependency to constructor injection"
+    tags: [dependency_injection]
+
+  prefer_interfaces_over_classes:
+    name: "Prefer Interfaces Over Concrete Classes"
+    category: dependency_injection
+    severity: warning
+    description: "Inject interfaces instead of concrete classes when possible"
+    rationale: "Interface injection provides better decoupling and testability"
+    examples:
+      bad:
+        - 'public function __construct(\Magento\Catalog\Model\ProductRepository $productRepository)'
+      good:
+        - 'public function __construct(\Magento\Catalog\Api\ProductRepositoryInterface $productRepository)'
+    fix_suggestion: "Replace concrete class with corresponding interface"
+    tags: [dependency_injection, interfaces]
+
+  # ================================
+  # PLUGIN DEVELOPMENT RULES
+  # ================================
+
+  plugin_naming_convention:
+    name: "Plugin Naming Convention"
+    category: plugins
+    severity: warning
+    description: "Plugin classes should follow naming convention: {Vendor}_{Module}_Plugin_{TargetClass}"
+    rationale: "Consistent naming makes plugins easier to identify and manage"
+    examples:
+      bad:
+        - 'MyCustomPlugin.php'
+        - 'ProductPlugin.php'
+      good:
+        - 'Vendor_Module_Plugin_Catalog_Model_Product.php'
+        - 'Company_CustomModule_Plugin_Sales_Model_Order.php'
+    fix_suggestion: "Rename plugin class to follow naming convention"
+    tags: [plugins, naming]
+
+  plugin_method_naming:
+    name: "Plugin Method Naming"
+    category: plugins
+    severity: error
+    description: "Plugin methods must be named before*, after*, or around*"
+    rationale: "Magento requires specific method naming for plugin functionality"
+    examples:
+      bad:
+        - 'public function interceptSave($subject, $proceed)'
+        - 'public function modifyGetData($subject, $result)'
+      good:
+        - 'public function beforeSave($subject)'
+        - 'public function afterGetData($subject, $result)'
+        - 'public function aroundExecute($subject, $proceed)'
+    fix_suggestion: "Rename plugin method with proper before/after/around prefix"
+    tags: [plugins, methods]
+
+  avoid_around_plugins:
+    name: "Avoid Around Plugins When Possible"
+    category: plugins
+    severity: info
+    description: "Use before/after plugins instead of around plugins when possible"
+    rationale: "Around plugins can cause performance issues and compatibility problems"
+    examples:
+      bad:
+        - 'public function aroundSave($subject, $proceed) { $result = $proceed(); return $result; }'
+      good:
+        - 'public function beforeSave($subject) { /* validation logic */ }'
+        - 'public function afterSave($subject, $result) { /* post-processing */ }'
+    fix_suggestion: "Consider splitting around plugin into before/after plugins"
+    tags: [plugins, performance]
+
+  # ================================
+  # OBSERVER RULES
+  # ================================
+
+  observer_naming_convention:
+    name: "Observer Naming Convention"
+    category: observers
+    severity: warning
+    description: "Observer classes should follow naming convention"
+    rationale: "Consistent naming helps identify and organize observers"
+    examples:
+      bad:
+        - 'CustomerHandler.php'
+        - 'ProductObserver.php'
+      good:
+        - 'CustomerLoginObserver.php'
+        - 'ProductSaveAfterObserver.php'
+    fix_suggestion: "Rename observer class to include event purpose"
+    tags: [observers, naming]
+
+  observer_execute_method:
+    name: "Observer Execute Method Required"
+    category: observers
+    severity: error
+    description: "Observer classes must implement execute() method"
+    rationale: "Magento requires execute method for observer functionality"
+    examples:
+      bad:
+        - 'public function handle(Observer $observer)'
+        - 'public function process(Observer $observer)'
+      good:
+        - 'public function execute(Observer $observer)'
+    fix_suggestion: "Rename method to execute() and implement ObserverInterface"
+    tags: [observers, methods]
+
+  observer_lightweight_processing:
+    name: "Keep Observer Processing Lightweight"
+    category: observers
+    severity: warning
+    description: "Observers should perform minimal processing to avoid performance issues"
+    rationale: "Heavy processing in observers can slow down the entire application"
+    examples:
+      bad:
+        - 'for ($i = 0; $i < 1000; $i++) { /* heavy processing */ }'
+        - 'sleep(5); // blocking operation'
+      good:
+        - '$this->messageQueue->publish($message); // async processing'
+        - '$this->logger->info($event->getData()); // lightweight logging'
+    fix_suggestion: "Move heavy processing to async queue or separate service"
+    tags: [observers, performance]
+
+  # ================================
+  # MODULE STRUCTURE RULES
+  # ================================
+
+  require_module_xml:
+    name: "Require module.xml File"
+    category: module_structure
+    severity: error
+    description: "Every module must have etc/module.xml file"
+    rationale: "module.xml is required for Magento to recognize the module"
+    examples:
+      bad:
+        - 'Module without etc/module.xml'
+      good:
+        - 'app/code/Vendor/Module/etc/module.xml'
+    fix_suggestion: "Create etc/module.xml with proper module declaration"
+    tags: [module_structure, required]
+
+  require_registration_php:
+    name: "Require registration.php File"
+    category: module_structure
+    severity: error
+    description: "Every module must have registration.php file"
+    rationale: "registration.php is required for module registration"
+    examples:
+      bad:
+        - 'Module without registration.php'
+      good:
+        - 'app/code/Vendor/Module/registration.php'
+    fix_suggestion: "Create registration.php with ComponentRegistrar::register()"
+    tags: [module_structure, required]
+
+  require_composer_json:
+    name: "Require composer.json File"
+    category: module_structure
+    severity: warning
+    description: "Modules should have composer.json file for dependency management"
+    rationale: "composer.json defines module dependencies and metadata"
+    examples:
+      bad:
+        - 'Module without composer.json'
+      good:
+        - 'app/code/Vendor/Module/composer.json'
+    fix_suggestion: "Create composer.json with module metadata and dependencies"
+    tags: [module_structure, composer]
+
+  proper_namespace_structure:
+    name: "Proper Namespace Structure"
+    category: module_structure
+    severity: error
+    description: "Classes must follow PSR-4 namespace structure"
+    rationale: "Proper namespacing ensures autoloading works correctly"
+    examples:
+      bad:
+        - 'namespace Vendor\Module\Model\Product; // in Controller/Index.php'
+      good:
+        - 'namespace Vendor\Module\Controller\Index; // in Controller/Index.php'
+    fix_suggestion: "Align namespace with file directory structure"
+    tags: [module_structure, namespaces]
+
+  # ================================
+  # API USAGE RULES
+  # ================================
+
+  prefer_service_contracts:
+    name: "Prefer Service Contracts"
+    category: api_usage
+    severity: warning
+    description: "Use service contracts (API interfaces) instead of models directly"
+    rationale: "Service contracts provide stable API and better backward compatibility"
+    examples:
+      bad:
+        - '$product = $this->productFactory->create()->load($id);'
+      good:
+        - '$product = $this->productRepository->getById($id);'
+    fix_suggestion: "Replace direct model usage with repository interface"
+    tags: [api_usage, service_contracts]
+
+  use_search_criteria:
+    name: "Use SearchCriteria for Collections"
+    category: api_usage
+    severity: warning
+    description: "Use SearchCriteria instead of direct collection manipulation"
+    rationale: "SearchCriteria provides consistent API across all repositories"
+    examples:
+      bad:
+        - '$collection = $this->productCollectionFactory->create()->addFieldToFilter("sku", $sku);'
+      good:
+        - '$searchCriteria = $this->searchCriteriaBuilder->addFilter("sku", $sku)->create();'
+    fix_suggestion: "Replace collection with SearchCriteria and repository"
+    tags: [api_usage, collections]
+
+  avoid_direct_resource_model:
+    name: "Avoid Direct Resource Model Usage"
+    category: api_usage
+    severity: warning
+    description: "Avoid using resource models directly, use repositories instead"
+    rationale: "Resource models are internal implementation details"
+    examples:
+      bad:
+        - '$this->productResource->save($product);'
+      good:
+        - '$this->productRepository->save($product);'
+    fix_suggestion: "Use repository interface instead of resource model"
+    tags: [api_usage, repositories]
+
+  # ================================
+  # DATA HANDLING RULES
+  # ================================
+
+  validate_input_data:
+    name: "Validate Input Data"
+    category: data_handling
+    severity: error
+    description: "Always validate and sanitize input data"
+    rationale: "Input validation prevents security vulnerabilities and data corruption"
+    examples:
+      bad:
+        - '$productId = $request->getParam("product_id"); $product = $this->getById($productId);'
+      good:
+        - '$productId = (int)$request->getParam("product_id"); if ($productId > 0) { $product = $this->getById($productId); }'
+    fix_suggestion: "Add proper input validation and type casting"
+    tags: [data_handling, security]
+
+  use_type_hints:
+    name: "Use Type Hints"
+    category: data_handling
+    severity: warning
+    description: "Use type hints for method parameters and return types"
+    rationale: "Type hints improve code clarity and catch type-related errors"
+    examples:
+      bad:
+        - 'public function processProduct($product)'
+      good:
+        - 'public function processProduct(ProductInterface $product): bool'
+    fix_suggestion: "Add type hints to method signature"
+    tags: [data_handling, type_hints]
+
+  handle_exceptions_properly:
+    name: "Handle Exceptions Properly"
+    category: data_handling
+    severity: error
+    description: "Catch and handle specific exceptions appropriately"
+    rationale: "Proper exception handling prevents application crashes and provides better UX"
+    examples:
+      bad:
+        - 'try { $product = $this->getById($id); } catch (Exception $e) { }'
+      good:
+        - 'try { $product = $this->getById($id); } catch (NoSuchEntityException $e) { $this->logger->warning("Product not found: " . $id); return null; }'
+    fix_suggestion: "Catch specific exceptions and provide meaningful error handling"
+    tags: [data_handling, exceptions]
+
+  # ================================
+  # LAYOUT XML RULES
+  # ================================
+
+  valid_xml_syntax:
+    name: "Valid XML Syntax"
+    category: layout_xml
+    severity: error
+    description: "Layout XML files must have valid syntax"
+    rationale: "Invalid XML syntax breaks page rendering"
+    examples:
+      bad:
+        - '<block class="Vendor\Module\Block\Test" <argument name="test">'
+      good:
+        - '<block class="Vendor\Module\Block\Test"><arguments><argument name="test" xsi:type="string">value</argument></arguments></block>'
+    fix_suggestion: "Fix XML syntax errors and validate against schema"
+    tags: [layout_xml, syntax]
+
+  proper_block_naming:
+    name: "Proper Block Naming"
+    category: layout_xml
+    severity: warning
+    description: "Block names should be descriptive and follow naming convention"
+    rationale: "Descriptive names make layouts easier to understand and maintain"
+    examples:
+      bad:
+        - '<block class="..." name="block1">'
+        - '<block class="..." name="test">'
+      good:
+        - '<block class="..." name="product.details.tabs">'
+        - '<block class="..." name="customer.account.navigation">'
+    fix_suggestion: "Use descriptive, hierarchical block names"
+    tags: [layout_xml, naming]
+
+  # ================================
+  # TEMPLATE RULES
+  # ================================
+
+  escape_output:
+    name: "Escape Template Output"
+    category: templates
+    severity: critical
+    description: "Always escape output in templates to prevent XSS"
+    rationale: "Unescaped output creates security vulnerabilities"
+    examples:
+      bad:
+        - '<?= $block->getProductName() ?>'
+        - 'echo $customerData["name"];'
+      good:
+        - '<?= $block->escapeHtml($block->getProductName()) ?>'
+        - '<?= $block->escapeHtmlAttr($product->getName()) ?>'
+    fix_suggestion: "Use appropriate escape methods for all template output"
+    tags: [templates, security, xss]
+
+  minimize_php_in_templates:
+    name: "Minimize PHP Logic in Templates"
+    category: templates
+    severity: warning
+    description: "Keep PHP logic minimal in templates, move complex logic to blocks"
+    rationale: "Templates should focus on presentation, not business logic"
+    examples:
+      bad:
+        - '<?php if ($product->getPrice() > 100 && $product->isInStock() && $customer->isLoggedIn()) { ?>'
+      good:
+        - '<?php if ($block->shouldShowPremiumPrice()) { ?>'
+    fix_suggestion: "Move complex logic to block methods"
+    tags: [templates, separation_of_concerns]
+
+  # ================================
+  # DATABASE RULES
+  # ================================
+
+  use_parameterized_queries:
+    name: "Use Parameterized Queries"
+    category: database
+    severity: critical
+    description: "Always use parameterized queries to prevent SQL injection"
+    rationale: "Parameterized queries prevent SQL injection attacks"
+    examples:
+      bad:
+        - '$connection->query("SELECT * FROM sales_order WHERE customer_id = " . $customerId);'
+      good:
+        - '$connection->query("SELECT * FROM sales_order WHERE customer_id = ?", [$customerId]);'
+    fix_suggestion: "Use parameter binding for all dynamic SQL values"
+    tags: [database, security, sql_injection]
+
+  optimize_database_queries:
+    name: "Optimize Database Queries"
+    category: database
+    severity: warning
+    description: "Avoid N+1 queries and unnecessary database calls"
+    rationale: "Optimized queries improve application performance"
+    examples:
+      bad:
+        - 'foreach ($products as $product) { $category = $this->categoryRepository->getById($product->getCategoryId()); }'
+      good:
+        - '$categoryIds = array_column($products, "category_id"); $categories = $this->categoryRepository->getByIds($categoryIds);'
+    fix_suggestion: "Batch database queries and use joins when possible"
+    tags: [database, performance]
+
+# Rule Sets by Role
+role_based_rules:
+  developer:
+    enabled_rules:
+      - no_object_manager_direct_usage
+      - require_constructor_injection
+      - use_type_hints
+      - escape_output
+      - validate_input_data
+      - handle_exceptions_properly
+    severity_threshold: warning
+    
+  lead_developer:
+    enabled_rules:
+      - all
+    severity_threshold: warning
+    additional_checks:
+      - code_complexity
+      - test_coverage
+      
+  architect:
+    enabled_rules:
+      - all
+    severity_threshold: info
+    additional_checks:
+      - architectural_patterns
+      - performance_implications
+      - scalability_concerns
+
+# Automated Fix Suggestions
+auto_fixes:
+  no_object_manager_direct_usage:
+    enabled: false
+    reason: "Requires manual dependency injection setup"
+    
+  escape_output:
+    enabled: true
+    patterns:
+      - pattern: '<?= $block->getData(\x27(\w+)\x27) ?>'
+        replacement: '<?= $block->escapeHtml($block->getData(\x27$1\x27)) ?>'
+        
+  use_type_hints:
+    enabled: true
+    patterns:
+      - pattern: 'public function (\w+)\($(\w+)\)'
+        replacement: 'public function $1($2): void'
+        conditions:
+          - no_return_statement
+
+# Integration with External Tools
+integrations:
+  phpcs:
+    standards: ["Magento2"]
+    custom_sniffs:
+      - "Magento2.Classes.ObjectInstantiation"
+      - "Magento2.Security.XssTemplate"
+      
+  phpmd:
+    rulesets: ["cleancode", "codesize", "design"]
+    custom_rules:
+      - "resources/phpmd/magento2.xml"
+      
+  phpstan:
+    level: 5
+    extensions:
+      - "bitexpert/phpstan-magento" 

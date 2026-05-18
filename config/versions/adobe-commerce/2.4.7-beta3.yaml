@@ -1,0 +1,11 @@
+schema_version: '1'
+version: 2.4.7-beta3
+release_date: '2024-03-06'
+release_type: prerelease
+breaking_changes: {  }
+deprecated_symbols:
+  classes: {  }
+  methods: {  }
+  events: {  }
+db_schema_changes: {  }
+security_advisories: {  }

@@ -1,0 +1,49 @@
+schema_version: "1.0"
+id: "AC_CLOUD_005"
+name: "ac-cloud-005-symlink-creation"
+title: "Dynamic Symlink Creation in Application Code"
+description: >
+  Creating symbolic links dynamically in PHP application code is unreliable in
+  Adobe Commerce Cloud's read-only filesystem and containerized deployment model.
+  Symlinks created at runtime may not persist across deployments, break during
+  cloud build phases, or fail entirely when the container filesystem is read-only.
+  Static assets and file references must be managed through Magento's deployment
+  pipeline, not runtime symlinks.
+category: "cloud"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-cloud.mdc"
+tags:
+  - cloud
+  - filesystem
+  - deployment
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: '\bsymlink\s*\('
+recommendation: >
+  Replace runtime symlink creation with proper asset deployment. For static content,
+  use Magento's static content deployment (bin/magento setup:static-content:deploy).
+  For media files, use the Magento filesystem API with writable directories.
+  Configure symlinks needed for the module in the cloud build phase via .magento.app.yaml
+  mounts configuration instead of creating them at runtime.
+examples:
+  bad: |
+    symlink(BP . '/pub/media/original', BP . '/pub/media/cached/thumbnail');
+  good: |
+    // Use Magento's image resizing service instead of manual symlinks
+    $imageUrl = $this->imageHelper->init($product, 'product_thumbnail_image')
+        ->setImageFile($product->getImage())
+        ->resize(75, 75)
+        ->getUrl();
+references:
+  - "https://experienceleague.adobe.com/docs/commerce-cloud-service/user-guide/develop/deploy/static-content.html"
+  - "https://experienceleague.adobe.com/docs/commerce-cloud-service/user-guide/configure/app/properties.html"

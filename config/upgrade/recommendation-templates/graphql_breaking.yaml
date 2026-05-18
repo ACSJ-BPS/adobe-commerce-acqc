@@ -1,0 +1,34 @@
+root_cause: "A GraphQL schema type, field, or argument used by this module was changed or removed in the target version. Storefront applications querying the old schema will receive errors or missing data."
+code_example: |
+  # Before — field removed from ProductInterface in target version
+  query {
+    products(filter: { sku: { eq: "MH01" } }) {
+      items {
+        id
+        removedField   # no longer available
+        name
+      }
+    }
+  }
+
+  # After — use the replacement field or fetch via REST
+  query {
+    products(filter: { sku: { eq: "MH01" } }) {
+      items {
+        uid          # replaces integer id in Commerce 2.4.4+
+        name
+        replacementField
+      }
+    }
+  }
+step_by_step: |
+  1. Run a schema introspection diff against the target version's GraphQL schema: npx graphql-inspector diff old-schema.graphql new-schema.graphql.
+  2. Identify every breaking change (removed fields, changed argument types, new non-null fields).
+  3. Update all schema*.graphql files in your module to match the new type definitions.
+  4. Update any storefront queries (PWA Studio, Headless) that reference removed or renamed fields.
+  5. Add an integration test that runs the affected GraphQL queries against a Commerce 2.4.x instance.
+  6. If the field was only deprecated (not removed): add a deprecation notice and schedule removal.
+doc_links:
+  - "https://developer.adobe.com/commerce/webapi/graphql/"
+  - "https://developer.adobe.com/commerce/php/development/backward-incompatible-changes/"
+confidence_score: 5

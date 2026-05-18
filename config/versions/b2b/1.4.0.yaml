@@ -1,0 +1,58 @@
+schema_version: "1"
+version: "1.4.0"
+release_date: "2024-04-09"
+
+compatible_ac_versions:
+  - "2.4.7"
+  - "2.4.7-p1"
+  - "2.4.7-p2"
+  - "2.4.7-p3"
+  - "2.4.8"
+
+breaking_changes:
+  - id: "B2B-BC-1.4.0-001"
+    type: class_removed
+    symbol: "Magento\\NegotiableQuote\\Model\\Quote\\TotalsFactory"
+    replacement: "Magento\\NegotiableQuote\\Model\\Quote\\TotalsInterface"
+    severity: error
+    remediation_summary: "Inject TotalsInterface via DI instead of using TotalsFactory directly"
+
+  - id: "B2B-BC-1.4.0-002"
+    type: method_removed
+    class: "Magento\\Company\\Api\\CompanyManagementInterface"
+    method: "assignCustomer"
+    severity: error
+    remediation_summary: "Use CompanyManagementInterface::addCustomerToCompany() instead"
+
+  - id: "B2B-BC-1.4.0-003"
+    type: graphql_type_removed
+    symbol: "NegotiableQuoteItem"
+    change_description: "Type split into NegotiableQuoteItemInterface and NegotiableQuoteItemProduct"
+    severity: error
+    remediation_summary: "Update custom B2B GraphQL resolvers to use the new split interfaces"
+
+  - id: "B2B-BC-1.4.0-004"
+    type: rest_endpoint_changed
+    symbol: "/V1/negotiableQuote/:quoteId/items"
+    change_description: "Response shape changed; 'quote_item_id' field renamed to 'item_id'"
+    severity: warning
+    remediation_summary: "Update API client integrations that consume negotiable quote item responses"
+
+deprecated_symbols:
+  classes:
+    - symbol: "Magento\\Company\\Model\\Company\\Structure"
+      since: "1.4.0"
+      replacement: "Magento\\Company\\Model\\ResourceModel\\Company\\Structure"
+    - symbol: "Magento\\SharedCatalog\\Model\\SharedCatalogFactory"
+      since: "1.4.0"
+      replacement: "Inject SharedCatalogInterface via DI"
+  methods:
+    - class: "Magento\\NegotiableQuote\\Model\\NegotiableQuote"
+      method: "getNegotiatedPrice"
+      since: "1.4.0"
+      replacement: "Use NegotiableQuoteInterface::getNegotiatedPriceValue()"
+  api_endpoints:
+    - endpoint: "POST /V1/company/company/{id}/user"
+      since: "1.4.0"
+      replacement: "POST /V1/company/{id}/users"
+      change_description: "Path restructured for REST consistency"

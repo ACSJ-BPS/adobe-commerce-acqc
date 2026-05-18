@@ -1,0 +1,66 @@
+schema_version: "1.0"
+id: "AC_ASYNC_001"
+name: "ac-async-001-synchronous-third-party"
+title: "Synchronous Third-Party API Call in Request Lifecycle"
+description: >
+  Making synchronous HTTP calls to third-party services during the web request
+  lifecycle blocks the PHP process for the duration of the external call. If the
+  third-party service is slow or unavailable, this directly increases storefront
+  response time or causes timeouts for customers. External integrations should use
+  Magento's message queue system to process calls asynchronously, decoupling the
+  customer experience from third-party reliability.
+category: "async"
+severity: "warning"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-async.mdc"
+tags:
+  - async
+  - performance
+  - message-queue
+  - integration
+globs:
+  - "**/Observer/**/*.php"
+  - "**/Plugin/**/*.php"
+check:
+  type: structural
+  strategy: async_call_in_observer
+recommendation: >
+  Move third-party API calls to asynchronous message queue consumers. Publish a
+  message to a queue topic in the observer/plugin and process the actual API call
+  in a dedicated consumer class. Configure the queue topology in communication.xml
+  and queue.xml. This ensures storefront requests return immediately while the
+  integration processes in the background.
+examples:
+  bad: |
+    class OrderPlaceObserver implements ObserverInterface
+    {
+        public function execute(Observer $observer): void
+        {
+            $order = $observer->getEvent()->getOrder();
+            // Blocks request while waiting for external ERP
+            $this->erpClient->syncOrder($order->getData());
+        }
+    }
+  good: |
+    class OrderPlaceObserver implements ObserverInterface
+    {
+        public function execute(Observer $observer): void
+        {
+            $order = $observer->getEvent()->getOrder();
+            // Publish to queue — returns immediately
+            $this->publisher->publish('vendor.module.order.sync', [
+                'order_id' => $order->getId(),
+            ]);
+        }
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/message-queues/"
+  - "https://developer.adobe.com/commerce/php/development/components/message-queues/configuration/"

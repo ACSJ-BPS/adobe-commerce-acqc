@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
+    <group id="vendor_module">
+        <use_separate_process>1</use_separate_process>
+        <!-- Bad: runs every minute — creates excessive database and server load -->
+        <job name="vendor_module_status_check"
+             instance="Vendor\Module\Cron\StatusCheck"
+             method="execute">
+            <schedule>* * * * *</schedule>
+        </job>
+    </group>
+</config>

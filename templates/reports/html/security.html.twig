@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Report — {{ report.project_name|default('ACQC') }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a2e; color: #eee; }
+        .container { max-width: 1100px; margin: 0 auto; background: #16213e; padding: 30px; border-radius: 8px; }
+        h1 { color: #e74c3c; border-bottom: 2px solid #e74c3c; padding-bottom: 10px; }
+        h2 { color: #e74c3c; margin-top: 28px; font-size: 1.1rem; }
+        .meta { color: #8899aa; font-size: 13px; margin-bottom: 20px; }
+        .metrics { display: flex; gap: 14px; flex-wrap: wrap; margin: 16px 0; }
+        .metric { flex: 1 1 130px; padding: 14px 18px; background: #0f3460; border-radius: 6px; text-align: center; border-left: 4px solid #e74c3c; }
+        .metric-label { font-size: 11px; color: #8899aa; text-transform: uppercase; }
+        .metric-value { font-size: 26px; font-weight: bold; color: #e74c3c; margin-top: 4px; }
+        .metric-value.safe { color: #2ecc71; }
+        table { width: 100%; border-collapse: collapse; margin: 14px 0; }
+        th { background: #0f3460; color: #e74c3c; padding: 10px 12px; text-align: left; font-size: 13px; }
+        td { padding: 9px 12px; border-bottom: 1px solid #0f3460; font-size: 13px; color: #cdd6f4; }
+        tr:hover { background: #0f3460; }
+        .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+        .pill-critical { background: #440000; color: #ff6b6b; }
+        .pill-error    { background: #4a2000; color: #ffa07a; }
+        .pill-warning  { background: #4a3800; color: #ffd700; }
+        .footer { margin-top: 40px; text-align: center; color: #445566; font-size: 12px; border-top: 1px solid #0f3460; padding-top: 16px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🔒 Security Analysis Report</h1>
+    <div class="meta">
+        Project: {{ report.project_name|default('N/A') }} &nbsp;|&nbsp;
+        Generated: {{ report.generated_at|default('N/A') }} &nbsp;|&nbsp;
+        Role: {{ report.user_role|default('developer') }}
+    </div>
+
+    {% set violations = data.violations|default({}) %}
+    {% set total = violations.total_count|default(0) %}
+    {% set by_sev = violations.by_severity|default({}) %}
+    {% set critical = by_sev.critical|default(0) %}
+
+    <div class="metrics">
+        <div class="metric">
+            <div class="metric-label">Critical</div>
+            <div class="metric-value {% if critical == 0 %}safe{% endif %}">{{ critical }}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Errors</div>
+            <div class="metric-value {% if by_sev.error|default(0) == 0 %}safe{% endif %}">{{ by_sev.error|default(0) }}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Warnings</div>
+            <div class="metric-value">{{ by_sev.warning|default(0) }}</div>
+        </div>
+        <div class="metric">
+            <div class="metric-label">Total</div>
+            <div class="metric-value">{{ total }}</div>
+        </div>
+    </div>
+
+    {% if violations.top_violations is defined and violations.top_violations|length > 0 %}
+    <h2>Security Findings</h2>
+    <table>
+        <thead><tr><th>Severity</th><th>Rule</th><th>File</th><th>Line</th><th>Description</th></tr></thead>
+        <tbody>
+        {% for v in violations.top_violations %}
+            {% if v.category|default('') == 'security' or v.rule_id|default('')|lower|split('-')|first == 'security' or v.type|default('')|lower == 'security' %}
+            <tr>
+                <td><span class="pill pill-{{ v.severity|default('warning') }}">{{ v.severity|upper|default('WARN') }}</span></td>
+                <td>{{ v.rule_id|default('—') }}</td>
+                <td>{{ v.file|default(v.file_path|default('—'))|split('/')|last }}</td>
+                <td>{{ v.line|default('—') }}</td>
+                <td>{{ v.message|default('')|slice(0, 100) }}{% if v.message|default('')|length > 100 %}…{% endif %}</td>
+            </tr>
+            {% endif %}
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>All Findings</h2>
+    <table>
+        <thead><tr><th>Severity</th><th>Rule</th><th>File</th><th>Line</th><th>Message</th></tr></thead>
+        <tbody>
+        {% for v in violations.top_violations|slice(0, 50) %}
+        <tr>
+            <td><span class="pill pill-{{ v.severity|default('warning') }}">{{ v.severity|upper|default('WARN') }}</span></td>
+            <td>{{ v.rule_id|default('—') }}</td>
+            <td>{{ v.file|default(v.file_path|default('—'))|split('/')|last }}</td>
+            <td>{{ v.line|default('—') }}</td>
+            <td>{{ v.message|default('')|slice(0, 90) }}{% if v.message|default('')|length > 90 %}…{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#2ecc71;font-size:1.1rem;margin-top:20px">✅ No violations found in this scan.</p>
+    {% endif %}
+
+    <div class="footer">Adobe Commerce Quality Control (ACQC) — {{ report.generated_at|default('') }}</div>
+</div>
+</body>
+</html>

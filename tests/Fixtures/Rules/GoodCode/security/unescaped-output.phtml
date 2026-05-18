@@ -1,0 +1,10 @@
+<?php
+/** @var \Magento\Framework\View\Element\Template $block */
+$productName = $block->getData('product_name');
+$customerName = $block->getData('customer_name');
+?>
+<div class="product-info">
+    <!-- Good: all output escaped via $block->escapeHtml() -->
+    <h1><?= $block->escapeHtml($productName) ?></h1>
+    <p>Welcome, <?= $block->escapeHtml($customerName) ?></p>
+</div>

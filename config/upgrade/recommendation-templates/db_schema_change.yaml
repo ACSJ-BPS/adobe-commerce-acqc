@@ -1,0 +1,25 @@
+root_cause: "A core database table or column definition changed in the target version (column type, index, constraint, or removal). Custom code that queries or modifies this table directly may produce SQL errors or silently corrupt data after the upgrade."
+code_example: |
+  // Before — direct raw query against a column that changed type or was removed
+  $connection->query("SELECT removed_column FROM catalog_product_entity WHERE ...");
+
+  // After — use the repository/service API, never raw table queries against core tables
+  /** @var \Magento\Catalog\Api\ProductRepositoryInterface $productRepo */
+  $product = $productRepo->get($sku);
+  $value   = $product->getCustomAttribute('your_attribute')?->getValue();
+
+  // For reports needing raw DB access: build against the new schema
+  $select = $connection->select()
+      ->from(['cpe' => $resource->getTableName('catalog_product_entity')], ['sku', 'new_column'])
+      ->where('cpe.entity_id = ?', $entityId);
+step_by_step: |
+  1. Compare your raw SQL queries against the db_schema.xml diff for the target version (available in the Commerce GitHub changelog).
+  2. Replace direct table/column references with repository or service-layer calls where possible.
+  3. For unavoidable raw queries: update column names, types, and indexes to match the new schema.
+  4. Add a DataPatch to migrate any custom data stored in the modified column.
+  5. Run bin/magento setup:upgrade on a staging database and verify no SQL errors in the log.
+  6. Execute your integration test suite and validate result counts match pre-upgrade baselines.
+doc_links:
+  - "https://developer.adobe.com/commerce/php/development/components/declarative-schema/"
+  - "https://developer.adobe.com/commerce/php/development/backward-incompatible-changes/"
+confidence_score: 5

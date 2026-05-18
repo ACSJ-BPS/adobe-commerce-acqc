@@ -1,0 +1,64 @@
+schema_version: "1.0"
+id: "AC_SCHEMA_010"
+name: "ac-schema-010-missing-updated-at"
+title: "Table Missing updated_at Audit Column or on_update Attribute"
+description: >
+  Custom tables that store mutable entities should include both a created_at timestamp
+  with DEFAULT CURRENT_TIMESTAMP and an updated_at timestamp with on_update="true".
+  Without updated_at, there is no way to determine when a record last changed, which
+  breaks audit trails, incremental synchronisation, and cache invalidation logic.
+  The on_update attribute generates the MySQL ON UPDATE CURRENT_TIMESTAMP behaviour.
+category: "schema"
+severity: "warning"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "schema-patterns.md"
+tags:
+  - schema
+  - audit
+  - timestamp
+  - database
+  - maintainability
+globs:
+  - "**/db_schema.xml"
+check:
+  type: xml_xpath
+  expression: "//table[column[@name='created_at'] and not(column[@name='updated_at'])] | //table[column[@name='updated_at'] and not(@on_update='true')]"
+  attribute: "name"
+  message: "Table '{{value}}' has created_at but is missing updated_at with on_update=\"true\"."
+recommendation: >
+  Add both audit timestamp columns to entity tables:
+    <column name="created_at" xsi:type="timestamp" nullable="false"
+            default="CURRENT_TIMESTAMP" comment="Creation time"/>
+    <column name="updated_at" xsi:type="timestamp" nullable="false"
+            default="CURRENT_TIMESTAMP" on_update="true" comment="Last update time"/>
+  The on_update="true" attribute generates ON UPDATE CURRENT_TIMESTAMP in DDL,
+  automatically tracking the last modification time at the database level.
+examples:
+  bad: |
+    <table name="vendor_subscription" ...>
+        <column name="entity_id" xsi:type="int" .../>
+        <column name="customer_id" xsi:type="int" .../>
+        <column name="created_at" xsi:type="timestamp" default="CURRENT_TIMESTAMP"/>
+        <!-- missing updated_at -->
+    </table>
+  good: |
+    <table name="vendor_subscription" ...>
+        <column name="entity_id" xsi:type="int" unsigned="true" nullable="false"
+                identity="true" comment="Entity ID"/>
+        <column name="customer_id" xsi:type="int" unsigned="true" nullable="false"
+                comment="Customer ID"/>
+        <column name="created_at" xsi:type="timestamp" nullable="false"
+                default="CURRENT_TIMESTAMP" comment="Creation time"/>
+        <column name="updated_at" xsi:type="timestamp" nullable="false"
+                default="CURRENT_TIMESTAMP" on_update="true" comment="Last update time"/>
+    </table>
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/declarative-schema/configuration/"
+  - "https://dev.mysql.com/doc/refman/8.0/en/timestamp-initialization.html"

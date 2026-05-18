@@ -1,0 +1,85 @@
+{
+    "name": "adobe/acqc",
+    "description": "Adobe Commerce Quality Control - AI-driven code quality audit tool for Adobe Commerce/Magento 2",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Adobe",
+            "email": "kumarrao@adobe.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.1",
+        "magento/magento-coding-standard": "^5.0",
+        "nikic/php-parser": "^4.15|^5.0",
+        "phpmd/phpmd": "^2.13",
+        "phpoffice/phpspreadsheet": "^5.1",
+        "psr/log": "^3.0",
+        "squizlabs/php_codesniffer": "^3.7",
+        "symfony/cache": "^6.0|^7.0",
+        "symfony/console": "^6.0|^7.0",
+        "symfony/finder": "^6.0|^7.0",
+        "symfony/process": "^6.0|^7.0",
+        "symfony/yaml": "^6.0|^7.0",
+        "twig/twig": "^3.21"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0|^11.0",
+        "fakerphp/faker": "^1.20",
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "phpbench/phpbench": "^1.2",
+        "mockery/mockery": "^1.5",
+        "mikey179/vfsstream": "^1.6"
+    },
+    "suggest": {
+        "phpstan/phpstan": "Enable static type analysis: composer require --dev phpstan/phpstan",
+        "sebastian/phpcpd": "Copy-paste detection: install globally via 'composer global require sebastian/phpcpd' or download the PHAR from https://github.com/sebastianbergmann/phpcpd",
+        "magento/magento-api-index": "Full UCT-level PHP API surface analysis (104 indexed versions, @api tracking, deprecation index). Requires repo.magento.com auth: composer require magento/magento-api-index:5.4.23 magento/mray:10.0.27 --repository-url=https://repo.magento.com",
+        "magento/mray": "Decodes the magento-api-index phar and provides project scanning. Must be installed together with magento/magento-api-index."
+    },
+    "autoload": {
+        "psr-4": {
+            "ACQC\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "ACQC\\Tests\\": "tests/"
+        }
+    },
+    "bin": [
+        "bin/acqc"
+    ],
+    "config": {
+        "sort-packages": true,
+        "audit": {
+            "ignore": [
+                "PKSA-xwpn-zs9j-6wy5",
+                "PKSA-sf9j-1gs7-xzvx",
+                "PKSA-7h5p-prw9-w5nr"
+            ]
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "scripts": {
+        "post-install-cmd": [
+            "@php -r \"file_exists('bin/acqc') && !file_exists('vendor/bin/acqc') && symlink(realpath('bin/acqc'), 'vendor/bin/acqc');\""
+        ],
+        "post-update-cmd": [
+            "@php -r \"file_exists('bin/acqc') && !file_exists('vendor/bin/acqc') && symlink(realpath('bin/acqc'), 'vendor/bin/acqc');\""
+        ],
+        "test": "phpunit",
+        "test:unit": "phpunit --testsuite=unit",
+        "test:integration": "phpunit --testsuite=integration", 
+        "test:functional": "phpunit --testsuite=functional",
+        "test:performance": "phpunit --testsuite=performance",
+        "test:coverage": "phpunit --coverage-html=build/coverage/html",
+        "test:fast": "phpunit --group=fast",
+        "test:slow": "phpunit --group=slow",
+        "test:ai": "phpunit --testsuite=ai",
+        "test:analyzers": "phpunit --testsuite=analyzers",
+        "test:commands": "phpunit --testsuite=commands"
+    }
+}

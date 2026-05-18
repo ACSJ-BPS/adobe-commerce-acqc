@@ -1,0 +1,61 @@
+schema_version: "1.0"
+id: "AC_FE_006"
+name: "ac-fe-006-knockout-template-security"
+title: "Knockout.js: Avoid html Binding with User-Controlled Data"
+description: >
+  Knockout.js html bindings (data-bind="html: value") render the bound value as raw HTML,
+  creating a stored or reflected XSS vulnerability when the value originates from
+  user input, API responses, or product/customer data. Unlike the text binding (which
+  escapes output automatically), html binding injects content verbatim into the DOM.
+  Commerce storefront Knockout templates frequently bind product descriptions, CMS content,
+  or API response fields — all of which may contain attacker-controlled HTML.
+category: "frontend"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+introduced_in: "3.1.0"
+tags:
+  - frontend
+  - knockout
+  - xss
+  - security
+  - javascript
+globs:
+  - "**/*.html"
+  - "**/*.phtml"
+  - "**/web/template/**/*.html"
+check:
+  type: regex
+  pattern: "data-bind=[\"'][^\"']*\\bhtml\\s*:"
+recommendation: >
+  Replace html binding with text binding for all user-controlled or API-sourced values:
+
+    <!-- Unsafe: attacker can inject <script> tags via product name/description -->
+    <span data-bind="html: productName"></span>
+
+    <!-- Safe: text binding auto-escapes -->
+    <span data-bind="text: productName"></span>
+
+  Use html binding ONLY for pre-sanitized CMS content where HTML rendering is
+  intentional (e.g., cms_block.content that was entered via the Admin CMS editor
+  and cannot be set by end users). In those cases, add a comment documenting why
+  html binding is safe for that specific value.
+examples:
+  bad: |
+    <!-- In a Knockout template -->
+    <div class="product-name" data-bind="html: name"></div>
+    <p data-bind="html: $data.review_text"></p>
+  good: |
+    <div class="product-name" data-bind="text: name"></div>
+    <!-- html binding acceptable here: CMS content entered only by admins -->
+    <div class="cms-content" data-bind="html: cmsBlock.content"></div>
+references:
+  - "https://developer.adobe.com/commerce/frontend-core/javascript/framework/"
+  - "https://knockoutjs.com/documentation/binding-syntax.html"

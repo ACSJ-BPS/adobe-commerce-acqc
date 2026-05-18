@@ -1,0 +1,122 @@
+{
+  "_comment": "ACQC Severity Level Configuration",
+  "_description": "Configure severity levels, overrides, and team-specific standards",
+  
+  "severity_mapping": {
+    "blocker": 6,
+    "critical": 5,
+    "error": 4,
+    "warning": 3,
+    "info": 2,
+    "minor": 1
+  },
+  
+  "rule_severity_overrides": {
+    "_comment": "Override severity for specific rules",
+    
+    "magento-security-xss-vulnerability": "critical",
+    "magento-security-sql-injection": "critical",
+    "magento-security-unsafe-unserialize": "critical",
+    "magento-security-hardcoded-credentials": "blocker",
+    "magento-security-remote-code-execution": "blocker",
+    
+    "magento-performance-n-plus-one": "error",
+    "magento-performance-missing-cache": "warning",
+    "magento-performance-full-collection-load": "error",
+    
+    "magento-di-object-manager": "warning",
+    "magento-di-factory-misuse": "warning",
+    
+    "missing-input-validation": "warning",
+    "unsafe-output": "error",
+    
+    "coding-style-minor": "info"
+  },
+  
+  "category_severity_promotion": {
+    "_comment": "Promote all violations in a category to specific severity",
+    
+    "security": "critical",
+    "performance_critical": "error"
+  },
+  
+  "team_standards": {
+    "_comment": "Team-specific severity adjustments",
+    
+    "promote_to_blocker": [
+      "hardcoded-credentials",
+      "sql-injection",
+      "remote-code-execution",
+      "unsafe-deserialization"
+    ],
+    
+    "promote_to_critical": [
+      "xss-vulnerability",
+      "csrf-missing",
+      "authentication-bypass"
+    ],
+    
+    "demote_to_warning": [
+      "coding-style-spacing",
+      "coding-style-naming-minor"
+    ],
+    
+    "demote_to_info": [
+      "documentation-missing",
+      "comment-style"
+    ]
+  },
+  
+  "minimum_severity_by_environment": {
+    "_comment": "Minimum severity to report based on environment",
+    
+    "production": "warning",
+    "staging": "info",
+    "development": "minor"
+  },
+  
+  "quality_gates": {
+    "_comment": "Quality gate thresholds",
+    
+    "max_blocker_violations": 0,
+    "max_critical_violations": 0,
+    "max_error_violations": 10,
+    "max_warning_violations": 50,
+    
+    "fail_on_blocker": true,
+    "fail_on_critical": true,
+    "fail_on_error": false
+  },
+  
+  "analyzer_severity_weights": {
+    "_comment": "Adjust severity based on analyzer confidence",
+    
+    "high_confidence_analyzers": [
+      "magento_security",
+      "magento_di",
+      "frontend_security"
+    ],
+    
+    "adjust_low_confidence": true,
+    "low_confidence_demote_by": 1
+  },
+  
+  "context_based_severity": {
+    "_comment": "Adjust severity based on file context",
+    
+    "payment_modules": {
+      "promote_security": "blocker",
+      "promote_data_validation": "critical"
+    },
+    
+    "admin_controllers": {
+      "promote_authentication": "critical",
+      "promote_authorization": "critical"
+    },
+    
+    "api_endpoints": {
+      "promote_input_validation": "error",
+      "promote_rate_limiting": "error"
+    }
+  }
+}

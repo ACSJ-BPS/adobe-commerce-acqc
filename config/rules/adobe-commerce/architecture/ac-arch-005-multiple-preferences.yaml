@@ -1,0 +1,56 @@
+schema_version: "1.0"
+id: "AC_ARCH_005"
+name: "ac-arch-005-multiple-preferences"
+title: "Multiple Preferences Declared for the Same Interface"
+description: >
+  When two modules both declare a <preference for="SameInterface"> in their di.xml,
+  only one preference will be active — the one from the module that loads last according
+  to the module sequence. The other module's class is silently ignored, breaking its
+  intended customisation. This conflict is particularly dangerous because it produces
+  no error at runtime; the losing module simply does nothing.
+category: "architecture"
+severity: "critical"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "conflict-types.md"
+tags:
+  - architecture
+  - preference
+  - di
+  - conflict
+  - silent-failure
+globs:
+  - "**/etc/di.xml"
+check:
+  type: xml_xpath
+  expression: "//preference[count(//preference[@for=current()/@for]) > 1]"
+  attribute: "for"
+  message: "Interface '{{value}}' has multiple <preference> declarations — only the last-loaded module's preference will be active."
+recommendation: >
+  Replace preferences with plugins wherever possible; plugins can coexist from
+  multiple modules without conflict. If a preference is unavoidable (e.g. you need
+  to change the constructor signature), ensure only one module declares it and
+  document that other customisations must use plugins on your preference class.
+  See docs/references/resolution-strategies.md §2 for the full strategy matrix.
+examples:
+  bad: |
+    <!-- Module A: replaces the cart -->
+    <preference for="Magento\Checkout\Model\Cart" type="ModuleA\Model\Cart"/>
+
+    <!-- Module B also replaces the cart — one will silently lose -->
+    <preference for="Magento\Checkout\Model\Cart" type="ModuleB\Model\Cart"/>
+  good: |
+    <!-- Use a plugin instead so both modules can coexist -->
+    <type name="Magento\Checkout\Model\Cart">
+        <plugin name="module_a_cart_plugin" type="ModuleA\Plugin\CartPlugin" sortOrder="10"/>
+    </type>
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/plugins/"
+  - "https://developer.adobe.com/commerce/php/development/components/object-manager/configuration/"

@@ -1,0 +1,37 @@
+schema_version: "1.0"
+id: "AC_GUID_003"
+name: "ac-guid-003-static-content-deploy"
+title: "Static Content Deployment Strategy"
+description: >
+  Static content deployment (SCD) strategy significantly impacts build times in
+  Adobe Commerce Cloud. Running SCD during the deploy phase (rather than build phase)
+  blocks the storefront while content is generated and restores from maintenance mode
+  late. For high-traffic stores, suboptimal SCD configuration causes unnecessarily
+  long deployment windows and storefront downtime.
+category: "guidance"
+severity: "info"
+tier: 3
+roles:
+  - tech_lead
+  - architect
+platforms:
+  - cli
+introduced_in: "3.0.0"
+source: "adobe-commerce-guidance.mdc"
+tags:
+  - guidance
+  - cloud
+  - deployment
+  - performance
+recommendation: >
+  Move SCD to the build phase in .magento.env.yaml to minimize deploy-phase downtime:
+  stage:
+    build:
+      SCD_ON_DEMAND: false
+      SCD_STRATEGY: compact
+      SCD_COMPRESSION_LEVEL: 4
+  Set SCD_MATRIX to limit locales and themes to only those in use.
+  Enable SCD_ON_DEMAND for development/staging environments to speed iteration.
+references:
+  - "https://experienceleague.adobe.com/docs/commerce-cloud-service/user-guide/develop/deploy/static-content.html"
+  - "https://experienceleague.adobe.com/docs/commerce-cloud-service/user-guide/configure/env/variables-build.html"

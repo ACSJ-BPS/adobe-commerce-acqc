@@ -1,0 +1,64 @@
+schema_version: "1.0"
+id: "AC_HTTP_003"
+name: "ac-http-003-serial-http-calls"
+title: "Serial cURL Calls Instead of curl_multi_exec"
+description: >
+  Making multiple sequential HTTP requests using curl_exec() in a loop blocks the
+  PHP process for the sum of all response times. When integrating with multiple
+  external APIs or fetching multiple resources, curl_multi_exec() should be used
+  to execute requests in parallel, reducing total latency dramatically. This is
+  especially important in checkout flows and product data aggregation.
+category: "http"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-http.mdc"
+tags:
+  - http
+  - curl
+  - performance
+  - parallelism
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: regex
+  pattern: '\bcurl_exec\s*\('
+recommendation: >
+  Use curl_multi_init() and curl_multi_exec() to execute requests in parallel:
+  $mh = curl_multi_init();
+  foreach ($urls as $ch) { curl_multi_add_handle($mh, $ch); }
+  do { curl_multi_exec($mh, $active); } while ($active);
+  Or use Guzzle's concurrent requests: $client->send($promises, ['concurrency' => 5]);
+examples:
+  bad: |
+    foreach ($productIds as $id) {
+        $ch       = curl_init("https://api.example.com/product/{$id}");
+        $response = curl_exec($ch); // Each waits for previous to complete
+        $results[] = json_decode($response, true);
+    }
+  good: |
+    $mh      = curl_multi_init();
+    $handles = [];
+    foreach ($productIds as $id) {
+        $ch = curl_init("https://api.example.com/product/{$id}");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_multi_add_handle($mh, $ch);
+        $handles[] = $ch;
+    }
+    $active = null;
+    do { curl_multi_exec($mh, $active); } while ($active);
+    foreach ($handles as $ch) {
+        $results[] = json_decode(curl_multi_getcontent($ch), true);
+        curl_multi_remove_handle($mh, $ch);
+    }
+    curl_multi_close($mh);
+references:
+  - "https://www.php.net/manual/en/function.curl-multi-init.php"
+  - "https://developer.adobe.com/commerce/php/development/security/"

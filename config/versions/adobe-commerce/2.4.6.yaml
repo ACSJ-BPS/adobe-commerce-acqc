@@ -1,0 +1,221 @@
+schema_version: "1"
+version: "2.4.6"
+release_date: "2023-03-14"
+eol_date: "2025-03-14"
+release_type: "minor"
+
+patch_releases:
+  - "2.4.6-p1"
+  - "2.4.6-p2"
+
+php_support:
+  minimum: "8.1"
+  maximum: "8.2"
+  recommended: "8.2"
+  dropped: []
+
+search_engine_support:
+  elasticsearch: ["7.16", "7.17"]
+  opensearch: ["2.5", "2.8"]
+
+composer_requirements:
+  magento/framework: "103.0.0"
+  php: ">=8.1 <8.3"
+  platform_extensions:
+    required: ["ext-bcmath", "ext-ctype", "ext-curl", "ext-dom", "ext-gd",
+                "ext-hash", "ext-iconv", "ext-intl", "ext-mbstring",
+                "ext-openssl", "ext-pdo_mysql", "ext-simplexml", "ext-soap",
+                "ext-xsl", "ext-zip", "ext-sockets"]
+    removed: []
+
+upgrade_notes:
+  minimum_source_version: "2.4.4"
+  recommended_intermediate_versions: []
+  breaking_change_count: 11
+  deprecation_count: 22
+  db_schema_change_count: 6
+
+breaking_changes:
+  - id: "BC-2.4.6-001"
+    type: class_removed
+    symbol: "Magento\\Framework\\View\\Asset\\Bundle\\Manager"
+    replacement: "Magento\\Framework\\View\\Asset\\Bundle\\Config"
+    severity: error
+    affected_files_pattern: "*.php"
+    remediation_summary: "jQuery UI merged bundle manager removed; use individual RequireJS module loading"
+    doc_url: "https://developer.adobe.com/commerce/frontend-core/javascript/"
+
+  - id: "BC-2.4.6-002"
+    type: class_removed
+    symbol: "Zend_Db_Adapter_Abstract"
+    replacement: "Magento\\Framework\\DB\\Adapter\\AdapterInterface"
+    severity: error
+    affected_files_pattern: "*.php"
+    remediation_summary: "Zend_Db_Adapter_Abstract fully removed; inject AdapterInterface via DI"
+    doc_url: ""
+
+  - id: "BC-2.4.6-003"
+    type: class_removed
+    symbol: "Zend_Db_Select"
+    replacement: "Magento\\Framework\\DB\\Select"
+    severity: error
+    affected_files_pattern: "*.php"
+    remediation_summary: "Replace Zend_Db_Select with Magento\\Framework\\DB\\Select"
+    doc_url: ""
+
+  - id: "BC-2.4.6-004"
+    type: method_signature_changed
+    class: "Magento\\Catalog\\Model\\Category\\DataProvider"
+    method: "getCategoryTree"
+    change_description: "Return type changed from array to DataObject; callers expecting array will break"
+    severity: error
+    remediation_summary: "Update all code calling getCategoryTree() to handle DataObject return type"
+    doc_url: ""
+
+  - id: "BC-2.4.6-005"
+    type: event_argument_changed
+    symbol: "sales_order_place_after"
+    change_description: "Event now dispatched with OrderInterface instead of Order model; typehinted observers break"
+    severity: warning
+    affected_files_pattern: "*.php"
+    remediation_summary: "Update observer typehints from Order to OrderInterface"
+    doc_url: ""
+
+  - id: "BC-2.4.6-006"
+    type: class_removed
+    symbol: "Magento\\Framework\\Stdlib\\Cookie\\CookieMetadata"
+    replacement: "Magento\\Framework\\Stdlib\\Cookie\\CookieMetadataFactory"
+    severity: warning
+    affected_files_pattern: "*.php"
+    remediation_summary: "Direct instantiation removed; use factory via DI"
+    doc_url: ""
+
+  - id: "BC-2.4.6-007"
+    type: graphql_type_removed
+    symbol: "SelectedCustomizableOption"
+    change_description: "Type merged into CustomizableOptionInterface; direct type references break"
+    severity: warning
+    affected_files_pattern: "*.graphql"
+    remediation_summary: "Update GraphQL queries to use CustomizableOptionInterface"
+    doc_url: ""
+
+  - id: "BC-2.4.6-008"
+    type: method_removed
+    class: "Magento\\Framework\\View\\Layout"
+    method: "getOutput"
+    severity: error
+    affected_files_pattern: "*.php"
+    remediation_summary: "Use Magento\\Framework\\View\\Result\\Page::getOutput() instead"
+    doc_url: ""
+
+  - id: "BC-2.4.6-009"
+    type: config_key_removed
+    symbol: "dev/js/merge_files"
+    severity: warning
+    affected_files_pattern: "config.php"
+    remediation_summary: "jQuery UI bundle merging config removed with jQuery UI removal; clean up config"
+    doc_url: ""
+
+  - id: "BC-2.4.6-010"
+    type: class_removed
+    symbol: "Zend_Filter_Interface"
+    replacement: "Magento\\Framework\\Filter\\FilterInterface"
+    severity: error
+    affected_files_pattern: "*.php"
+    remediation_summary: "All remaining Zend_ filter aliases removed; use Magento Framework equivalents"
+    doc_url: ""
+
+  - id: "BC-2.4.6-011"
+    type: method_signature_changed
+    class: "Magento\\Sales\\Model\\Order"
+    method: "canCreditmemo"
+    change_description: "Return type strictly typed to bool; was previously truthy/falsy mixed"
+    severity: notice
+    remediation_summary: "Ensure comparisons use strict bool checks, not loose comparisons"
+    doc_url: ""
+
+deprecated_symbols:
+  classes:
+    - symbol: "Magento\\Framework\\Serialize\\Serializer\\Serialize"
+      since: "2.4.6"
+      replacement: "Magento\\Framework\\Serialize\\Serializer\\Json"
+    - symbol: "Magento\\Framework\\View\\Asset\\Bundle\\Manager"
+      since: "2.4.6"
+      replacement: "Bundle asset management removed with jQuery UI"
+    - symbol: "Magento\\Framework\\Message\\AbstractMessage"
+      since: "2.4.6"
+      replacement: "Magento\\Framework\\Message\\MessageInterface"
+    - symbol: "Zend_Filter_Interface"
+      since: "2.4.6"
+      replacement: "Magento\\Framework\\Filter\\FilterInterface"
+    - symbol: "Magento\\Framework\\Stdlib\\DateTime\\Timezone"
+      since: "2.4.6"
+      replacement: "Magento\\Framework\\Stdlib\\DateTime\\TimezoneInterface"
+  methods:
+    - class: "Magento\\Framework\\View\\Layout"
+      method: "getOutput"
+      since: "2.4.6"
+      replacement: "Magento\\Framework\\View\\Result\\Page::getOutput()"
+    - class: "Magento\\Catalog\\Model\\Category"
+      method: "getUrlInstance"
+      since: "2.4.6"
+      replacement: "Inject Magento\\Framework\\UrlInterface via DI"
+    - class: "Magento\\Framework\\App\\ResourceConnection"
+      method: "getTableName"
+      since: "2.4.6"
+      replacement: "Use getTableName() on the connection adapter directly"
+  events:
+    - event: "adminhtml_block_html_before"
+      since: "2.4.6"
+      reason: "Block rendering pipeline refactored; use layout handles instead"
+    - event: "core_layout_block_create_after"
+      since: "2.4.6"
+      reason: "Replaced by more specific block events"
+
+db_schema_changes:
+  - table: "catalog_product_entity_varchar"
+    change_type: index_added
+    index_name: "IDX_CPE_VARCHAR_ATTRIBUTE_ID_STORE_VALUE"
+    index_type: index
+    migration_risk: high
+    estimated_duration_minutes: 120
+  - table: "customer_entity"
+    column: "failures_num"
+    change_type: column_added
+    migration_risk: low
+    data_migration_required: false
+    estimated_duration_minutes: 2
+  - table: "quote_item"
+    column: "weee_tax_applied_row_amount"
+    change_type: column_dropped
+    migration_risk: medium
+    data_migration_required: false
+    estimated_duration_minutes: 5
+  - table: "sales_order"
+    change_type: index_added
+    index_name: "IDX_SALES_ORDER_CUSTOMER_EMAIL"
+    index_type: index
+    migration_risk: medium
+    estimated_duration_minutes: 45
+  - table: "newsletter_subscriber"
+    column: "subscriber_confirm_code"
+    change_type: column_dropped
+    migration_risk: low
+    data_migration_required: false
+    estimated_duration_minutes: 2
+  - table: "cms_page"
+    change_type: index_added
+    index_name: "IDX_CMS_PAGE_IDENTIFIER"
+    index_type: index
+    migration_risk: low
+    estimated_duration_minutes: 5
+
+security_advisories:
+  - id: "APSB23-002"
+    cve: "CVE-2023-22247"
+    severity: high
+    description: "Improper input validation in REST API allows unauthorized data access"
+    affected_versions: ["2.4.4", "2.4.5", "2.4.5-p1"]
+    fixed_in: "2.4.6"
+    patch_available: true
+    patch_url: "https://experienceleague.adobe.com/docs/commerce-operations/release/notes/security-patches/2-4-6-patches.html"

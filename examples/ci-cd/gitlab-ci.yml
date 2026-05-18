@@ -1,0 +1,87 @@
+stages:
+  - quality
+  - security
+  - performance
+  - deploy
+
+variables:
+  M2QUALITY_CONFIG: "examples/configurations/ci-config.json"
+  REPORTS_DIR: "reports"
+
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - vendor/
+    - ~/.composer/cache/
+
+before_script:
+  - apt-get update -qq && apt-get install -y -qq git curl
+  - curl -sS https://getcomposer.org/installer | php
+  - mv composer.phar /usr/local/bin/composer
+  - composer global require m2quality/m2-quality
+  - export PATH="$HOME/.composer/vendor/bin:$PATH"
+  - mkdir -p $REPORTS_DIR
+
+quality_analysis:
+  stage: quality
+  image: php:8.1-cli
+  script:
+    - m2-quality scan . 
+        --config=$M2QUALITY_CONFIG 
+        --format=gitlab-ci 
+        --output=$REPORTS_DIR/quality.json
+  artifacts:
+    reports:
+      junit: $REPORTS_DIR/quality.xml
+      codequality: $REPORTS_DIR/codequality.json
+    paths:
+      - $REPORTS_DIR/
+    expire_in: 1 week
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+security_scan:
+  stage: security
+  image: php:8.1-cli
+  script:
+    - m2-quality scan . 
+        --analyzers=security 
+        --severity=warning 
+        --format=gitlab-ci 
+        --output=$REPORTS_DIR/security.json
+  artifacts:
+    reports:
+      sast: $REPORTS_DIR/security.json
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+performance_check:
+  stage: performance
+  image: php:8.1-cli
+  script:
+    - m2-quality scan . 
+        --analyzers=performance 
+        --format=json 
+        --output=$REPORTS_DIR/performance.json
+  artifacts:
+    paths:
+      - $REPORTS_DIR/performance.json
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+quality_gate:
+  stage: quality
+  image: php:8.1-cli
+  script:
+    - |
+      QUALITY_SCORE=$(jq -r '.summary.quality_score // 0' $REPORTS_DIR/quality.json)
+      echo "Quality Score: $QUALITY_SCORE"
+      if (( $(echo "$QUALITY_SCORE < 8.0" | bc -l) )); then
+        echo "Quality gate failed"
+        exit 1
+      fi
+  dependencies:
+    - quality_analysis
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" 

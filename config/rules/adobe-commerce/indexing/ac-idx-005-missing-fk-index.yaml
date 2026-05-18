@@ -1,0 +1,67 @@
+schema_version: "1.0"
+id: "AC_IDX_005"
+name: "ac-idx-005-missing-fk-index"
+title: "Foreign Key Column Without Database Index"
+description: >
+  db_schema.xml columns that are used as foreign key references must have a corresponding
+  index declaration. Without an index, JOIN operations on the FK column perform full
+  table scans, causing performance degradation that scales with table size. MySQL also
+  requires an index on FK columns to enforce referential integrity efficiently and to
+  avoid table-level locking during parent row operations.
+category: "indexing"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "index-guidelines.md"
+tags:
+  - indexing
+  - schema
+  - performance
+  - foreign-key
+  - database
+globs:
+  - "**/db_schema.xml"
+check:
+  type: xml_xpath
+  expression: "//constraint[@xsi:type='foreign']"
+  attribute: "column"
+  message: "Foreign key column '{{value}}' in table '{{table}}' should have a corresponding <index> element."
+recommendation: >
+  Add an <index> element for the foreign key column in db_schema.xml. Place it
+  immediately before the <constraint xsi:type="foreign"> declaration. Use the naming
+  convention TABLE_NAME_COLUMN_NAME in UPPERCASE for the referenceId attribute.
+  Example:
+    <index referenceId="VENDOR_ORDER_ITEMS_ORDER_ID" indexType="btree">
+        <column name="order_id"/>
+    </index>
+examples:
+  bad: |
+    <table name="vendor_order_items" ...>
+        <column name="order_id" xsi:type="int" unsigned="true" nullable="false"/>
+        <constraint xsi:type="foreign" referenceId="VENDOR_ORDER_ITEMS_ORDER_ID_SALES_ORDER_ENTITY_ID"
+            table="vendor_order_items" column="order_id"
+            referenceTable="sales_order" referenceColumn="entity_id" onDelete="CASCADE"/>
+    </table>
+  good: |
+    <table name="vendor_order_items" ...>
+        <column name="order_id" xsi:type="int" unsigned="true" nullable="false"/>
+        <index referenceId="VENDOR_ORDER_ITEMS_ORDER_ID" indexType="btree">
+            <column name="order_id"/>
+        </index>
+        <constraint xsi:type="foreign" referenceId="VENDOR_ORDER_ITEMS_ORDER_ID_SALES_ORDER_ENTITY_ID"
+            table="vendor_order_items" column="order_id"
+            referenceTable="sales_order" referenceColumn="entity_id" onDelete="CASCADE"/>
+    </table>
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/declarative-schema/configuration/"
+  - "https://dev.mysql.com/doc/refman/8.0/en/create-index.html"

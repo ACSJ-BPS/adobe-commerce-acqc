@@ -1,0 +1,24 @@
+root_cause: "A plugin (interceptor) targets a method that was renamed, made final, or removed in the target version. The plugin is now either non-functional or causes a compile-time error."
+code_example: |
+  <!-- Before — targeting a method that no longer exists -->
+  <type name="Magento\Catalog\Model\Product">
+      <plugin name="my_product_plugin" type="Vendor\Module\Plugin\ProductPlugin"/>
+  </type>
+
+  // ProductPlugin.php — update the method name to match the new target
+  public function beforeGetName(\Magento\Catalog\Api\Data\ProductInterface $subject): array
+  {
+      // new method signature here
+      return [];
+  }
+step_by_step: |
+  1. Run bin/magento setup:di:compile — plugin conflicts surface as compile errors.
+  2. Compare the plugin's target method against the BIC report for the target version.
+  3. If the method was renamed: update the plugin method name (before/after/around prefix + new method name).
+  4. If the method was made final: remove the plugin and switch to an event observer or preference.
+  5. If the method was removed: delete the plugin and re-implement the business logic via the replacement API.
+  6. Re-run compile and verify with integration tests.
+doc_links:
+  - "https://developer.adobe.com/commerce/php/development/components/plugins/"
+  - "https://developer.adobe.com/commerce/php/development/backward-incompatible-changes/"
+confidence_score: 5

@@ -1,0 +1,6 @@
+{
+    "name": "test/non-cloud-project",
+    "require": {
+        "magento/product-community-edition": "2.4.6"
+    }
+}

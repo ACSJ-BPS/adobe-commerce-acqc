@@ -1,0 +1,61 @@
+schema_version: "1.0"
+id: "AC_ARCH_010"
+name: "ac-arch-010-version-conflict"
+title: "Composer Version Constraint May Cause Package Conflict"
+description: >
+  Overly broad version constraints (e.g. >=1.0 or *) or conflicting constraints for
+  the same package across composer.json files cause Composer resolution failures and
+  runtime version mismatches. In Adobe Commerce deployments, conflicting constraints
+  prevent `composer install` from completing and block cloud deployments. Use tight
+  but upgrade-friendly constraints (e.g. ^2.4 or ~3.1) aligned with the supported
+  Commerce version matrix.
+category: "architecture"
+severity: "error"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+introduced_in: "3.0.0"
+source: "conflict-types.md"
+tags:
+  - architecture
+  - composer
+  - dependency
+  - version-conflict
+  - upgrade-risk
+globs:
+  - "composer.json"
+check:
+  type: json_path
+  expression: "$.require[?(@=~ /^\\*$|^>=\\d/)]"
+  message: "Package constraint '{{key}}: {{value}}' uses a wildcard or unbounded >=. This can cause unpredictable version resolution."
+recommendation: >
+  Use caret (^) or tilde (~) constraints aligned with the Commerce version matrix:
+    "magento/product-community-edition": "~2.4.7"
+    "laminas/laminas-http": "^2.21"
+  Avoid * and >= without an upper bound. Run `composer why-not` to diagnose conflicts.
+  Check the Adobe Commerce Compatibility Matrix for supported third-party library versions.
+examples:
+  bad: |
+    {
+        "require": {
+            "some/library": ">=1.0",
+            "another/package": "*"
+        }
+    }
+  good: |
+    {
+        "require": {
+            "some/library": "^2.3",
+            "another/package": "~1.4"
+        }
+    }
+references:
+  - "https://getcomposer.org/doc/articles/versions.md"
+  - "https://experienceleague.adobe.com/docs/commerce-operations/release/product-availability.html"

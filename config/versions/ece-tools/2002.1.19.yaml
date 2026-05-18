@@ -1,0 +1,61 @@
+schema_version: "1"
+version: "2002.1.19"
+release_date: "2024-10-15"
+
+# Minimum ECE-Tools version required per Adobe Commerce version
+minimum_ece_tools_version_by_ac:
+  "2.4.5": "2002.1.16"
+  "2.4.6": "2002.1.17"
+  "2.4.7": "2002.1.18"
+  "2.4.8": "2002.1.19"
+
+# PHP versions supported per AC version in Cloud context
+php_support_by_ac:
+  "2.4.5":
+    minimum: "8.1"
+    maximum: "8.1"
+    recommended: "8.1"
+  "2.4.6":
+    minimum: "8.1"
+    maximum: "8.2"
+    recommended: "8.2"
+  "2.4.7":
+    minimum: "8.2"
+    maximum: "8.3"
+    recommended: "8.3"
+  "2.4.8":
+    minimum: "8.2"
+    maximum: "8.4"
+    recommended: "8.3"
+
+# Search engine requirements per AC version
+search_engine_by_ac:
+  "2.4.5":
+    supported: ["elasticsearch7", "elasticsearch8", "opensearch"]
+    required: "elasticsearch7"
+    dropped: []
+  "2.4.6":
+    supported: ["elasticsearch8", "opensearch"]
+    required: "opensearch"
+    dropped: ["elasticsearch7"]
+  "2.4.7":
+    supported: ["opensearch"]
+    required: "opensearch"
+    dropped: ["elasticsearch7", "elasticsearch8"]
+  "2.4.8":
+    supported: ["opensearch"]
+    required: "opensearch"
+    dropped: ["elasticsearch", "elasticsearch7", "elasticsearch8"]
+
+breaking_changes:
+  - id: "ECE-BC-2002.1.19-001"
+    type: config_key_removed
+    symbol: "SEARCH_CONFIGURATION.engine=elasticsearch"
+    severity: error
+    remediation_summary: "Update .magento.env.yaml SEARCH_CONFIGURATION to engine: opensearch"
+
+  - id: "ECE-BC-2002.1.19-002"
+    type: config_key_removed
+    symbol: "DATABASE_CONFIGURATION.charset=utf8"
+    severity: warning
+    remediation_summary: "Database charset should be utf8mb4 for full Unicode support in AC 2.4.8"

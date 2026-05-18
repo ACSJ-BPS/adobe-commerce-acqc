@@ -1,0 +1,58 @@
+schema_version: "1.0"
+id: "AC_DEP_004"
+name: "ac-dep-004-deprecated-helper"
+title: "Deprecated Helper Property Access Pattern"
+description: >
+  The $_helper property pattern (e.g., $this->_helper->getData()) is a Magento 1
+  legacy pattern that persists in some older module code. In Magento 2, Helpers are
+  injectable services that must be declared as constructor dependencies and accessed
+  through properly typed properties, not through the legacy _helper property or
+  Mage::helper() equivalent calls.
+category: "deprecation"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-deprecation.mdc"
+tags:
+  - deprecation
+  - magento1
+  - helpers
+  - legacy
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: regex
+  pattern: '\$this->_helper\b'
+recommendation: >
+  Migrate to constructor-injected helpers. Declare the helper as a typed constructor
+  parameter and access it through a private property:
+  public function __construct(private readonly Data $helper) {}
+  Then use: $this->helper->getData()
+  Consider whether the logic in the helper should be moved to a service class instead.
+examples:
+  bad: |
+    public function execute(): void
+    {
+        $formattedPrice = $this->_helper->formatPrice($price);
+        $config         = $this->_helper->getConfig('payment/active');
+    }
+  good: |
+    public function __construct(
+        private readonly \Vendor\Module\Helper\Data $helper
+    ) {}
+
+    public function execute(): void
+    {
+        $formattedPrice = $this->helper->formatPrice($price);
+        $config         = $this->helper->getConfig('payment/active');
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/dependency-injection/"
+  - "https://developer.adobe.com/commerce/php/best-practices/extensions/"

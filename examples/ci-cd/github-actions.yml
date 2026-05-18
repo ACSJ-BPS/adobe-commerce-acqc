@@ -1,0 +1,248 @@
+name: M2-Quality Code Analysis
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  quality-analysis:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        php-version: [8.1, 8.2]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Fetch full history for better analysis
+        
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        extensions: json, mbstring, xml, curl, zip, fileinfo
+        coverage: xdebug
+        
+    - name: Get Composer Cache Directory
+      id: composer-cache
+      run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+      
+    - name: Cache Composer dependencies
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.composer-cache.outputs.dir }}
+        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+        restore-keys: ${{ runner.os }}-composer-
+        
+    - name: Install dependencies
+      run: composer install --prefer-dist --no-progress --no-suggest
+      
+    - name: Install M2-Quality
+      run: composer global require m2quality/m2-quality
+      
+    - name: Create reports directory
+      run: mkdir -p reports
+      
+    - name: Run Quality Analysis - Quick Check
+      if: github.event_name == 'pull_request'
+      run: |
+        ~/.composer/vendor/bin/m2-quality scan . \
+          --config=examples/configurations/ci-config.json \
+          --format=github-actions \
+          --severity=error \
+          --baseline=ci-baseline.json \
+          --output=reports/quality-quick.json
+          
+    - name: Run Quality Analysis - Full Check
+      if: github.event_name == 'push'
+      run: |
+        ~/.composer/vendor/bin/m2-quality scan . \
+          --config=examples/configurations/production-config.json \
+          --format=json \
+          --output=reports/quality-full.json \
+          --report-html=reports/quality-report.html
+          
+    - name: Security Scan
+      run: |
+        ~/.composer/vendor/bin/m2-quality scan . \
+          --analyzers=security \
+          --severity=warning \
+          --format=json \
+          --output=reports/security-scan.json
+          
+    - name: Performance Analysis
+      if: github.event_name == 'push'
+      run: |
+        ~/.composer/vendor/bin/m2-quality scan . \
+          --analyzers=performance \
+          --format=json \
+          --output=reports/performance-analysis.json
+          
+    - name: Generate Baseline (if missing)
+      run: |
+        if [ ! -f ci-baseline.json ]; then
+          ~/.composer/vendor/bin/m2-quality baseline create ci-baseline \
+            --config=examples/configurations/ci-config.json
+        fi
+        
+    - name: AI Code Review (for PRs)
+      if: github.event_name == 'pull_request' && env.OPENAI_API_KEY != ''
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      run: |
+        ~/.composer/vendor/bin/m2-quality ask \
+          "Review this pull request for code quality issues" \
+          --include-code \
+          --role=lead \
+          --format=markdown > reports/ai-review.md
+          
+    - name: Check Quality Gate
+      run: |
+        QUALITY_SCORE=$(jq -r '.summary.quality_score // 0' reports/quality-*.json | head -1)
+        if (( $(echo "$QUALITY_SCORE < 8.0" | bc -l) )); then
+          echo "Quality gate failed: Score $QUALITY_SCORE < 8.0"
+          exit 1
+        fi
+        echo "Quality gate passed: Score $QUALITY_SCORE"
+        
+    - name: Upload Quality Reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: quality-reports-php${{ matrix.php-version }}
+        path: reports/
+        retention-days: 30
+        
+    - name: Comment PR with Results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          
+          let comment = '## 🔍 M2-Quality Analysis Results\n\n';
+          
+          // Read quality results
+          try {
+            const qualityData = JSON.parse(fs.readFileSync('reports/quality-quick.json', 'utf8'));
+            comment += `**Quality Score:** ${qualityData.summary?.quality_score || 'N/A'}/10\n`;
+            comment += `**Issues Found:** ${qualityData.summary?.total_violations || 0}\n`;
+            
+            if (qualityData.summary?.critical_violations > 0) {
+              comment += `⚠️ **Critical Issues:** ${qualityData.summary.critical_violations}\n`;
+            }
+            
+            if (qualityData.summary?.error_violations > 0) {
+              comment += `❌ **Errors:** ${qualityData.summary.error_violations}\n`;
+            }
+            
+          } catch (e) {
+            comment += 'Could not read quality analysis results.\n';
+          }
+          
+          // Read AI review if available
+          try {
+            const aiReview = fs.readFileSync('reports/ai-review.md', 'utf8');
+            comment += '\n### 🤖 AI Code Review\n\n' + aiReview;
+          } catch (e) {
+            // AI review not available
+          }
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+          
+    - name: Update Quality Badge
+      if: github.ref == 'refs/heads/main'
+      run: |
+        QUALITY_SCORE=$(jq -r '.summary.quality_score // 0' reports/quality-full.json)
+        COLOR="red"
+        if (( $(echo "$QUALITY_SCORE >= 9.0" | bc -l) )); then
+          COLOR="brightgreen"
+        elif (( $(echo "$QUALITY_SCORE >= 8.0" | bc -l) )); then
+          COLOR="green"
+        elif (( $(echo "$QUALITY_SCORE >= 7.0" | bc -l) )); then
+          COLOR="yellow"
+        elif (( $(echo "$QUALITY_SCORE >= 6.0" | bc -l) )); then
+          COLOR="orange"
+        fi
+        
+        curl -X POST "https://img.shields.io/badge/Quality-${QUALITY_SCORE}-${COLOR}.svg" \
+          -o quality-badge.svg
+          
+    - name: Slack Notification
+      if: failure() && github.ref == 'refs/heads/main'
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        text: "🚨 Quality analysis failed for main branch"
+        webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: quality-analysis
+    if: github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.1
+        
+    - name: Install M2-Quality
+      run: composer global require m2quality/m2-quality
+      
+    - name: Deep Security Scan
+      run: |
+        ~/.composer/vendor/bin/m2-quality scan . \
+          --config=config/rules/security.yaml \
+          --severity=info \
+          --format=sarif \
+          --output=security-results.sarif
+          
+    - name: Upload SARIF results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: security-results.sarif
+
+  performance-benchmark:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.1
+        extensions: xdebug
+        
+    - name: Install M2-Quality
+      run: composer global require m2quality/m2-quality
+      
+    - name: Run Performance Benchmarks
+      run: |
+        ~/.composer/vendor/bin/m2-quality benchmark \
+          --iterations=100 \
+          --output=performance-benchmark.json \
+          --compare-baseline=benchmark-baseline.json
+          
+    - name: Update Performance Baseline
+      run: |
+        cp performance-benchmark.json benchmark-baseline.json
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add benchmark-baseline.json
+        git commit -m "Update performance baseline [skip ci]" || exit 0
+        git push 

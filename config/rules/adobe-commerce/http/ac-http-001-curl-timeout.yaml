@@ -1,0 +1,60 @@
+schema_version: "1.0"
+id: "AC_HTTP_001"
+name: "ac-http-001-curl-timeout"
+title: "cURL Request Without Timeout Configuration"
+description: >
+  cURL requests without an explicit CURLOPT_TIMEOUT setting will wait indefinitely
+  for a server response, hanging the PHP process and eventually exhausting the
+  server's worker pool. In high-traffic environments, a single slow external API
+  can cascade into a site outage. Always set both CURLOPT_CONNECTTIMEOUT and
+  CURLOPT_TIMEOUT to appropriate values for your SLA requirements.
+category: "http"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-http.mdc"
+tags:
+  - http
+  - curl
+  - timeout
+  - reliability
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: regex
+  pattern: '\bcurl_exec\s*\('
+recommendation: >
+  Always configure timeouts before executing a cURL request:
+  curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);  // max 5s to establish connection
+  curl_setopt($ch, CURLOPT_TIMEOUT, 30);          // max 30s total request time
+  Consider using Magento's built-in HTTP client (Magento\Framework\HTTP\Client\Curl)
+  which handles timeouts and retries for you.
+examples:
+  bad: |
+    $ch = curl_init('https://api.example.com/orders');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $response = curl_exec($ch);
+    curl_close($ch);
+  good: |
+    $ch = curl_init('https://api.example.com/orders');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER,  true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_TIMEOUT,         30);
+    $response = curl_exec($ch);
+    if ($response === false) {
+        throw new \RuntimeException('cURL error: ' . curl_error($ch));
+    }
+    curl_close($ch);
+references:
+  - "https://developer.adobe.com/commerce/php/development/security/"
+  - "https://www.php.net/manual/en/function.curl-setopt.php"

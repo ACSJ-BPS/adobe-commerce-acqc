@@ -1,0 +1,58 @@
+schema_version: "1.0"
+id: "AC_DI_006"
+name: "ac-di-006-circular-dependency"
+title: "Circular Constructor Dependency Risk"
+description: >
+  Circular constructor dependencies (A → B → A) cause the Magento DI container to
+  fail during setup:di:compile or produce infinite recursion at runtime. Circular
+  dependencies indicate a design flaw where two classes are too tightly coupled.
+  One class should depend on an interface or the dependency should be resolved
+  via a factory, proxy, or event-driven pattern to break the cycle.
+category: "dependency_injection"
+severity: "warning"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-di.mdc"
+tags:
+  - di
+  - circular-dependency
+  - design
+  - architecture
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: structural
+  strategy: dependency_graph
+recommendation: >
+  Break the circular dependency by introducing a proxy, factory, or event observer.
+  Use `bin/magento setup:di:compile` to detect circular dependencies early.
+  Consider whether both classes truly need each other or if responsibilities can
+  be redistributed to eliminate the cycle.
+examples:
+  bad: |
+    // ServiceA depends on ServiceB which depends on ServiceA → circular!
+    class ServiceA {
+        public function __construct(ServiceB $b) {}
+    }
+    class ServiceB {
+        public function __construct(ServiceA $a) {}
+    }
+  good: |
+    // Break the cycle with an interface and factory
+    class ServiceA {
+        public function __construct(ServiceBFactory $bFactory) {}
+    }
+    class ServiceB {
+        public function __construct(ServiceAInterface $a) {}
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/dependency-injection/"
+  - "https://developer.adobe.com/commerce/php/development/components/proxies/"

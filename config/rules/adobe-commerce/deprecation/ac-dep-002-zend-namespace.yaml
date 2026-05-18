@@ -1,0 +1,55 @@
+schema_version: "1.0"
+id: "AC_DEP_002"
+name: "ac-dep-002-zend-namespace"
+title: "Deprecated Zend Framework Namespace Usage"
+description: >
+  References to the Zend\ namespace (backslash-namespaced Zend Framework 3 classes)
+  have been replaced by their Laminas Project equivalents in Adobe Commerce 2.4+.
+  Using Zend\ classes will cause autoloading failures on installations where the
+  compatibility shim is removed, and breaks on PHP 8.x where some Zend classes
+  have no polyfill.
+category: "deprecation"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-deprecation.mdc"
+tags:
+  - deprecation
+  - zend
+  - laminas
+  - compatibility
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: '\bZend\\[A-Za-z]'
+recommendation: >
+  Migrate from Zend\ namespaces to Laminas equivalents:
+  Zend\Mail → Laminas\Mail, Zend\Db → Laminas\Db,
+  Zend\Log → Laminas\Log, Zend\Http → Laminas\Http.
+  Update composer.json: replace `zendframework/zend-*` with `laminas/laminas-*`.
+examples:
+  bad: |
+    use Zend\Mail\Message;
+    use Zend\Http\Client;
+
+    $message = new Message();
+    $client  = new Client('https://example.com');
+  good: |
+    use Laminas\Mail\Message;
+    use Laminas\Http\Client;
+
+    $message = new Message();
+    $client  = new Client('https://example.com');
+references:
+  - "https://developer.adobe.com/commerce/php/development/backward-incompatible-changes/highlights/"
+  - "https://docs.laminas.dev/migration/"

@@ -1,0 +1,50 @@
+schema_version: "1.0"
+id: "AC_PERF_008"
+name: "ac-perf-008-css-import"
+title: "CSS @import Causes Render-Blocking Requests"
+description: >
+  Using `@import` in CSS files causes the browser to fetch stylesheets serially rather
+  than in parallel. Each @import statement must be downloaded and parsed before the
+  browser discovers and begins fetching the imported file. Deeply nested @import chains
+  can add hundreds of milliseconds to CSS load time and delay First Contentful Paint.
+  Use Magento's LESS compilation pipeline to merge stylesheets at build time instead.
+category: "performance"
+severity: "info"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-performance.mdc"
+tags:
+  - performance
+  - css
+  - frontend
+  - rendering
+globs:
+  - "**/*.css"
+  - "**/*.less"
+check:
+  type: regex
+  pattern: '@import\s+[''"]'
+recommendation: >
+  Remove @import statements and use Magento's LESS import system in .less files
+  instead (which merges at compile time, not runtime):
+  In your module's _module.less: @import (reference) '../../Magento_Theme/web/css/source/abstract';
+  For third-party CSS, add it via layout XML: <css src="..." rel="stylesheet"/>
+examples:
+  bad: |
+    @import url('reset.css');
+    @import 'base.css';
+    @import "components/buttons.css";
+  good: |
+    // Use LESS imports that get compiled into a single CSS bundle:
+    @import '_reset.less';
+    @import '_base.less';
+    @import '_buttons.less';
+references:
+  - "https://developer.adobe.com/commerce/frontend-core/css/"
+  - "https://experienceleague.adobe.com/docs/commerce-operations/performance-best-practices/"

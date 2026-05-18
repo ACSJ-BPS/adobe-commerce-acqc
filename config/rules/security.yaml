@@ -1,0 +1,561 @@
+# Security-Focused Quality Rules
+# Comprehensive security rules for vulnerability detection and prevention
+
+name: "Security Rules"
+description: "Security vulnerability detection and prevention rules"
+version: "2.0.0"
+extends: []
+
+# Security Categories
+categories:
+  injection: "Injection Vulnerabilities"
+  xss: "Cross-Site Scripting (XSS)"
+  csrf: "Cross-Site Request Forgery"
+  authentication: "Authentication & Authorization"
+  cryptography: "Cryptography & Hashing"
+  input_validation: "Input Validation"
+  output_encoding: "Output Encoding"
+  file_handling: "File Handling"
+  session_management: "Session Management"
+  information_disclosure: "Information Disclosure"
+  access_control: "Access Control"
+  configuration: "Security Configuration"
+
+# Security Severity Levels
+severity_levels:
+  critical: "Critical security risk - fix immediately"
+  high: "High security risk - fix before release"
+  medium: "Medium security risk - fix when possible"
+  low: "Low security risk - consider fixing"
+  info: "Security best practice recommendation"
+
+rules:
+  # ================================
+  # INJECTION VULNERABILITIES
+  # ================================
+
+  prevent_sql_injection:
+    name: "Prevent SQL Injection"
+    category: injection
+    severity: critical
+    description: "Prevent SQL injection vulnerabilities through parameterized queries"
+    rationale: "SQL injection can lead to data breach, data manipulation, and system compromise"
+    cwe_id: "CWE-89"
+    owasp_category: "A03:2021 - Injection"
+    examples:
+      bad:
+        - '$query = "SELECT * FROM customers WHERE id = " . $_GET["id"];'
+        - '$connection->query("UPDATE products SET price = " . $newPrice . " WHERE sku = \'" . $sku . "\'");'
+        - '$collection->getSelect()->where("customer_email = \'" . $email . "\'");'
+      good:
+        - '$query = "SELECT * FROM customers WHERE id = ?"; $connection->query($query, [$customerId]);'
+        - '$connection->query("UPDATE products SET price = ? WHERE sku = ?", [$newPrice, $sku]);'
+        - '$collection->addFieldToFilter("customer_email", $email);'
+    fix_suggestion: "Use parameterized queries, prepared statements, or ORM methods"
+    attack_scenarios:
+      - "Attacker injects malicious SQL in user input"
+      - "Data exfiltration through UNION attacks"
+      - "Database structure discovery"
+      - "Administrative privilege escalation"
+    prevention_methods:
+      - "Use parameterized queries with bound parameters"
+      - "Validate and sanitize all user inputs"
+      - "Use stored procedures with parameters"
+      - "Implement least privilege database access"
+    tags: [injection, sql, database, critical]
+
+  prevent_command_injection:
+    name: "Prevent Command Injection"
+    category: injection
+    severity: critical
+    description: "Prevent OS command injection vulnerabilities"
+    rationale: "Command injection can lead to complete system compromise"
+    cwe_id: "CWE-78"
+    examples:
+      bad:
+        - 'exec("convert " . $_GET["file"] . " output.jpg");'
+        - 'system("zip -r backup.zip " . $directory);'
+        - 'shell_exec("grep " . $pattern . " /var/log/app.log");'
+      good:
+        - 'exec("convert ? output.jpg", [escapeshellarg($file)]);'
+        - '$directory = basename(realpath($directory)); system("zip -r backup.zip " . escapeshellarg($directory));'
+        - '$pattern = preg_quote($pattern); shell_exec("grep " . escapeshellarg($pattern) . " /var/log/app.log");'
+    fix_suggestion: "Use escapeshellarg() and validate input, or avoid shell commands entirely"
+    tags: [injection, command, system, critical]
+
+  prevent_ldap_injection:
+    name: "Prevent LDAP Injection"
+    category: injection
+    severity: high
+    description: "Prevent LDAP injection in directory queries"
+    rationale: "LDAP injection can bypass authentication and access controls"
+    cwe_id: "CWE-90"
+    examples:
+      bad:
+        - '$filter = "(&(uid=" . $_POST["username"] . ")(password=" . $_POST["password"] . "))";'
+      good:
+        - '$filter = "(&(uid=" . ldap_escape($_POST["username"]) . ")(password=" . ldap_escape($_POST["password"]) . "))";'
+    fix_suggestion: "Use ldap_escape() function to sanitize LDAP queries"
+    tags: [injection, ldap, authentication]
+
+  # ================================
+  # CROSS-SITE SCRIPTING (XSS)
+  # ================================
+
+  prevent_stored_xss:
+    name: "Prevent Stored XSS"
+    category: xss
+    severity: critical
+    description: "Prevent stored cross-site scripting vulnerabilities"
+    rationale: "Stored XSS can affect all users and lead to session hijacking, data theft"
+    cwe_id: "CWE-79"
+    owasp_category: "A03:2021 - Injection"
+    examples:
+      bad:
+        - '<?= $block->getCustomerName() ?>'
+        - 'echo $product->getDescription();'
+        - '<input value="<?= $formData["name"] ?>" />'
+      good:
+        - '<?= $block->escapeHtml($block->getCustomerName()) ?>'
+        - 'echo $block->escapeHtml($product->getDescription());'
+        - '<input value="<?= $block->escapeHtmlAttr($formData["name"]) ?>" />'
+    fix_suggestion: "Use appropriate escape functions for output context"
+    escape_functions:
+      html_content: "escapeHtml()"
+      html_attributes: "escapeHtmlAttr()"
+      javascript: "escapeJs()"
+      css: "escapeCss()"
+      url: "escapeUrl()"
+    tags: [xss, output_encoding, templates, critical]
+
+  prevent_reflected_xss:
+    name: "Prevent Reflected XSS"
+    category: xss
+    severity: high
+    description: "Prevent reflected cross-site scripting vulnerabilities"
+    rationale: "Reflected XSS can be used for phishing and session hijacking"
+    examples:
+      bad:
+        - 'echo "Search results for: " . $_GET["q"];'
+        - '$message = "Hello " . $_POST["name"]; echo $message;'
+      good:
+        - 'echo "Search results for: " . htmlspecialchars($_GET["q"], ENT_QUOTES, "UTF-8");'
+        - '$message = "Hello " . htmlspecialchars($_POST["name"], ENT_QUOTES, "UTF-8"); echo $message;'
+    fix_suggestion: "Always escape user input before output"
+    tags: [xss, input_validation, output_encoding]
+
+  prevent_dom_xss:
+    name: "Prevent DOM-based XSS"
+    category: xss
+    severity: high
+    description: "Prevent DOM-based cross-site scripting vulnerabilities"
+    rationale: "DOM XSS can execute in user's browser without server involvement"
+    examples:
+      bad:
+        - 'document.getElementById("content").innerHTML = userInput;'
+        - 'eval("var data = " + jsonData);'
+        - 'document.write(location.hash);'
+      good:
+        - 'document.getElementById("content").textContent = userInput;'
+        - 'var data = JSON.parse(jsonData);'
+        - 'document.getElementById("content").textContent = decodeURIComponent(location.hash);'
+    fix_suggestion: "Use safe DOM methods and validate client-side input"
+    tags: [xss, javascript, frontend]
+
+  # ================================
+  # CSRF PROTECTION
+  # ================================
+
+  require_csrf_protection:
+    name: "Require CSRF Protection"
+    category: csrf
+    severity: high
+    description: "Ensure all state-changing operations have CSRF protection"
+    rationale: "CSRF attacks can perform unauthorized actions on behalf of users"
+    cwe_id: "CWE-352"
+    owasp_category: "A01:2021 - Broken Access Control"
+    examples:
+      bad:
+        - |
+          // POST form without CSRF token
+          <form method="post" action="/customer/save">
+              <input name="email" value="..." />
+              <button type="submit">Save</button>
+          </form>
+        - |
+          // Controller without CSRF validation
+          public function saveAction() {
+              $email = $this->getRequest()->getParam('email');
+              $this->customerRepository->save($customer);
+          }
+      good:
+        - |
+          // Form with CSRF token
+          <form method="post" action="/customer/save">
+              <?= $block->getFormKey() ?>
+              <input name="email" value="..." />
+              <button type="submit">Save</button>
+          </form>
+        - |
+          // Controller with CSRF validation
+          public function saveAction() {
+              if (!$this->formKeyValidator->validate($this->getRequest())) {
+                  throw new \Magento\Framework\Exception\LocalizedException(__('Invalid form key'));
+              }
+              $email = $this->getRequest()->getParam('email');
+              $this->customerRepository->save($customer);
+          }
+    fix_suggestion: "Add form key validation to all state-changing operations"
+    tags: [csrf, forms, state_change]
+
+  # ================================
+  # AUTHENTICATION & AUTHORIZATION
+  # ================================
+
+  enforce_access_control:
+    name: "Enforce Proper Access Control"
+    category: access_control
+    severity: high
+    description: "Ensure proper access control checks are implemented"
+    rationale: "Missing access controls can lead to unauthorized data access"
+    cwe_id: "CWE-284"
+    examples:
+      bad:
+        - |
+          public function deleteCustomer($customerId) {
+              return $this->customerRepository->deleteById($customerId); // No auth check
+          }
+        - |
+          public function getOrderDetails($orderId) {
+              return $this->orderRepository->get($orderId); // No ownership check
+          }
+      good:
+        - |
+          public function deleteCustomer($customerId) {
+              if (!$this->authorization->isAllowed('Vendor_Module::customer_delete')) {
+                  throw new \Magento\Framework\Exception\AuthorizationException(__('Access denied'));
+              }
+              return $this->customerRepository->deleteById($customerId);
+          }
+        - |
+          public function getOrderDetails($orderId) {
+              $order = $this->orderRepository->get($orderId);
+              if ($order->getCustomerId() !== $this->customerSession->getCustomerId()) {
+                  throw new \Magento\Framework\Exception\AuthorizationException(__('Access denied'));
+              }
+              return $order;
+          }
+    fix_suggestion: "Implement proper authorization checks before sensitive operations"
+    tags: [access_control, authorization, authentication]
+
+  secure_password_handling:
+    name: "Secure Password Handling"
+    category: authentication
+    severity: critical
+    description: "Ensure passwords are handled securely"
+    rationale: "Insecure password handling can lead to credential compromise"
+    cwe_id: "CWE-256"
+    examples:
+      bad:
+        - '$hashedPassword = md5($password);'
+        - '$hashedPassword = sha1($password);'
+        - 'if ($password === $storedPassword) { // Plain text comparison }'
+        - '$this->logger->info("Login attempt with password: " . $password);'
+      good:
+        - '$hashedPassword = password_hash($password, PASSWORD_DEFAULT);'
+        - '$hashedPassword = $this->encryptor->getHash($password, true);'
+        - 'if (password_verify($password, $storedHash)) { // Secure verification }'
+        - '$this->logger->info("Login attempt for user: " . $username); // No password logging'
+    fix_suggestion: "Use secure hashing algorithms and never log passwords"
+    secure_practices:
+      - "Use password_hash() with PASSWORD_DEFAULT"
+      - "Use Magento's Encryptor for hashing"
+      - "Never store passwords in plain text"
+      - "Never log passwords"
+      - "Implement password strength requirements"
+    tags: [authentication, passwords, cryptography, critical]
+
+  # ================================
+  # CRYPTOGRAPHY & HASHING
+  # ================================
+
+  use_strong_cryptography:
+    name: "Use Strong Cryptography"
+    category: cryptography
+    severity: high
+    description: "Use strong cryptographic algorithms and implementations"
+    rationale: "Weak cryptography can be broken, compromising data confidentiality"
+    cwe_id: "CWE-327"
+    examples:
+      bad:
+        - '$encrypted = mcrypt_encrypt(MCRYPT_DES, $key, $data, MCRYPT_MODE_ECB);'
+        - '$hash = md5($data);'
+        - '$hash = sha1($data);'
+        - 'openssl_encrypt($data, "DES-ECB", $key);'
+      good:
+        - '$encrypted = openssl_encrypt($data, "AES-256-GCM", $key, 0, $iv);'
+        - '$hash = hash("sha256", $data);'
+        - '$hash = password_hash($password, PASSWORD_ARGON2ID);'
+        - '$encrypted = $this->encryptor->encrypt($data);'
+    fix_suggestion: "Replace weak algorithms with strong alternatives"
+    strong_algorithms:
+      symmetric_encryption: "AES-256-GCM, AES-256-CBC"
+      hashing: "SHA-256, SHA-512, Argon2"
+      password_hashing: "Argon2, bcrypt, scrypt"
+      random_generation: "random_bytes(), openssl_random_pseudo_bytes()"
+    tags: [cryptography, encryption, hashing]
+
+  secure_random_generation:
+    name: "Use Secure Random Generation"
+    category: cryptography
+    severity: medium
+    description: "Use cryptographically secure random number generation"
+    rationale: "Weak randomness can be predicted, compromising security"
+    cwe_id: "CWE-338"
+    examples:
+      bad:
+        - '$token = md5(rand());'
+        - '$sessionId = uniqid();'
+        - '$salt = mt_rand();'
+      good:
+        - '$token = bin2hex(random_bytes(32));'
+        - '$sessionId = bin2hex(random_bytes(16));'
+        - '$salt = random_bytes(32);'
+    fix_suggestion: "Use random_bytes() for cryptographic randomness"
+    tags: [cryptography, random, tokens]
+
+  # ================================
+  # INPUT VALIDATION
+  # ================================
+
+  validate_all_inputs:
+    name: "Validate All User Inputs"
+    category: input_validation
+    severity: high
+    description: "Implement comprehensive input validation for all user data"
+    rationale: "Unvalidated input is the root cause of many vulnerabilities"
+    cwe_id: "CWE-20"
+    examples:
+      bad:
+        - '$email = $_POST["email"]; $customer->setEmail($email);'
+        - '$productId = $_GET["id"]; $product = $this->productRepository->getById($productId);'
+        - '$quantity = $_POST["qty"]; $item->setQty($quantity);'
+      good:
+        - |
+          $email = filter_var($_POST["email"], FILTER_VALIDATE_EMAIL);
+          if (!$email) throw new \InvalidArgumentException("Invalid email");
+          $customer->setEmail($email);
+        - |
+          $productId = filter_var($_GET["id"], FILTER_VALIDATE_INT);
+          if (!$productId || $productId <= 0) throw new \InvalidArgumentException("Invalid product ID");
+          $product = $this->productRepository->getById($productId);
+        - |
+          $quantity = filter_var($_POST["qty"], FILTER_VALIDATE_INT);
+          if ($quantity === false || $quantity < 1 || $quantity > 999) {
+              throw new \InvalidArgumentException("Invalid quantity");
+          }
+          $item->setQty($quantity);
+    fix_suggestion: "Validate input type, format, range, and business rules"
+    validation_types:
+      - "Type validation (integer, email, URL)"
+      - "Format validation (regex patterns)"
+      - "Range validation (min/max values)"
+      - "Business rule validation"
+      - "Whitelist validation when possible"
+    tags: [input_validation, data_sanitization]
+
+  sanitize_file_uploads:
+    name: "Sanitize File Uploads"
+    category: file_handling
+    severity: critical
+    description: "Implement secure file upload handling"
+    rationale: "Malicious file uploads can lead to remote code execution"
+    cwe_id: "CWE-434"
+    examples:
+      bad:
+        - |
+          $filename = $_FILES["upload"]["name"];
+          move_uploaded_file($_FILES["upload"]["tmp_name"], "uploads/" . $filename);
+        - |
+          if ($_FILES["file"]["type"] == "image/jpeg") { // Trusting client-provided MIME type
+              // Process file
+          }
+      good:
+        - |
+          $filename = basename($_FILES["upload"]["name"]);
+          $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+          $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+          
+          if (!in_array($extension, $allowedExtensions)) {
+              throw new \InvalidArgumentException("Invalid file type");
+          }
+          
+          $finfo = new finfo(FILEINFO_MIME_TYPE);
+          $mimeType = $finfo->file($_FILES["upload"]["tmp_name"]);
+          $allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif'];
+          
+          if (!in_array($mimeType, $allowedMimeTypes)) {
+              throw new \InvalidArgumentException("Invalid file content");
+          }
+          
+          $safeFilename = uniqid() . '.' . $extension;
+          move_uploaded_file($_FILES["upload"]["tmp_name"], "uploads/" . $safeFilename);
+    fix_suggestion: "Validate file type, size, content, and use safe file names"
+    security_measures:
+      - "Validate file extensions against whitelist"
+      - "Check actual file content, not just extension"
+      - "Limit file size"
+      - "Use safe, generated filenames"
+      - "Store uploads outside web root"
+      - "Scan for malware if possible"
+    tags: [file_handling, uploads, critical]
+
+  # ================================
+  # SESSION MANAGEMENT
+  # ================================
+
+  secure_session_configuration:
+    name: "Secure Session Configuration"
+    category: session_management
+    severity: medium
+    description: "Configure sessions securely"
+    rationale: "Insecure session configuration can lead to session hijacking"
+    cwe_id: "CWE-614"
+    examples:
+      bad:
+        - |
+          ini_set('session.cookie_httponly', false);
+          ini_set('session.cookie_secure', false);
+          ini_set('session.use_strict_mode', false);
+      good:
+        - |
+          ini_set('session.cookie_httponly', true);
+          ini_set('session.cookie_secure', true);
+          ini_set('session.use_strict_mode', true);
+          ini_set('session.cookie_samesite', 'Strict');
+    fix_suggestion: "Enable secure session configuration options"
+    secure_settings:
+      - "session.cookie_httponly = true"
+      - "session.cookie_secure = true (for HTTPS)"
+      - "session.use_strict_mode = true"
+      - "session.cookie_samesite = Strict"
+      - "session.gc_maxlifetime = reasonable value"
+    tags: [session_management, cookies, configuration]
+
+  # ================================
+  # INFORMATION DISCLOSURE
+  # ================================
+
+  prevent_information_disclosure:
+    name: "Prevent Information Disclosure"
+    category: information_disclosure
+    severity: medium
+    description: "Prevent leakage of sensitive information"
+    rationale: "Information disclosure can aid attackers in further attacks"
+    cwe_id: "CWE-200"
+    examples:
+      bad:
+        - 'catch (Exception $e) { echo $e->getMessage(); } // May expose system details'
+        - '$this->logger->error("Database error: " . $e->getMessage()); // In production logs'
+        - 'phpinfo(); // In production code'
+        - 'var_dump($sensitiveData); // Debug output in production'
+      good:
+        - 'catch (Exception $e) { $this->logger->error($e->getMessage()); echo "An error occurred"; }'
+        - '$this->logger->error("Database operation failed", ["error_code" => $e->getCode()]);'
+        - '// Remove phpinfo() calls from production'
+        - '// Remove debug output from production'
+    fix_suggestion: "Use generic error messages and proper logging in production"
+    prevention_measures:
+      - "Use generic error messages for users"
+      - "Log detailed errors securely"
+      - "Remove debug output from production"
+      - "Configure error reporting appropriately"
+      - "Remove development/testing code"
+    tags: [information_disclosure, error_handling, logging]
+
+  # ================================
+  # CONFIGURATION SECURITY
+  # ================================
+
+  secure_configuration:
+    name: "Secure Configuration Practices"
+    category: configuration
+    severity: medium
+    description: "Follow secure configuration practices"
+    rationale: "Insecure configuration can expose the application to attacks"
+    examples:
+      bad:
+        - 'display_errors = On // In production'
+        - 'expose_php = On'
+        - 'allow_url_include = On'
+        - '$config["db_password"] = "admin123"; // Weak password'
+      good:
+        - 'display_errors = Off // In production'
+        - 'expose_php = Off'
+        - 'allow_url_include = Off'
+        - '$config["db_password"] = getenv("DB_PASSWORD"); // Environment variable'
+    fix_suggestion: "Review and harden configuration settings"
+    secure_practices:
+      - "Disable unnecessary PHP features"
+      - "Use environment variables for secrets"
+      - "Configure appropriate error reporting"
+      - "Enable security headers"
+      - "Use HTTPS everywhere"
+    tags: [configuration, hardening, environment]
+
+# Security Headers
+security_headers:
+  content_security_policy:
+    enabled: true
+    policy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+    
+  x_frame_options:
+    enabled: true
+    value: "SAMEORIGIN"
+    
+  x_content_type_options:
+    enabled: true
+    value: "nosniff"
+    
+  x_xss_protection:
+    enabled: true
+    value: "1; mode=block"
+    
+  strict_transport_security:
+    enabled: true
+    value: "max-age=31536000; includeSubDomains"
+
+# Security Testing Integration
+security_testing:
+  static_analysis: true
+  dependency_scanning: true
+  secret_scanning: true
+  
+# Compliance Mappings
+compliance:
+  owasp_top_10: true
+  cwe_mapping: true
+  pci_dss: true
+  iso_27001: true
+
+# Automated Security Fixes
+auto_fixes:
+  escape_output:
+    enabled: true
+    confidence: high
+    
+  add_csrf_tokens:
+    enabled: false
+    reason: "Requires manual review of form structure"
+    
+  update_crypto_algorithms:
+    enabled: false
+    reason: "May break existing encrypted data"
+
+# Security Monitoring
+monitoring:
+  failed_login_attempts: true
+  suspicious_file_uploads: true
+  sql_injection_attempts: true
+  xss_attempts: true
+  unusual_admin_activity: true 

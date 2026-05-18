@@ -1,0 +1,25 @@
+root_cause: "A Composer dependency used by this module has been marked as abandoned by its maintainer. Abandoned packages receive no security patches and may be incompatible with PHP or Commerce versions required by the upgrade target."
+code_example: |
+  # Check for abandonment status
+  composer outdated --direct
+
+  # Replace the abandoned package with the recommended successor
+  # (check the Packagist page for the 'Abandoned! Use X instead.' banner)
+  composer remove vendor/abandoned-package
+  composer require vendor/replacement-package
+
+  # If no maintained replacement exists, vendor the code internally:
+  # 1. Copy the relevant source files into src/Lib/VendoredName/
+  # 2. Register the namespace in composer.json autoload.psr-4
+  # 3. Remove the Composer dependency
+step_by_step: |
+  1. Run composer outdated --direct to identify all abandoned direct dependencies.
+  2. For each abandoned package: check its Packagist page for the recommended replacement.
+  3. If a maintained fork exists: switch to it (composer require vendor/fork ^version).
+  4. If no replacement exists and the package is critical: evaluate vendoring the last stable release into your own repository.
+  5. Update your composer.json require constraints and run composer update --with-dependencies to resolve conflicts.
+  6. Run the full test suite to confirm nothing broke after the dependency swap.
+doc_links:
+  - "https://packagist.org"
+  - "https://developer.adobe.com/commerce/php/best-practices/composer/"
+confidence_score: 5

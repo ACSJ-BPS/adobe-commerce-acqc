@@ -1,0 +1,71 @@
+schema_version: "1.0"
+id: "AC_PERF_010"
+name: "ac-perf-010-getsize-unfiltered-collection"
+title: "Collection: getSize() on Unfiltered Collection Causes Full Table Scan"
+description: >
+  Calling getSize() on a collection with no filters issues a COUNT(*) on the full
+  table, which degrades linearly as the table grows. On a catalog with 100,000 products
+  or an orders table with millions of rows, this can exceed 1-2 seconds per call.
+  If getSize() is called inside a loop or per-request without caching, it becomes a
+  recurring performance regression. The same problem applies to calling count($collection)
+  without setPageSize(), which loads all rows into memory before counting.
+category: "performance"
+severity: "warning"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.1.0"
+tags:
+  - performance
+  - collection
+  - database
+  - full-table-scan
+  - count
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: '->getSize\s*\(\s*\)'
+recommendation: >
+  Ensure getSize() is called only on filtered collections, or cache the result:
+
+    // Risky — full table scan on large tables
+    $count = $this->productCollectionFactory->create()->getSize();
+
+    // Better — filter first to narrow the COUNT
+    $count = $this->productCollectionFactory->create()
+        ->addFieldToFilter('status', Status::STATUS_ENABLED)
+        ->addFieldToFilter('store_id', $storeId)
+        ->getSize();
+
+    // Best for repeated calls — cache in request scope
+    if ($this->cachedCount === null) {
+        $this->cachedCount = $collection->getSize();
+    }
+    return $this->cachedCount;
+
+  For existence checks (does any row match?), use setPageSize(1) + count() instead
+  of getSize() — it short-circuits after the first row:
+
+    $exists = $collection->setPageSize(1)->count() > 0;
+examples:
+  bad: |
+    public function getTotalProducts(): int
+    {
+        // Called on every page load — full table scan every time
+        return $this->productCollectionFactory->create()->getSize();
+    }
+  good: |
+    public function getActiveProductCount(): int
+    {
+        return $this->productCollectionFactory->create()
+            ->addFieldToFilter('status', Status::STATUS_ENABLED)
+            ->addFieldToFilter('visibility', ['neq' => Visibility::VISIBILITY_NOT_VISIBLE])
+            ->getSize();
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/collection-builder/"

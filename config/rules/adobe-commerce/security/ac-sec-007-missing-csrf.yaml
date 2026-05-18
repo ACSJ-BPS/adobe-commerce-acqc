@@ -1,0 +1,53 @@
+schema_version: "1.0"
+id: "AC_SEC_007"
+name: "ac-sec-007-missing-csrf"
+title: "Missing CSRF Token in Custom POST Form"
+description: >
+  HTML forms that submit via POST method without a CSRF (Cross-Site Request Forgery)
+  token allow attackers to trick authenticated users into submitting unauthorized requests.
+  All POST forms in Magento 2 templates must include the form_key block or use the
+  FORM_KEY_FIELD_NAME constant to add the anti-CSRF token.
+category: "security"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-security.mdc"
+tags:
+  - security
+  - csrf
+  - owasp-a01
+  - forms
+globs:
+  - "**/*.phtml"
+check:
+  type: regex
+  pattern: '<form\b[^>]*\bmethod\s*=\s*[''"]post[''"]'
+recommendation: >
+  Add the form_key block immediately after the opening form tag:
+  <?= $block->getBlockHtml('formkey') ?>
+  Or for programmatic forms, include:
+  <input type="hidden" name="form_key" value="<?= $block->escapeHtmlAttr($this->formKey->getFormKey()) ?>">
+examples:
+  bad: |
+    <form method="post" action="<?= $block->escapeUrl($block->getUrl('module/index/save')) ?>">
+        <input type="text" name="name" />
+        <button type="submit">Save</button>
+    </form>
+  good: |
+    <form method="post" action="<?= $block->escapeUrl($block->getUrl('module/index/save')) ?>">
+        <?= $block->getBlockHtml('formkey') ?>
+        <input type="text" name="name" />
+        <button type="submit">Save</button>
+    </form>
+references:
+  - "https://developer.adobe.com/commerce/php/development/security/cross-site-request-forgery/"
+  - "https://owasp.org/www-community/attacks/csrf"

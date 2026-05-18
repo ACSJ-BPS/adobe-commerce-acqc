@@ -1,0 +1,11 @@
+schema_version: '1'
+version: 2.4.5-p16
+release_date: '2025-06-10'
+release_type: security
+breaking_changes: {  }
+deprecated_symbols:
+  classes: {  }
+  methods: {  }
+  events: {  }
+db_schema_changes: {  }
+security_advisories: {  }

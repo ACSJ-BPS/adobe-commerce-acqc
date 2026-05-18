@@ -1,0 +1,34 @@
+advisories:
+  - id: "ACQC-SA-2022-001"
+    cve: "CVE-2022-24086"
+    package: "magento/magento2-base"
+    severity: "critical"
+    description: "Improper input validation in the checkout workflow allows unauthenticated remote code execution via crafted template injection in the email field."
+    affected_versions:
+      - ">=2.3.3 <2.3.7-p3"
+      - ">=2.4.0 <2.4.3-p2"
+    fixed_in: "2.3.7-p3, 2.4.3-p2"
+    patch_available: true
+
+  - id: "ACQC-SA-2022-002"
+    cve: "CVE-2022-24087"
+    package: "magento/magento2-base"
+    severity: "critical"
+    description: "Improper input validation allows authenticated attackers with admin privileges to achieve remote code execution via malicious layout XML."
+    affected_versions:
+      - ">=2.3.0 <2.3.7-p3"
+      - ">=2.4.0 <2.4.3-p2"
+    fixed_in: "2.3.7-p3, 2.4.3-p2"
+    patch_available: true
+
+  - id: "ACQC-SA-2023-001"
+    cve: "CVE-2023-38218"
+    package: "magento/magento2-base"
+    severity: "high"
+    description: "Cross-site scripting (XSS) vulnerability in the product attribute rendering allows injection of malicious scripts into admin panel views."
+    affected_versions:
+      - ">=2.4.4 <2.4.4-p6"
+      - ">=2.4.5 <2.4.5-p5"
+      - ">=2.4.6 <2.4.6-p3"
+    fixed_in: "2.4.4-p6, 2.4.5-p5, 2.4.6-p3"
+    patch_available: true

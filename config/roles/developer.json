@@ -1,0 +1,21 @@
+{
+    "name": "Developer",
+    "description": "Configuration for developers focusing on code quality and best practices",
+    "enabled_analyzers": ["magento", "security", "performance", "quality"],
+    "severity_filter": ["critical", "error", "warning"],
+    "rules": {
+        "max_method_length": 50,
+        "max_complexity": 10,
+        "require_documentation": true,
+        "enforce_naming_conventions": true
+    },
+    "auto_fix": {
+        "enabled": true,
+        "safe_fixes_only": true
+    },
+    "reporting": {
+        "default_format": "console",
+        "include_metrics": true,
+        "include_recommendations": true
+    }
+} 

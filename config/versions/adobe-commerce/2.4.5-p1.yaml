@@ -1,0 +1,43 @@
+schema_version: "1"
+version: "2.4.5-p1"
+release_date: "2022-10-11"
+eol_date: "2024-08-09"
+release_type: "security"
+parent_version: "2.4.5"
+
+php_support:
+  minimum: "8.1"
+  maximum: "8.1"
+  recommended: "8.1"
+  dropped: []
+
+search_engine_support:
+  elasticsearch: ["7.9", "7.10", "7.11"]
+  opensearch: ["1.2"]
+
+breaking_changes: []
+
+deprecated_symbols:
+  classes: []
+  methods: []
+  events: []
+
+db_schema_changes: []
+
+security_advisories:
+  - id: "APSB22-058"
+    cve: "CVE-2022-42344"
+    severity: high
+    description: "Path traversal vulnerability in media download endpoint"
+    affected_versions: ["2.4.5"]
+    fixed_in: "2.4.5-p1"
+    patch_available: true
+    patch_url: "https://experienceleague.adobe.com/docs/commerce-operations/release/notes/security-patches/2-4-5-patches.html"
+  - id: "APSB22-059"
+    cve: "CVE-2022-42345"
+    severity: medium
+    description: "CSRF in admin password reset flow"
+    affected_versions: ["2.4.3", "2.4.4", "2.4.5"]
+    fixed_in: "2.4.5-p1"
+    patch_available: true
+    patch_url: "https://experienceleague.adobe.com/docs/commerce-operations/release/notes/security-patches/2-4-5-patches.html"

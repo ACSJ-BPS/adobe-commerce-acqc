@@ -1,0 +1,14 @@
+name: architect
+description: "Architect profile — all tiers, info+ severity, JSON + SARIF output"
+tiers: [1, 2, 3]
+min_severity: info
+categories: []
+format: json
+fail_on: [critical, blocker]
+personal_rules: true
+hide_file_paths: false
+hide_line_numbers: false
+hide_rule_ids: false
+tier2_as_warnings: false
+secondary_format: sarif
+severity_labels: {}

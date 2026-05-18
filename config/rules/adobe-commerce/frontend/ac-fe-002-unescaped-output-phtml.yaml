@@ -1,0 +1,57 @@
+schema_version: "1.0"
+id: "AC_FE_002"
+name: "ac-fe-002-unescaped-output-phtml"
+title: "Template: Unescaped Variable Output Creates XSS Risk"
+description: >
+  Echoing PHP variables directly in .phtml templates without an escaper method
+  creates reflected or stored XSS vulnerabilities. All dynamic values rendered in
+  HTML context must pass through the appropriate escaper: escapeHtml() for text
+  nodes, escapeHtmlAttr() for attribute values, escapeUrl() for href/src/action
+  attributes, and escapeJs() for inline JavaScript strings.
+  Magento\Framework\Escaper is pre-wired to $block in all .phtml templates.
+category: "frontend"
+severity: "critical"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.1.0"
+tags:
+  - frontend
+  - xss
+  - security
+  - phtml
+  - escaping
+globs:
+  - "**/*.phtml"
+check:
+  type: regex
+  pattern: '<?=\s*\$(?!block->escape|escaper->escape)[a-zA-Z_][a-zA-Z0-9_]*(?:->(?!escape)[a-zA-Z]+\(\))*\s*?>'
+recommendation: >
+  Wrap all dynamic output in .phtml templates with the appropriate escaper:
+    - Text content: <?= $block->escapeHtml($value) ?>
+    - HTML attribute: <?= $block->escapeHtmlAttr($value) ?>
+    - URL (href/src/action): <?= $block->escapeUrl($value) ?>
+    - Inline JS string: <?= $block->escapeJs($value) ?>
+    - Allow-listed HTML (rarely needed): <?= $block->escapeHtml($html, ['b', 'i', 'strong']) ?>
+  Never use htmlspecialchars() directly — it does not handle all Commerce rendering contexts.
+  The $block->escapeHtml() method is available in all .phtml templates without injection.
+examples:
+  bad: |
+    <!-- XSS vulnerability: direct echo without escaping -->
+    <h1><?= $block->getTitle() ?></h1>
+    <a href="<?= $block->getUrl() ?>">Link</a>
+    <div data-value="<?= $product->getName() ?>">
+  good: |
+    <h1><?= $block->escapeHtml($block->getTitle()) ?></h1>
+    <a href="<?= $block->escapeUrl($block->getUrl()) ?>">Link</a>
+    <div data-value="<?= $block->escapeHtmlAttr($product->getName()) ?>">
+references:
+  - "https://developer.adobe.com/commerce/php/development/security/xss-protection/"
+  - "https://developer.adobe.com/commerce/php/development/security/content-security-policies/"

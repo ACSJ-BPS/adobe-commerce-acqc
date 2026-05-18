@@ -1,0 +1,66 @@
+schema_version: "1.0"
+id: "AC_ARCH_007"
+name: "ac-arch-007-preference-chain"
+title: "Preference Chain — Preference Extending Another Module's Preference"
+description: >
+  A preference chain occurs when Module B declares a preference for an interface, and
+  Module C's preference class extends Module B's preference class instead of the
+  original interface. If Module B is disabled, upgraded, or removed, Module C's class
+  breaks with a fatal error because its parent class no longer exists. This tight
+  coupling between modules violates the Open-Closed Principle and creates fragile
+  upgrade paths.
+category: "architecture"
+severity: "error"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "conflict-types.md"
+tags:
+  - architecture
+  - preference
+  - coupling
+  - fragile
+  - upgrade-risk
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: 'class\s+\w+\s+extends\s+\\?[A-Z][a-zA-Z\\]+Plugin\\|class\s+\w+\s+extends\s+\\?[A-Z][a-zA-Z\\]+(Override|Rewrite|Preference)\b'
+recommendation: >
+  Extend the original Magento interface or abstract class, not another module's
+  preference class. Use plugins with sortOrder to layer behaviour on top of
+  third-party preferences without creating a class inheritance dependency.
+  If you must extend a third-party preference, declare an explicit module sequence
+  dependency and document the coupling clearly.
+examples:
+  bad: |
+    // ModuleA provides: preference for CartInterface → ModuleA\Model\Cart
+    // ModuleB then extends ModuleA's preference — creates a chain
+    class ModuleBCart extends \ModuleA\Model\Cart
+    {
+        // Breaks if ModuleA is removed or refactored
+    }
+  good: |
+    // ModuleB uses a plugin on the original type instead
+    // di.xml: <type name="Magento\Quote\Api\CartManagementInterface">
+    //   <plugin name="module_b_cart_plugin" type="ModuleB\Plugin\CartPlugin"/>
+    // </type>
+    class CartPlugin
+    {
+        public function afterPlaceOrder(
+            \Magento\Quote\Api\CartManagementInterface $subject,
+            int $orderId
+        ): int {
+            // Safe: no dependency on ModuleA
+            return $orderId;
+        }
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/plugins/"
+  - "https://developer.adobe.com/commerce/php/development/components/object-manager/configuration/"

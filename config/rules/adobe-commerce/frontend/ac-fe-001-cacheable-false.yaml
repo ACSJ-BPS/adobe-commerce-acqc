@@ -1,0 +1,69 @@
+schema_version: "1.0"
+id: "AC_FE_001"
+name: "ac-fe-001-cacheable-false"
+title: "Layout: cacheable=\"false\" Disables Full-Page Cache for Entire Page"
+description: >
+  Setting cacheable="false" on any block in a layout handle disables full-page caching
+  for every page that renders that handle. This is one of the most damaging performance
+  anti-patterns in Adobe Commerce — a single misconfigured block can make an entire
+  page section uncacheable, defeating Varnish and Fastly FPC entirely.
+  Private/customer-specific content must instead use the CustomerData (customer-section)
+  mechanism and be loaded asynchronously via sections.xml, not via cacheable="false".
+category: "frontend"
+severity: "critical"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.1.0"
+tags:
+  - frontend
+  - cache
+  - fpc
+  - performance
+  - layout
+globs:
+  - "**/layout/**/*.xml"
+  - "**/view/**/layout/**/*.xml"
+check:
+  type: regex
+  pattern: 'cacheable="false"'
+recommendation: >
+  Remove cacheable="false" and replace the pattern with CustomerData sections:
+    1. Create a section provider in etc/frontend/sections.xml mapping actions to section names.
+    2. Implement a SectionDataInterface class that returns the private data as an array.
+    3. In the template, read the section via window.checkout or require(['Magento_Customer/js/customer-data']).
+    4. The block renders a Knockout.js template that binds to the customer section data.
+  This keeps the page FPC-cacheable while still serving personalized content.
+  Acceptable exceptions: dedicated checkout/cart pages where caching is intentionally
+  disabled — but even then, prefer ESI blocks over cacheable="false" at the container level.
+examples:
+  bad: |
+    <!-- layout/catalog_product_view.xml -->
+    <block class="Vendor\Module\Block\CustomerGreeting"
+           name="customer.greeting"
+           cacheable="false"
+           template="Vendor_Module::greeting.phtml"/>
+  good: |
+    <!-- etc/frontend/sections.xml -->
+    <config>
+        <action name="customer/account/login">
+            <section name="vendor-greeting"/>
+        </action>
+    </config>
+
+    <!-- Block returns section data via SectionDataInterface — no cacheable="false" needed -->
+    <!-- Template uses Knockout.js binding from customer-data section -->
+    <block class="Vendor\Module\Block\CustomerGreetingSection"
+           name="customer.greeting"
+           template="Vendor_Module::greeting.phtml"/>
+references:
+  - "https://developer.adobe.com/commerce/php/development/cache/page/private-content/"
+  - "https://developer.adobe.com/commerce/php/development/cache/page/public-content/"

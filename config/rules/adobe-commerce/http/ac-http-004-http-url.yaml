@@ -1,0 +1,53 @@
+schema_version: "1.0"
+id: "AC_HTTP_004"
+name: "ac-http-004-http-url"
+title: "Hardcoded Non-HTTPS URL in Source Code"
+description: >
+  HTTP (non-encrypted) URLs hardcoded in source files transmit data in plaintext,
+  exposing API keys, customer data, and integration tokens to network eavesdroppers.
+  Adobe Commerce on Cloud requires all external communication to use TLS. Hardcoded
+  HTTP endpoints also cause mixed-content browser warnings when included in frontend
+  templates served over HTTPS.
+category: "http"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-http.mdc"
+tags:
+  - http
+  - security
+  - tls
+  - urls
+globs:
+  - "**/*.php"
+  - "**/*.xml"
+  - "**/*.phtml"
+check:
+  type: regex
+  pattern: '[''"]http://(?!localhost|127\.0\.0\.1)'
+recommendation: >
+  Replace http:// with https:// in all external URLs. For configurable endpoints,
+  store the URL in the system configuration (Stores > Configuration) so it can be
+  changed per environment without a code deployment. Never hardcode production
+  service URLs in PHP source files.
+examples:
+  bad: |
+    $apiUrl  = 'http://api.payment-gateway.com/v1/charge';
+    $iconUrl = 'http://cdn.example.com/assets/logo.png';
+  good: |
+    $apiUrl  = 'https://api.payment-gateway.com/v1/charge';
+    $iconUrl = 'https://cdn.example.com/assets/logo.png';
+    // Or better, retrieve from encrypted config:
+    $apiUrl  = $this->scopeConfig->getValue('payment/gateway/api_url');
+references:
+  - "https://owasp.org/www-community/vulnerabilities/Cleartext_Transmission_of_Sensitive_Information"
+  - "https://developer.adobe.com/commerce/php/development/security/"

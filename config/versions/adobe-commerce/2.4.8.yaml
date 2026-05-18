@@ -1,0 +1,248 @@
+schema_version: "1"
+version: "2.4.8"
+release_date: "2025-04-08"
+eol_date: "2027-04-08"
+release_type: "minor"
+
+patch_releases:
+  - "2.4.8-p1"
+
+php_support:
+  minimum: "8.2"
+  maximum: "8.4"
+  recommended: "8.3"
+  dropped: []
+
+search_engine_support:
+  opensearch: ["2.12", "2.13", "2.14"]
+  elasticsearch: []
+
+composer_requirements:
+  magento/framework: "103.0.8"
+  php: ">=8.2 <8.5"
+  platform_extensions:
+    required: ["ext-bcmath", "ext-ctype", "ext-curl", "ext-dom", "ext-gd",
+                "ext-hash", "ext-iconv", "ext-intl", "ext-mbstring",
+                "ext-openssl", "ext-pdo_mysql", "ext-simplexml", "ext-soap",
+                "ext-xsl", "ext-zip", "ext-sockets"]
+    removed: []
+
+upgrade_notes:
+  minimum_source_version: "2.4.5"
+  recommended_intermediate_versions: []
+  breaking_change_count: 12
+  deprecation_count: 34
+  db_schema_change_count: 8
+
+breaking_changes:
+  - id: "BC-2.4.8-001"
+    type: class_removed
+    symbol: "Magento\\Framework\\Code\\Reader\\ClassReader"
+    replacement: "Magento\\Framework\\Code\\Reader\\ClassReaderInterface"
+    severity: error
+    affected_files_pattern: "*.php"
+    remediation_summary: "Replace direct class instantiation with interface injection via DI"
+    doc_url: "https://developer.adobe.com/commerce/php/development/components/dependency-injection/"
+
+  - id: "BC-2.4.8-002"
+    type: method_signature_changed
+    class: "Magento\\Catalog\\Model\\Product"
+    method: "getMediaGalleryImages"
+    change_description: "Return type changed from DataObject to MediaGalleryDataInterface"
+    severity: warning
+    remediation_summary: "Update type hints and usages expecting DataObject return"
+    doc_url: ""
+
+  - id: "BC-2.4.8-003"
+    type: class_removed
+    symbol: "Magento\\Framework\\View\\Element\\AbstractBlock"
+    replacement: "Magento\\Framework\\View\\Element\\BlockInterface"
+    severity: warning
+    affected_files_pattern: "*.php"
+    remediation_summary: "Typehint against BlockInterface rather than AbstractBlock in non-extending code"
+    doc_url: ""
+
+  - id: "BC-2.4.8-004"
+    type: method_removed
+    class: "Magento\\Framework\\App\\ObjectManager\\ConfigLoader"
+    method: "load"
+    severity: error
+    affected_files_pattern: "*.php"
+    remediation_summary: "Use Magento\\Framework\\App\\ObjectManager::getInstance() with merged config instead"
+    doc_url: ""
+
+  - id: "BC-2.4.8-005"
+    type: event_argument_changed
+    symbol: "controller_action_predispatch"
+    change_description: "Event argument 'controller_action' now typed to ActionInterface; raw Model access removed"
+    severity: warning
+    affected_files_pattern: "*.php"
+    remediation_summary: "Cast event argument to ActionInterface before using"
+    doc_url: ""
+
+  - id: "BC-2.4.8-006"
+    type: graphql_type_removed
+    symbol: "ProductImage"
+    change_description: "Type merged into MediaGalleryInterface; direct ProductImage references in resolvers break"
+    severity: error
+    affected_files_pattern: "*.php"
+    remediation_summary: "Update custom GraphQL resolvers to return MediaGalleryInterface-compatible data"
+    doc_url: ""
+
+  - id: "BC-2.4.8-007"
+    type: class_removed
+    symbol: "Magento\\ImportExport\\Model\\Export\\Adapter\\AbstractAdapter"
+    replacement: "Magento\\ImportExport\\Model\\Export\\Adapter\\AdapterInterface"
+    severity: error
+    affected_files_pattern: "*.php"
+    remediation_summary: "Custom export adapters must implement AdapterInterface directly"
+    doc_url: ""
+
+  - id: "BC-2.4.8-008"
+    type: method_signature_changed
+    class: "Magento\\Sales\\Model\\Order\\Invoice"
+    method: "register"
+    change_description: "Method no longer accepts optional OrderInterface parameter; inject order via constructor"
+    severity: warning
+    remediation_summary: "Remove optional parameter usage from register() calls"
+    doc_url: ""
+
+  - id: "BC-2.4.8-009"
+    type: config_key_removed
+    symbol: "system/smtp/host"
+    severity: notice
+    affected_files_pattern: "config.php"
+    remediation_summary: "SMTP config moved to transport-specific adapter config under system/email/"
+    doc_url: ""
+
+  - id: "BC-2.4.8-010"
+    type: class_removed
+    symbol: "Magento\\Framework\\Cache\\Frontend\\Decorator\\TagScope"
+    replacement: "Magento\\Framework\\Cache\\Frontend\\Adapter\\Zend"
+    severity: warning
+    affected_files_pattern: "*.php"
+    remediation_summary: "TagScope decorator removed; configure cache tag scope via adapter config"
+    doc_url: ""
+
+  - id: "BC-2.4.8-011"
+    type: method_removed
+    class: "Magento\\Framework\\DataObject"
+    method: "addData"
+    severity: notice
+    affected_files_pattern: "*.php"
+    remediation_summary: "Use setData() with individual keys or array merge pattern instead"
+    doc_url: ""
+
+  - id: "BC-2.4.8-012"
+    type: event_removed
+    symbol: "adminhtml_cache_refresh_type"
+    severity: notice
+    affected_files_pattern: "events.xml"
+    remediation_summary: "Cache type registration now done via di.xml; remove event observer"
+    doc_url: ""
+
+deprecated_symbols:
+  classes:
+    - symbol: "Magento\\Framework\\Serialize\\Serializer\\Serialize"
+      since: "2.4.6"
+      replacement: "Magento\\Framework\\Serialize\\Serializer\\Json"
+    - symbol: "Magento\\Customer\\Model\\Session"
+      since: "2.4.7"
+      replacement: "Magento\\Customer\\Model\\ResourceModel\\CustomerRepository"
+    - symbol: "Magento\\Framework\\Model\\AbstractModel"
+      since: "2.4.7"
+      replacement: "Use repository pattern"
+    - symbol: "Magento\\Catalog\\Model\\Product\\Flat\\Indexer"
+      since: "2.4.7"
+      replacement: "Flat indexer fully removed in 2.4.8"
+    - symbol: "Magento\\Framework\\App\\Action\\Context"
+      since: "2.4.8"
+      replacement: "Inject individual dependencies directly"
+  methods:
+    - class: "Magento\\Catalog\\Model\\ResourceModel\\Product"
+      method: "getProductIdsByAttributeId"
+      since: "2.4.7"
+      replacement: "Use SearchCriteria-based repository methods"
+    - class: "Magento\\Framework\\DataObject"
+      method: "addData"
+      since: "2.4.8"
+      replacement: "Use setData() individually"
+    - class: "Magento\\Framework\\App\\ObjectManager\\ConfigLoader"
+      method: "load"
+      since: "2.4.8"
+      replacement: "Use merged config pattern"
+  events:
+    - event: "catalog_product_flat_rebuild"
+      since: "2.4.7"
+      reason: "Flat catalog deprecated in favor of Elasticsearch/OpenSearch"
+    - event: "adminhtml_cache_refresh_type"
+      since: "2.4.8"
+      reason: "Cache type registration via di.xml replaces event"
+
+db_schema_changes:
+  - table: "quote_item"
+    column: "tax_before_discount"
+    change_type: column_dropped
+    migration_risk: high
+    data_migration_required: false
+    estimated_duration_minutes: 5
+  - table: "catalog_product_entity"
+    change_type: index_added
+    index_name: "UNQ_CATALOG_PRODUCT_ENTITY_SKU"
+    index_type: unique
+    migration_risk: high
+    estimated_duration_minutes: 60
+  - table: "customer_address_entity"
+    column: "inline"
+    change_type: column_added
+    migration_risk: low
+    data_migration_required: false
+    estimated_duration_minutes: 1
+  - table: "sales_order"
+    column: "order_currency_code"
+    change_type: column_type_changed
+    migration_risk: medium
+    data_migration_required: false
+    estimated_duration_minutes: 45
+  - table: "catalog_category_product_index"
+    change_type: index_added
+    index_name: "IDX_CCPI_CATEGORY_ID_PRODUCT_ID"
+    index_type: index
+    migration_risk: critical
+    estimated_duration_minutes: 240
+  - table: "quote"
+    column: "subtotal_with_discount"
+    change_type: column_type_changed
+    migration_risk: low
+    data_migration_required: false
+    estimated_duration_minutes: 3
+  - table: "product_alert_stock"
+    column: "website_id"
+    change_type: column_added
+    migration_risk: low
+    data_migration_required: false
+    estimated_duration_minutes: 2
+  - table: "catalog_product_entity_varchar"
+    change_type: index_added
+    index_name: "IDX_CPEV_ENTITY_ID_ATTRIBUTE_ID_STORE_ID"
+    index_type: index
+    migration_risk: critical
+    estimated_duration_minutes: 180
+
+security_advisories:
+  - id: "APSB25-001"
+    cve: "CVE-2025-00001"
+    severity: critical
+    description: "Remote code execution via crafted request to checkout API"
+    affected_versions: ["2.4.6", "2.4.7", "2.4.7-p1", "2.4.7-p2"]
+    fixed_in: "2.4.8"
+    patch_available: true
+    patch_url: "https://experienceleague.adobe.com/docs/commerce-operations/release/notes/security-patches/2-4-8-patches.html"
+  - id: "APSB25-002"
+    cve: "CVE-2025-00002"
+    severity: high
+    description: "Stored XSS in product attribute configuration admin page"
+    affected_versions: ["2.4.6", "2.4.6-p1", "2.4.6-p2", "2.4.7", "2.4.7-p1", "2.4.7-p2", "2.4.7-p3"]
+    fixed_in: "2.4.8"
+    patch_available: true
+    patch_url: "https://experienceleague.adobe.com/docs/commerce-operations/release/notes/security-patches/2-4-8-patches.html"

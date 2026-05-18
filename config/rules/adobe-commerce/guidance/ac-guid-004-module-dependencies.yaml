@@ -1,0 +1,36 @@
+schema_version: "1.0"
+id: "AC_GUID_004"
+name: "ac-guid-004-module-dependencies"
+title: "Module Dependency Declaration Best Practices"
+description: >
+  Magento module dependencies declared in module.xml control the module load order.
+  Undeclared dependencies cause race conditions where a module's setup scripts or
+  configuration loads before its dependencies are available. Circular dependencies
+  prevent modules from loading entirely. Overly broad dependencies (depending on
+  entire framework instead of specific modules) inflate the dependency graph and
+  slow down installation and upgrades.
+category: "guidance"
+severity: "info"
+tier: 3
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+introduced_in: "3.0.0"
+source: "adobe-commerce-guidance.mdc"
+tags:
+  - guidance
+  - architecture
+  - modules
+  - dependencies
+recommendation: >
+  In module.xml, declare only the specific modules your module actually uses.
+  Use <sequence> for modules whose setup scripts must run before yours.
+  Run bin/magento module:status to verify your module loads correctly.
+  Use the Upgrade Compatibility Tool to detect missing dependency declarations.
+  Consider using weak dependencies (soft module require) for optional integrations.
+references:
+  - "https://developer.adobe.com/commerce/php/development/build/component-file-structure/"
+  - "https://developer.adobe.com/commerce/php/development/components/module-dependencies/"

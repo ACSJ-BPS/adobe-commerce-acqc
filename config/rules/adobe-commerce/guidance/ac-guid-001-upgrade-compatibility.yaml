@@ -1,0 +1,35 @@
+schema_version: "1.0"
+id: "AC_GUID_001"
+name: "ac-guid-001-upgrade-compatibility"
+title: "Upgrade Compatibility Tool Not Integrated"
+description: >
+  Adobe provides the Upgrade Compatibility Tool (UCT) to analyze a custom Magento
+  extension or customization against a target Magento version and report all
+  incompatibilities before upgrading. Projects that do not run UCT as part of
+  their upgrade preparation process discover breaking changes only after attempting
+  the upgrade, significantly increasing remediation cost and downtime risk.
+category: "guidance"
+severity: "info"
+tier: 3
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+introduced_in: "3.0.0"
+source: "adobe-commerce-guidance.mdc"
+tags:
+  - guidance
+  - upgrades
+  - compatibility
+  - tooling
+recommendation: >
+  Run the Upgrade Compatibility Tool before every major or minor Magento upgrade.
+  Install via composer: composer require magento/upgrade-compatibility-tool
+  Then analyze your codebase: bin/uct upgrade:check /path/to/magento --coming-version=2.4.7
+  Review the HTML report and address all errors and warnings before proceeding
+  with the upgrade. Integrate UCT into your CI pipeline for continuous compatibility checking.
+references:
+  - "https://experienceleague.adobe.com/docs/commerce-operations/upgrade-guide/upgrade-compatibility-tool/overview.html"
+  - "https://developer.adobe.com/commerce/php/development/backward-incompatible-changes/"

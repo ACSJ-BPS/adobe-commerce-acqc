@@ -1,0 +1,54 @@
+schema_version: "1.0"
+id: "AC_CRON_003"
+name: "ac-cron-003-every-minute"
+title: "Cron Job Scheduled to Run Every Minute"
+description: >
+  A cron schedule of '* * * * *' causes the job to run every minute, which can
+  overwhelm the server, flood the cron_schedule table, and block other jobs from
+  executing. Magento 2's cron runner processes all scheduled jobs sequentially within
+  a group, so a minute-frequency job can monopolize the entire cron queue and delay
+  all other scheduled tasks.
+category: "cron"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-cron.mdc"
+tags:
+  - cron
+  - performance
+  - scheduling
+  - magento2
+globs:
+  - "**/crontab.xml"
+check:
+  type: xml_xpath
+  expression: "//schedule[text()='* * * * *']"
+  attribute: null
+recommendation: >
+  Set an appropriate schedule interval for your use case. For near-real-time
+  processing, use a message queue consumer instead of a frequent cron job.
+  If frequent polling is needed, use at least */5 (every 5 minutes) and ensure
+  the job is idempotent and completes in under 5 minutes.
+examples:
+  bad: |
+    <job name="vendor_module_sync"
+         instance="Vendor\Module\Cron\Sync"
+         method="execute">
+        <schedule>* * * * *</schedule>
+    </job>
+  good: |
+    <job name="vendor_module_sync"
+         instance="Vendor\Module\Cron\Sync"
+         method="execute">
+        <schedule>*/15 * * * *</schedule>
+    </job>
+references:
+  - "https://developer.adobe.com/commerce/php/development/cache/partial/database-caching/"
+  - "https://experienceleague.adobe.com/docs/commerce-operations/configuration-guide/crons/custom-cron-reference.html"

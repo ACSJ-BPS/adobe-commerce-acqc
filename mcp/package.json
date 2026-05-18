@@ -1,0 +1,36 @@
+{
+  "name": "acqc-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server exposing ACQC CLI as Model Context Protocol tools",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepare": "npm run build",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "magento",
+    "acqc",
+    "adobe-commerce"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.28.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.1"
+  },
+  "bin": {
+    "m2-quality-mcp-server": "dist/index.js"
+  }
+}

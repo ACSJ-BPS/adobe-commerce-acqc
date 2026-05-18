@@ -1,0 +1,69 @@
+schema_version: "1.0"
+id: "AC_DI_009"
+name: "ac-di-009-helper-injection"
+title: "Helper Class Injected as Dependency"
+description: >
+  Magento 1-style Helper classes (classes in the Helper\ namespace, especially Data.php)
+  are a legacy anti-pattern. Helpers typically become god objects with many unrelated
+  methods, violating the Single Responsibility Principle. They also make unit testing
+  harder because you must mock the entire helper to test a single method. In Magento 2,
+  helpers should be replaced with focused service classes or model classes with
+  specific responsibilities.
+category: "di"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "di-patterns.md"
+tags:
+  - di
+  - helper
+  - god-class
+  - srp
+  - legacy
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: 'function\s+__construct\s*\([^)]*\\Helper\\(?:Data|[A-Z][a-zA-Z]+)\b'
+recommendation: >
+  Replace Helper injection with a focused service class that has a single responsibility:
+    // Instead of: Vendor\Module\Helper\Data $helper
+    // Create: Vendor\Module\Service\PriceCalculator $priceCalculator
+  Move each logical group of methods from the Helper into its own service class.
+  If you are consuming a third-party helper that cannot be refactored, wrapping it
+  in an adapter service class at your module boundary is acceptable as a bridge.
+examples:
+  bad: |
+    public function __construct(
+        \Vendor\Module\Helper\Data $helper  // God object with 30+ methods
+    ) {
+        $this->helper = $helper;
+    }
+
+    public function calculate(): float
+    {
+        return $this->helper->getProductPrice($this->product);
+    }
+  good: |
+    public function __construct(
+        \Vendor\Module\Service\PriceCalculator $priceCalculator  // Single responsibility
+    ) {
+        $this->priceCalculator = $priceCalculator;
+    }
+
+    public function calculate(): float
+    {
+        return $this->priceCalculator->getPrice($this->product);
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/object-manager/"
+  - "https://developer.adobe.com/commerce/php/development/components/service-contracts/"

@@ -1,0 +1,474 @@
+# Report Generation Configuration for ACQC (Adobe Commerce Quality Control)
+# Configure report types, formats, templates, and distribution options
+
+reports:
+  # Global settings
+  enabled: true
+  output_directory: "reports"
+  cache_enabled: true
+  cache_ttl: 3600  # 1 hour
+  
+  # Report types configuration
+  types:
+    summary:
+      title: "Quality Summary Report"
+      description: "High-level overview with key metrics"
+      sections:
+        - overview
+        - violations
+        - metrics
+      default_role: "developer"
+      
+    detailed:
+      title: "Detailed Analysis Report"
+      description: "Comprehensive analysis with all data"
+      sections:
+        - overview
+        - violations
+        - metrics
+        - files
+        - technical_debt
+        - performance
+        - recommendations
+      default_role: "lead"
+      
+    executive:
+      title: "Executive Quality Report"
+      description: "Strategic overview for leadership"
+      sections:
+        - executive_summary
+        - trends
+        - risks
+        - action_items
+      default_role: "executive"
+      
+    security:
+      title: "Security Analysis Report"
+      description: "Security-focused analysis and recommendations"
+      sections:
+        - security_overview
+        - vulnerabilities
+        - compliance
+        - security_recommendations
+      default_role: "architect"
+      
+    performance:
+      title: "Performance Analysis Report"
+      description: "Performance optimization insights"
+      sections:
+        - performance_overview
+        - bottlenecks
+        - optimization_opportunities
+        - performance_recommendations
+      default_role: "architect"
+      
+    predictive:
+      title: "Predictive Analytics Report"
+      description: "Future trends and forecasting"
+      sections:
+        - forecast_summary
+        - trend_analysis
+        - debt_prediction
+        - risk_assessment
+        - strategic_recommendations
+      default_role: "manager"
+
+  # APM performance targets (from docs/references/metrics.md)
+  # Used in executive reports to show target vs measured KPIs with RAG status
+  performance_targets:
+    apdex_score:
+      target: 0.9
+      label: "Apdex Score"
+      comparison: ">="
+      unit: ""
+    average_response_time_ms:
+      target: 200
+      label: "Avg Response Time"
+      comparison: "<="
+      unit: "ms"
+    error_rate_percent:
+      target: 1.0
+      label: "Error Rate"
+      comparison: "<="
+      unit: "%"
+    db_query_time_ms:
+      target: 50
+      label: "DB Query Time"
+      comparison: "<="
+      unit: "ms"
+
+  # User roles configuration
+  roles:
+    developer:
+      title: "Developer"
+      description: "Technical implementation focus"
+      include:
+        - violations
+        - metrics
+        - files
+        - recommendations
+        - technical_debt
+      exclude:
+        - executive_summary
+        - strategic_insights
+      data_level: "detailed"
+      
+    lead:
+      title: "Team Lead"
+      description: "Team and process focus"
+      include:
+        - overview
+        - violations
+        - metrics
+        - trends
+        - team_productivity
+        - recommendations
+      exclude:
+        - executive_summary
+      data_level: "comprehensive"
+      
+    architect:
+      title: "Technical Architect"
+      description: "Architecture and design focus"
+      include:
+        - overview
+        - architecture_metrics
+        - design_patterns
+        - technical_debt
+        - security
+        - performance
+        - strategic_recommendations
+      data_level: "architectural"
+      
+    manager:
+      title: "Project Manager"
+      description: "Project metrics and timeline focus"
+      include:
+        - overview
+        - project_metrics
+        - trends
+        - team_productivity
+        - timeline_analysis
+        - action_items
+      exclude:
+        - detailed_violations
+      data_level: "managerial"
+      
+    executive:
+      title: "Executive"
+      description: "Strategic overview and business impact"
+      include:
+        - executive_summary
+        - business_impact
+        - strategic_insights
+        - investment_priorities
+        - action_items
+      exclude:
+        - technical_details
+        - detailed_violations
+      data_level: "strategic"
+
+  # Format-specific configurations
+  formats:
+    html:
+      enabled: true
+      templates_directory: "templates/reports/html"
+      default_theme: "default"
+      themes:
+        default:
+          primary_color: "#007bff"
+          secondary_color: "#6c757d"
+          success_color: "#28a745"
+          warning_color: "#ffc107"
+          danger_color: "#dc3545"
+          font_family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+          
+        dark:
+          primary_color: "#375a7f"
+          secondary_color: "#444"
+          success_color: "#00bc8c"
+          warning_color: "#f39c12"
+          danger_color: "#e74c3c"
+          background_color: "#222"
+          text_color: "#fff"
+          
+        professional:
+          primary_color: "#2c3e50"
+          secondary_color: "#95a5a6"
+          success_color: "#27ae60"
+          warning_color: "#f1c40f"
+          danger_color: "#e74c3c"
+          font_family: "'Arial', sans-serif"
+      
+      chart_libraries:
+        default: "chart.js"
+        alternatives: ["plotly.js", "d3.js"]
+      
+      interactive_features:
+        drill_down: true
+        filtering: true
+        sorting: true
+        export_buttons: true
+        
+    pdf:
+      enabled: true
+      page_format: "A4"
+      orientation: "portrait"
+      margins:
+        top: 27
+        right: 15
+        bottom: 25
+        left: 15
+      fonts:
+        default: "helvetica"
+        monospace: "courier"
+      colors:
+        primary: "#007bff"
+        secondary: "#6c757d"
+        success: "#28a745"
+        warning: "#ffc107"
+        danger: "#dc3545"
+      header_footer: true
+      page_numbers: true
+      
+    excel:
+      enabled: true
+      max_rows: 100000
+      formats:
+        - xlsx
+        - csv
+      worksheets:
+        - name: "Summary"
+          type: "summary"
+          charts: true
+        - name: "Violations"
+          type: "violations"
+          auto_filter: true
+        - name: "Metrics"
+          type: "metrics"
+          charts: true
+        - name: "Technical Debt"
+          type: "technical_debt"
+          charts: true
+        - name: "Performance"
+          type: "performance"
+        - name: "Predictive Analytics"
+          type: "predictive"
+          charts: true
+      auto_size_columns: true
+      freeze_headers: true
+      
+    json:
+      enabled: true
+      schema_version: "1.0"
+      pretty_print: true
+      include_metadata: true
+      validate_schema: true
+      api_version: "v1"
+      
+    junit:
+      enabled: true
+      testsuite_name: "ACQC.CodeAnalysis"
+      include_properties: true
+      quality_gates:
+        - name: "no_critical_violations"
+          condition: "critical_violations == 0"
+          description: "No critical violations allowed"
+        - name: "minimum_quality_score"
+          condition: "quality_score >= 7.0"
+          description: "Quality score must be at least 7.0"
+        - name: "maximum_technical_debt"
+          condition: "technical_debt_hours <= 100"
+          description: "Technical debt must not exceed 100 hours"
+        - name: "minimum_test_coverage"
+          condition: "test_coverage >= 0.8"
+          description: "Test coverage must be at least 80%"
+
+  # Template configurations
+  templates:
+    custom_templates_enabled: true
+    template_inheritance: true
+    caching: true
+    
+    variables:
+      global:
+        company_name: "Your Company"
+        company_logo: "assets/logo.png"
+        footer_text: "Generated by ACQC"
+        contact_email: "quality@yourcompany.com"
+        
+      report_specific:
+        show_recommendations: true
+        show_trends: true
+        show_charts: true
+        max_violations_display: 100
+        
+  # Distribution and delivery
+  distribution:
+    email:
+      enabled: false
+      smtp_host: "smtp.example.com"
+      smtp_port: 587
+      smtp_username: "reports@yourcompany.com"
+      smtp_password: "${EMAIL_PASSWORD}"
+      from_address: "reports@yourcompany.com"
+      from_name: "ACQC Reports"
+      
+      templates:
+        subject: "ACQC Report - {{project_name}} - {{date}}"
+        body: |
+          Quality analysis report for {{project_name}} is ready.
+          
+          Report Details:
+          - Type: {{report_type}}
+          - Generated: {{generation_time}}
+          - Quality Score: {{quality_score}}
+          
+          Please find the attached report.
+          
+    webhook:
+      enabled: false
+      timeout: 30
+      retry_attempts: 3
+      payload_format: "json"
+      
+    slack:
+      enabled: false
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+      channel: "#quality-reports"
+      username: "ACQC"
+      icon_emoji: ":chart_with_upwards_trend:"
+      
+    teams:
+      enabled: false
+      webhook_url: "${TEAMS_WEBHOOK_URL}"
+
+  # Scheduling and automation
+  scheduling:
+    enabled: false
+    cron_reports:
+      daily_summary:
+        schedule: "0 9 * * 1-5"  # 9 AM weekdays
+        type: "summary"
+        format: "html"
+        recipients: ["team@yourcompany.com"]
+        
+      weekly_detailed:
+        schedule: "0 10 * * 1"  # 10 AM Mondays
+        type: "detailed"
+        format: "pdf"
+        recipients: ["leads@yourcompany.com"]
+        
+      monthly_executive:
+        schedule: "0 11 1 * *"  # 11 AM first day of month
+        type: "executive"
+        format: "pdf"
+        recipients: ["executives@yourcompany.com"]
+
+  # Performance and optimization
+  performance:
+    async_generation: true
+    queue_enabled: false
+    parallel_processing: true
+    max_memory_usage: "512M"
+    timeout_seconds: 300
+    
+    caching:
+      data_cache_ttl: 1800  # 30 minutes
+      template_cache_ttl: 3600  # 1 hour
+      report_cache_ttl: 7200  # 2 hours
+      
+    optimization:
+      compress_images: true
+      minify_html: true
+      optimize_charts: true
+      lazy_load_data: true
+
+  # Security and access control
+  security:
+    access_control: true
+    role_based_filtering: true
+    sensitive_data_masking: true
+    audit_logging: true
+    
+    allowed_formats:
+      developer: ["html", "json"]
+      lead: ["html", "pdf", "excel", "json"]
+      architect: ["html", "pdf", "excel", "json"]
+      manager: ["html", "pdf", "excel"]
+      executive: ["html", "pdf"]
+      
+    data_retention:
+      reports_retention_days: 90
+      logs_retention_days: 30
+      cleanup_enabled: true
+
+  # Integration with other systems
+  integrations:
+    jira:
+      enabled: false
+      base_url: "https://yourcompany.atlassian.net"
+      username: "${JIRA_USERNAME}"
+      api_token: "${JIRA_API_TOKEN}"
+      project_key: "QUALITY"
+      
+    jenkins:
+      enabled: false
+      base_url: "https://jenkins.yourcompany.com"
+      username: "${JENKINS_USERNAME}"
+      api_token: "${JENKINS_API_TOKEN}"
+      
+    sonarqube:
+      enabled: false
+      base_url: "https://sonar.yourcompany.com"
+      token: "${SONAR_TOKEN}"
+      
+    github:
+      enabled: false
+      token: "${GITHUB_TOKEN}"
+      repository: "yourcompany/your-repo"
+      
+    gitlab:
+      enabled: false
+      token: "${GITLAB_TOKEN}"
+      project_id: "12345"
+
+# Default quality gates for different report types
+quality_gates:
+  summary:
+    - metric: "quality_score"
+      operator: ">="
+      threshold: 7.0
+      severity: "error"
+    - metric: "critical_violations"
+      operator: "=="
+      threshold: 0
+      severity: "error"
+      
+  detailed:
+    - metric: "quality_score"
+      operator: ">="
+      threshold: 7.0
+      severity: "error"
+    - metric: "critical_violations"
+      operator: "=="
+      threshold: 0
+      severity: "error"
+    - metric: "technical_debt_hours"
+      operator: "<="
+      threshold: 100
+      severity: "warning"
+    - metric: "test_coverage"
+      operator: ">="
+      threshold: 0.8
+      severity: "warning"
+      
+  executive:
+    - metric: "quality_score"
+      operator: ">="
+      threshold: 8.0
+      severity: "error"
+    - metric: "overall_risk"
+      operator: "<="
+      threshold: 0.3
+      severity: "warning" 

@@ -1,0 +1,69 @@
+schema_version: "1.0"
+id: "AC_DEP_006"
+name: "ac-dep-006-zend-http-client"
+title: "Zend HTTP Client — Use Magento HTTP Client Instead"
+description: >
+  Direct use of Zend\Http\Client in custom modules bypasses Magento's built-in HTTP
+  abstraction layer and may fail when the Zend compatibility shim is removed in future
+  Adobe Commerce releases. Magento's HTTP\Client\Curl provides connection timeout
+  configuration, proxy support, and certificate validation — missing from raw Zend HTTP.
+category: "deprecation"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "zend-laminas-deprecations.md"
+tags:
+  - deprecation
+  - zend
+  - laminas
+  - http
+  - upgrade-risk
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: 'use\s+Zend\\Http'
+recommendation: >
+  Replace Zend\Http\Client with Magento\Framework\HTTP\Client\Curl (preferred) or
+  Magento\Framework\HTTP\Client\CurlInterface injected via constructor DI.
+  Always configure connection and read timeouts via setCurlOption().
+  For low-level HTTP, Laminas\Http\Client is an acceptable fallback.
+examples:
+  bad: |
+    use Zend\Http\Client;
+
+    class ApiConnector
+    {
+        public function fetch(string $url): string
+        {
+            $client = new Client($url);
+            $response = $client->send();
+            return $response->getBody();
+        }
+    }
+  good: |
+    use Magento\Framework\HTTP\Client\Curl;
+
+    class ApiConnector
+    {
+        public function __construct(private readonly Curl $curl) {}
+
+        public function fetch(string $url): string
+        {
+            $this->curl->setTimeout(10);
+            $this->curl->get($url);
+            return $this->curl->getBody();
+        }
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/http-client/"
+  - "https://docs.laminas.dev/laminas-http/"

@@ -1,0 +1,51 @@
+schema_version: "1.0"
+id: "AC_CLOUD_002"
+name: "ac-cloud-002-env-variable-hardcoded"
+title: "Hardcoded Environment-Specific Configuration"
+description: >
+  Hardcoding environment-specific values (database credentials, API keys, hostnames,
+  URLs) directly in PHP code prevents proper environment promotion from staging to
+  production in Adobe Commerce Cloud. Cloud environments use environment variables
+  and .magento.env.yaml to manage configuration per environment. Hardcoded values
+  break the build-once-deploy-many principle and expose secrets in version control.
+category: "cloud"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-cloud.mdc"
+tags:
+  - cloud
+  - security
+  - configuration
+  - credentials
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: '(?:password|passwd|secret|api_key|apikey)\s*=\s*[''"][^''"\s]{4,}[''"]'
+recommendation: >
+  Store environment-specific values in cloud environment variables and retrieve
+  them via $_ENV or getenv(). For Magento configuration, use the core_config_data
+  table with environment-specific values set through ece-tools environment variables
+  (MAGENTO_CLOUD_VARIABLES) or .magento.env.yaml SCD_MATRIX configuration.
+examples:
+  bad: |
+    $client = new ApiClient();
+    $client->setApiKey('sk_live_abc123secretkey');
+    $client->setPassword('hardcoded_db_pass');
+  good: |
+    $client = new ApiClient();
+    $client->setApiKey((string) getenv('VENDOR_API_KEY'));
+    $client->setPassword((string) getenv('VENDOR_API_SECRET'));
+references:
+  - "https://experienceleague.adobe.com/docs/commerce-cloud-service/user-guide/configure/env/configure-env-yaml.html"
+  - "https://experienceleague.adobe.com/docs/commerce-cloud-service/user-guide/project/overview.html"

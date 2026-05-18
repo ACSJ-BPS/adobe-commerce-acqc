@@ -1,0 +1,83 @@
+# AI Engine Configuration for ACQC (Adobe Commerce Quality Control)
+# Configure AI providers, prompts, and behavior
+
+ai:
+  # Global AI settings
+  # Disabled by default — the team uses Cursor/Codex/Claude for code assistance.
+  # Set to true and configure a provider below only if you need ACQC-specific AI features.
+  enabled: false
+  default_provider: "local"
+  
+  # Rate limiting and safety
+  rate_limits:
+    requests_per_minute: 60
+    tokens_per_minute: 90000
+    daily_cost_limit: 50.00
+  
+  # AI Provider configurations
+  providers:
+    openai:
+      enabled: false
+      api_key: "${OPENAI_API_KEY}"
+      model: "gpt-4"
+      base_url: "https://api.openai.com/v1"
+      timeout: 30
+      
+    claude:
+      enabled: false  # Set to true and add API key to enable
+      api_key: "${CLAUDE_API_KEY}"  # Set via environment variable
+      model: "claude-3-sonnet-20240229"
+      base_url: "https://api.anthropic.com/v1"
+      timeout: 60
+      
+    local:
+      enabled: true  # Local AI enabled
+      base_url: "http://localhost:11434"
+      model: "codellama:latest"
+      timeout: 120
+
+  # AI Feature configuration
+  features:
+    code_understanding:
+      enabled: true
+      cache_ttl: 3600  # 1 hour
+      max_code_length: 10000  # characters
+      
+    violation_explanation:
+      enabled: true
+      batch_size: 5
+      include_examples: true
+      explanation_level: "intermediate"  # beginner, intermediate, advanced
+      
+    fix_suggestion:
+      enabled: true
+      batch_size: 3
+      fix_style: "comprehensive"  # minimal, comprehensive, educational
+      include_diff: true
+      
+    conversation:
+      enabled: true
+      max_history: 20
+      response_style: "helpful"  # helpful, concise, detailed
+      
+    quality_prediction:
+      enabled: true
+      confidence_threshold: 0.7
+      
+    learning_path:
+      enabled: true
+      default_user_level: "intermediate"
+
+  # Custom prompts (override defaults)
+  prompts:
+    custom_magento_analysis: |
+      Analyze this Magento 2 code with focus on:
+      1. Magento coding standards
+      2. Performance implications
+      3. Security considerations
+      4. Upgrade compatibility
+      
+      Code: {{code}}
+      
+      Provide structured analysis with recommendations.
+

@@ -1,0 +1,61 @@
+schema_version: "1.0"
+id: "AC_GQL_003"
+name: "ac-gql-003-no-input-validation"
+title: "GraphQL Resolver Accessing Args Without Validation"
+description: >
+  GraphQL mutation resolvers that access $args array values directly without validation
+  bypass input sanitization and can receive unexpected types, missing keys, or malicious
+  payloads. GraphQL's type system validates structure but not business rules. All mutation
+  resolvers must validate inputs against business constraints before processing.
+category: "graphql"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-graphql.mdc"
+tags:
+  - graphql
+  - validation
+  - security
+  - mutations
+globs:
+  - "**/Resolver/**/*.php"
+  - "**/Resolvers/**/*.php"
+check:
+  type: regex
+  pattern: '\$args\s*\['
+recommendation: >
+  Validate all $args values before use. Implement a dedicated InputValidator class
+  or use Magento's validator infrastructure:
+  if (empty($args['input']['email'])) { throw new GraphQlInputException(__('Email is required.')); }
+  $this->emailValidator->validate($args['input']['email']);
+  Consider using a typed input DTO to enforce structure before reaching resolver logic.
+examples:
+  bad: |
+    public function resolve(...): array
+    {
+        $email = $args['input']['email'];      // no validation
+        $qty   = $args['input']['quantity'];   // could be negative or null
+        return $this->cartService->addItem($email, $qty);
+    }
+  good: |
+    public function resolve(...): array
+    {
+        $input = $args['input'] ?? [];
+        if (empty($input['email']) || !filter_var($input['email'], FILTER_VALIDATE_EMAIL)) {
+            throw new \Magento\Framework\GraphQl\Exception\GraphQlInputException(__('Valid email required.'));
+        }
+        $qty = max(1, (int) ($input['quantity'] ?? 1));
+        return $this->cartService->addItem($input['email'], $qty);
+    }
+references:
+  - "https://developer.adobe.com/commerce/webapi/graphql/develop/mutations/"
+  - "https://developer.adobe.com/commerce/php/development/security/"

@@ -1,0 +1,61 @@
+schema_version: "1.0"
+id: "AC_FE_003"
+name: "ac-fe-003-missing-form-key-frontend"
+title: "Template: Frontend POST Form Missing form_key CSRF Token"
+description: >
+  HTML forms in .phtml templates that submit via POST without a form_key hidden field
+  are vulnerable to Cross-Site Request Forgery (CSRF). Magento's FormKey block
+  generates a unique session-bound token that the framework validates on every POST
+  action. Omitting it allows an attacker to forge authenticated requests from any origin.
+  This rule targets frontend templates; admin form key validation is covered by AC_SEC_007.
+category: "frontend"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.1.0"
+tags:
+  - frontend
+  - csrf
+  - security
+  - form_key
+  - phtml
+globs:
+  - "**/*.phtml"
+check:
+  type: regex
+  pattern: "<form[^>]+method=[\"']?post[\"']?(?![^<]*form_key)"
+recommendation: >
+  Add the form_key block inside every frontend POST form:
+
+    <form method="post" action="<?= $block->escapeUrl($block->getFormAction()) ?>">
+        <?= $block->getBlockHtml('formkey') ?>
+        <!-- or equivalently: -->
+        <input type="hidden" name="form_key"
+               value="<?= $block->escapeHtmlAttr($block->getFormKey()) ?>"/>
+        <!-- rest of form fields -->
+    </form>
+
+  For forms submitted via JavaScript (AJAX), include the form_key as a POST parameter
+  fetched from window.FORM_KEY or via the Magento_Customer/js/customer-data 'formKey' key.
+examples:
+  bad: |
+    <form method="post" action="<?= $block->escapeUrl($block->getSubmitUrl()) ?>">
+        <input type="text" name="email"/>
+        <button type="submit">Subscribe</button>
+    </form>
+  good: |
+    <form method="post" action="<?= $block->escapeUrl($block->getSubmitUrl()) ?>">
+        <?= $block->getBlockHtml('formkey') ?>
+        <input type="text" name="email"/>
+        <button type="submit">Subscribe</button>
+    </form>
+references:
+  - "https://developer.adobe.com/commerce/php/development/security/cross-site-request-forgery/"

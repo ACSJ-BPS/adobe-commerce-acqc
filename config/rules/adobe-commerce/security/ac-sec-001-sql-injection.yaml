@@ -1,0 +1,52 @@
+schema_version: "1.0"
+id: "AC_SEC_001"
+name: "ac-sec-001-sql-injection"
+title: "SQL Injection via Direct Query String Concatenation"
+description: >
+  Direct string concatenation of user-controlled values into SQL queries bypasses
+  parameterized query protection and opens the application to SQL injection attacks.
+  Adobe Commerce provides Zend_Db adapters and Laminas\Db with proper parameter binding
+  that must be used instead of manual string building.
+category: "security"
+severity: "critical"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-security.mdc"
+tags:
+  - security
+  - sql-injection
+  - owasp-a03
+  - database
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: regex
+  pattern: '->(?:query|prepare)\s*\([^;]*\.\s*\$'
+recommendation: >
+  Use parameterized queries with Zend_Db_Expr or PDO prepared statements.
+  Replace string concatenation with bound parameters:
+  $connection->fetchAll($sql, ['id' => $id]) or use $connection->select() builder.
+examples:
+  bad: |
+    $query = "SELECT * FROM catalog_product_entity WHERE sku = '" . $sku . "'";
+    $result = $this->resourceConnection->getConnection()->query($query);
+  good: |
+    $connection = $this->resourceConnection->getConnection();
+    $select = $connection->select()
+        ->from('catalog_product_entity')
+        ->where('sku = ?', $sku);
+    $result = $connection->fetchAll($select);
+references:
+  - "https://owasp.org/www-community/attacks/SQL_Injection"
+  - "https://developer.adobe.com/commerce/php/development/cache/partial/database-caching/"

@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ report.title|default('Quality Report') }} — {{ report.project_name|default('ACQC') }}</title>
+<style>
+:root{
+  --bg:#f8f9fc;--surface:#fff;--surface2:#f1f5f9;--border:#e2e8f0;
+  --text:#0f172a;--text2:#475569;--text3:#94a3b8;
+  --navy:#1a1f3a;--primary:#4f46e5;--primary-lt:#eef2ff;
+  --success:#059669;--success-lt:#ecfdf5;
+  --warning:#d97706;--warning-lt:#fffbeb;
+  --danger:#dc2626;--danger-lt:#fef2f2;
+  --purple:#7c3aed;--purple-lt:#f5f3ff;
+  --nav-h:60px;--r:10px;
+  --sh:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.05);
+  --sh-md:0 4px 12px rgba(0,0,0,.10),0 2px 4px rgba(0,0,0,.06);
+}
+[data-theme="dark"]{
+  --bg:#0b0f1a;--surface:#131929;--surface2:#1c2333;--border:#2d3654;
+  --text:#e2e8f0;--text2:#8892a4;--text3:#4a5568;
+  --primary-lt:#1e1b4b;--success-lt:#052e16;--warning-lt:#1a1200;
+  --danger-lt:#1a0606;--purple-lt:#1c1040;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;margin:0;background:var(--bg);color:var(--text);line-height:1.5;font-size:14px}
+/* NAV */
+.nav{position:sticky;top:0;z-index:100;background:var(--navy);height:var(--nav-h);display:flex;align-items:center;padding:0 24px;gap:20px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.nav-brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:700;font-size:15px;white-space:nowrap;text-decoration:none}
+.nav-logo{width:30px;height:30px;background:var(--primary);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;letter-spacing:-.5px}
+.nav-links{display:flex;gap:2px;flex:1;overflow-x:auto}
+.nav-links a{color:rgba(255,255,255,.6);font-size:13px;padding:6px 12px;border-radius:6px;transition:all .15s;white-space:nowrap;text-decoration:none}
+.nav-links a:hover{color:#fff;background:rgba(255,255,255,.1)}
+.nav-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:all .15s;text-decoration:none}
+.btn-ghost{background:rgba(255,255,255,.1);color:#fff}.btn-ghost:hover{background:rgba(255,255,255,.2)}
+.btn-sm{padding:4px 10px;font-size:11px}
+.theme-btn{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:background .15s}
+.theme-btn:hover{background:rgba(255,255,255,.2)}
+/* LAYOUT */
+.main{max-width:1320px;margin:0 auto;padding:32px 24px 72px}
+.section{margin-bottom:40px}
+.section-hd{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.section-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.section-title{font-size:17px;font-weight:700;color:var(--text);margin:0}
+.section-sub{font-size:12px;color:var(--text3);margin:0}
+/* HERO */
+.hero{background:linear-gradient(135deg,#1a1f3a 0%,#2a3068 55%,#1a2645 100%);border-radius:16px;padding:36px 32px;color:#fff;margin-bottom:28px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-80px;right:-80px;width:260px;height:260px;border-radius:50%;background:rgba(79,70,229,.15);pointer-events:none}
+.hero::after{content:'';position:absolute;bottom:-100px;left:-60px;width:340px;height:340px;border-radius:50%;background:rgba(124,58,237,.1);pointer-events:none}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:28px;position:relative;z-index:1}
+.hero-title{font-size:22px;font-weight:800;margin:0 0 4px}
+.hero-meta{font-size:12px;color:rgba(255,255,255,.55)}
+.readiness{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:40px;font-size:13px;font-weight:700;letter-spacing:.4px}
+.r-ready{background:rgba(5,150,105,.2);color:#34d399;border:1px solid rgba(52,211,153,.25)}
+.r-risky{background:rgba(217,119,6,.2);color:#fbbf24;border:1px solid rgba(251,191,36,.25)}
+.r-blocked{background:rgba(220,38,38,.2);color:#f87171;border:1px solid rgba(248,113,113,.25)}
+.rdot{width:8px;height:8px;border-radius:50%;animation:pulse 2s infinite}
+.r-ready .rdot{background:#34d399}.r-risky .rdot{background:#fbbf24}.r-blocked .rdot{background:#f87171}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+/* SCORE RINGS */
+.scores-grid{display:flex;gap:16px;flex-wrap:wrap;position:relative;z-index:1}
+.score-card{flex:1 1 120px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);border-radius:12px;padding:16px 10px;text-align:center}
+.score-lbl{font-size:10px;font-weight:700;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+.ring-wrap{position:relative;display:inline-block}
+.ring-wrap svg{display:block}
+.ring-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff}
+.score-trend{font-size:10px;color:rgba(255,255,255,.4);margin-top:6px}
+/* STAT CARDS */
+.stats-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:28px}
+.stat{flex:1 1 140px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;box-shadow:var(--sh)}
+.stat-lbl{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.stat-val{font-size:28px;font-weight:800;line-height:1}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:4px}
+.c-good{color:var(--success)}.c-warn{color:var(--warning)}.c-bad{color:var(--danger)}.c-crit{color:var(--purple)}.c-mut{color:var(--text3)}
+/* AI INSIGHTS */
+.insight{background:linear-gradient(135deg,var(--primary-lt),var(--surface));border:1px solid rgba(79,70,229,.18);border-radius:var(--r);padding:20px 24px;display:flex;gap:16px;align-items:flex-start}
+.insight-icon{font-size:26px;flex-shrink:0}
+.insight h3{margin:0 0 6px;font-size:14px;font-weight:700;color:var(--primary)}
+.insight p{margin:0;font-size:13px;color:var(--text2);line-height:1.65}
+/* RISKS */
+.risk-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.risk-item{display:flex;align-items:flex-start;gap:14px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-left:4px solid;border-radius:var(--r);box-shadow:var(--sh)}
+.risk-item.rb{border-left-color:var(--purple)}.risk-item.re{border-left-color:var(--danger)}.risk-item.rw{border-left-color:var(--warning)}.risk-item.ri{border-left-color:var(--primary)}
+.risk-num{font-size:10px;font-weight:800;color:var(--text3);min-width:20px;margin-top:2px}
+.risk-body h4{margin:0 0 2px;font-size:13px;font-weight:600;color:var(--text)}
+.risk-body p{margin:0;font-size:12px;color:var(--text2)}
+.risk-badges{display:flex;gap:6px;align-items:center;margin-left:auto;flex-shrink:0}
+/* CHARTS GRID */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:18px}
+@media(max-width:900px){.charts-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.charts-grid{grid-template-columns:1fr}}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);padding:20px 22px}
+.chart-card-title{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin:0 0 16px}
+/* Severity donut */
+.donut-wrap{display:flex;align-items:center;gap:18px}
+.donut-svg{flex-shrink:0}
+.donut-legend{display:flex;flex-direction:column;gap:7px;flex:1}
+.leg-row{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2)}
+.leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.leg-val{font-weight:700;color:var(--text);margin-left:auto}
+.leg-pct{font-size:10px;color:var(--text3);min-width:30px;text-align:right}
+/* Category bars */
+.cat-bars{display:flex;flex-direction:column;gap:9px}
+.cat-row{display:flex;align-items:center;gap:8px}
+.cat-name{width:100px;text-align:right;font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+.cat-track{flex:1;height:18px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.cat-fill{height:100%;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;transition:width .4s}
+.cat-fill-txt{font-size:9px;font-weight:700;color:#fff;white-space:nowrap}
+.cat-num{width:36px;text-align:right;font-size:11px;font-weight:600;color:var(--text2)}
+/* Hotspot table */
+.hs-table{width:100%;border-collapse:collapse}
+.hs-table th{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)}
+.hs-table td{padding:7px 8px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border);vertical-align:middle}
+.hs-table tr:last-child td{border-bottom:none}
+.hs-file{font-family:monospace;font-size:10px;color:var(--text);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.hs-bar{height:5px;background:var(--primary);border-radius:2px;min-width:3px}
+/* RECOMMENDATIONS */
+.rec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.rec-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
+.rec-head{padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.rec-ico{font-size:17px}
+.rec-cat{font-size:13px;font-weight:700;color:var(--text)}
+.rec-count{font-size:12px;font-weight:700;padding:2px 8px;border-radius:20px;background:var(--danger-lt);color:var(--danger);margin-left:auto}
+.rec-body{padding:14px 16px}
+.rec-row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:9px}
+.rec-key{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;flex-shrink:0;padding-top:1px;min-width:70px}
+.rec-val{font-size:12px;color:var(--text2);line-height:1.4;text-align:right}
+.rec-fix{background:var(--surface2);border-radius:6px;padding:9px 12px;font-size:11px;color:var(--text2);line-height:1.5;margin-top:8px;font-family:monospace;overflow-x:auto}
+.pri-high{display:inline-block;padding:1px 8px;border-radius:20px;font-size:10px;font-weight:700;background:var(--danger-lt);color:var(--danger)}
+.pri-med {display:inline-block;padding:1px 8px;border-radius:20px;font-size:10px;font-weight:700;background:var(--warning-lt);color:var(--warning)}
+.pri-low {display:inline-block;padding:1px 8px;border-radius:20px;font-size:10px;font-weight:700;background:var(--success-lt);color:var(--success)}
+.eff-badge{display:inline-block;padding:1px 8px;border-radius:20px;font-size:10px;font-weight:700;background:var(--primary-lt);color:var(--primary)}
+/* DEVELOPER PANEL */
+.dev-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:700px){.dev-grid{grid-template-columns:1fr}}
+.win-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;background:var(--success-lt);border:1px solid rgba(5,150,105,.18);border-radius:6px;margin-bottom:7px;font-size:12px;color:var(--text2)}
+.win-n{font-size:10px;font-weight:800;color:var(--success);min-width:18px}
+.cat-row{cursor:pointer}
+.cat-row:hover .cat-name,.cat-row:hover .cat-num{color:var(--primary)}
+.cat-row:hover .cat-fill{filter:brightness(1.15)}
+.rule-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2)}
+.rule-row:last-child{border-bottom:none}
+.rule-id{font-family:monospace;font-size:10px;color:var(--text3);flex-shrink:0;min-width:120px}
+.rule-desc{font-size:10px;color:var(--text3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rule-cnt{font-weight:700;color:var(--text);margin-left:auto;font-size:13px;flex-shrink:0}
+.rule-mini{width:50px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;flex-shrink:0}
+.rule-mini-fill{height:100%;border-radius:2px;background:var(--primary)}
+/* VIOLATIONS TABLE */
+.filter-strip{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.filter-strip input,.filter-strip select{padding:7px 11px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text)}
+.filter-strip input{flex:1;min-width:180px}
+.filter-strip select{min-width:140px}
+.vcount{font-size:12px;color:var(--text3);margin-left:auto}
+.btn-clear{padding:7px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;color:var(--text2)}
+.btn-clear:hover{background:var(--border)}
+.data-tbl{width:100%;border-collapse:collapse}
+.data-tbl th{background:var(--surface2);color:var(--text2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:10px 13px;text-align:left;border-bottom:2px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap}
+.data-tbl th:hover{background:var(--border)}
+.data-tbl th.sa::after{content:" ↑";font-size:9px;opacity:.7}
+.data-tbl th.sd::after{content:" ↓";font-size:9px;opacity:.7}
+.data-tbl td{padding:9px 13px;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border);vertical-align:top}
+.data-tbl tr.vrow{cursor:pointer}
+.data-tbl tr.vrow:hover>td{background:var(--surface2)}
+.data-tbl tr.vrow.xp>td{background:var(--primary-lt)}
+.data-tbl tr.drow{display:none}
+.data-tbl tr.drow.op{display:table-row}
+.data-tbl tr.drow>td{background:var(--surface2);border-bottom:2px solid var(--primary);padding:14px 18px}
+.det-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.det-lbl{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
+.det-val{font-size:12px;color:var(--text2);line-height:1.5}
+.det-mono{font-family:monospace;font-size:11px;word-break:break-all}
+.det-rec{background:var(--warning-lt);border-radius:5px;padding:8px 11px;font-size:12px;color:var(--text2);border-left:3px solid var(--warning)}
+.chev{float:right;font-size:10px;color:var(--text3);transition:transform .2s}
+.vrow.xp .chev{transform:rotate(180deg)}
+/* BADGES */
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;letter-spacing:.3px}
+.badge-blocker{background:#1a1f3a;color:#fff}
+.badge-critical{background:var(--purple-lt);color:var(--purple)}
+.badge-error{background:var(--danger-lt);color:var(--danger)}
+.badge-warning{background:var(--warning-lt);color:var(--warning)}
+.badge-info{background:var(--primary-lt);color:var(--primary)}
+.cat-lbl{display:inline-block;padding:1px 7px;border-radius:3px;font-size:10px;background:var(--primary-lt);color:var(--primary)}
+/* PAGINATION */
+.pager{display:flex;gap:5px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.pager button{padding:5px 12px;border:1px solid var(--border);background:var(--surface);color:var(--text2);border-radius:5px;cursor:pointer;font-size:12px;transition:all .15s}
+.pager button:hover:not(:disabled){background:var(--surface2)}
+.pager button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.pager button:disabled{opacity:.35;cursor:not-allowed}
+.pg-info{font-size:11px;color:var(--text3);margin-left:auto}
+/* PERFORMANCE TARGETS */
+.rag-tbl{width:100%;border-collapse:collapse}
+.rag-tbl th,.rag-tbl td{padding:10px 14px;font-size:12px;border-bottom:1px solid var(--border);text-align:left}
+.rag-tbl th{background:var(--surface2);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3)}
+.rag-g{color:var(--success);font-weight:700}.rag-a{color:var(--warning);font-weight:700}.rag-r{color:var(--danger);font-weight:700}
+.rag-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.dg{background:var(--success)}.da{background:var(--warning)}.dr{background:var(--danger)}
+/* MISC */
+.clean{text-align:center;padding:48px;background:var(--success-lt);border:1px solid rgba(5,150,105,.2);border-radius:var(--r);color:var(--success);font-size:18px;font-weight:700}
+.footer{text-align:center;font-size:11px;color:var(--text3);margin-top:48px;padding-top:20px;border-top:1px solid var(--border)}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--navy);color:#fff;padding:11px 18px;border-radius:8px;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:999;transform:translateY(80px);opacity:0;transition:all .3s}
+.toast.show{transform:translateY(0);opacity:1}
+.divider{height:1px;background:var(--border);margin:32px 0}
+@media(max-width:900px){.hero-top{flex-direction:column}.scores-grid{gap:10px}.score-card{flex:1 1 90px}.det-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.main{padding:20px 12px 48px}.nav-links{display:none}}
+@media print{.nav,.nav-actions,.theme-btn,.filter-strip{display:none!important}.main{padding:0}.hero{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+</style>
+</head>
+<body>
+
+{# ═══════════════════════════════════════════════════════
+   DATA SETUP
+   ═══════════════════════════════════════════════════════ #}
+{% set violations = data.violations|default({}) %}
+{% set total      = violations.total_count|default(0) %}
+{% set by_sev     = violations.by_severity|default({}) %}
+{% set by_cat     = violations.by_category|default({}) %}
+{% set score      = (data.metrics.quality_score|default(data.score|default(0)))|round %}
+{% set all_v_raw  = violations.violations|default(violations.all|default(violations.top_violations|default([]))) %}
+{% set max_display = 500 %}
+{% set all_v      = all_v_raw|slice(0, max_display) %}
+{% set truncated  = all_v_raw|length > max_display %}
+{# ── Category/severity sets for filter dropdowns — built from VISIBLE rows only
+   so that every option in the dropdowns actually matches at least one table row. #}
+{% set vis_cats = {} %}
+{% set vis_sevs = {} %}
+{% for v in all_v %}
+  {% set _vc = (v.category|default(v.type|default('general')))|lower %}
+  {% set _vs = (v.severity|default('warning'))|lower %}
+  {% set vis_cats = vis_cats|merge({(_vc): (vis_cats[_vc]|default(0)) + 1}) %}
+  {% set vis_sevs = vis_sevs|merge({(_vs): (vis_sevs[_vs]|default(0)) + 1}) %}
+{% endfor %}
+{% set blockers   = by_sev.blocker|default(0) %}
+{% set criticals  = by_sev.critical|default(0) %}
+{% set errors     = by_sev.error|default(0) %}
+{% set warnings   = by_sev.warning|default(0) %}
+{% set infos      = by_sev.info|default(0) %}
+
+{# ── Category counts (both YAML 'category' and legacy 'type' keys) ─────────── #}
+{% set sec_issues    = by_cat.security|default(0) %}
+{% set perf_issues   = by_cat.performance|default(0) %}
+{% set maint_issues  = (by_cat.maintainability|default(0)) + (by_cat.complexity|default(0)) + (by_cat.documentation|default(0)) %}
+{% set dep_issues    = (by_cat.deprecation|default(0)) + (by_cat.deprecated|default(0)) %}
+{% set magento_issues = by_cat.magento|default(0) %}
+{% set di_issues     = (by_cat.di|default(0)) + (magento_issues // 2)|round %}
+{% set arch_issues   = (by_cat.architecture|default(0)) + (magento_issues // 2)|round %}
+{% set api_issues    = (by_cat.api|default(0)) + (by_cat['api-quality']|default(0)) %}
+{% set logic_issues  = (by_cat.logic|default(0)) + (by_cat.quality|default(0)) %}
+
+{# ── Density-based dimension scores ─────────────────────────────────────────
+   Uses violation % relative to total so scores never collapse to 0 on large
+   codebases. Absolute formulas (issues × constant) always hit 0 when there
+   are thousands of violations.  Floor values reflect "it works, just imperfectly".
+   ─────────────────────────────────────────────────────────────────────────── #}
+{% set t         = max(1, total) %}
+{% set err_pct   = (errors        / t * 100) %}
+{% set crit_pct  = (criticals     / t * 100) %}
+{% set blk_pct   = (blockers      / t * 100) %}
+{% set perf_pct  = (perf_issues   / t * 100) %}
+{% set maint_pct = (maint_issues  / t * 100) %}
+{% set dep_pct   = (dep_issues    / t * 100) %}
+{% set api_pct   = (api_issues    / t * 100) %}
+{% set logic_pct = ((logic_issues + (warnings // 2)|round) / t * 100) %}
+
+{# Reliability — all density-based so large codebases get fair scores #}
+{% set reliability_score     = max(0,  min(100, (100 - (crit_pct * 8) - (err_pct * 2) - (blk_pct * 15))|round)) %}
+{# Security — smaller per-issue penalty so 8 vulns ≠ instant 0 (8×8=64→36) #}
+{% set security_score        = max(0,  min(100, (100 - (sec_issues * 8))|round)) %}
+{# Performance — density-based, floor 15 (code still runs, just slow) #}
+{% set performance_score     = max(15, min(100, (100 - (perf_pct * 2.5))|round)) %}
+{# Maintainability — density-based, floor 25 (baseline messiness is normal) #}
+{% set maintainability_score = max(25, min(100, (100 - (maint_pct * 2))|round)) %}
+{# Compliance — density-based, hard 0 ok (deprecated APIs = hard fail) #}
+{% set compliance_score      = max(0,  min(100, (100 - (dep_pct * 5))|round)) %}
+{# API Quality — density-based, floor 20 #}
+{% set api_score             = max(20, min(100, (100 - (api_pct * 3))|round)) %}
+{# Code Quality — logic + warning density, floor 20 #}
+{% set code_quality_score    = max(20, min(100, (100 - (logic_pct * 1.5))|round)) %}
+
+{# Release readiness #}
+{% if blockers > 0 %}
+  {% set readiness = 'BLOCKED' %}{% set r_cls = 'r-blocked' %}{% set r_ico = '✗' %}
+{% elseif criticals > 0 or score < 65 %}
+  {% set readiness = 'RISKY' %}{% set r_cls = 'r-risky' %}{% set r_ico = '⚠' %}
+{% else %}
+  {% set readiness = 'READY TO SHIP' %}{% set r_cls = 'r-ready' %}{% set r_ico = '✓' %}
+{% endif %}
+
+{# Ring chart helper: r=38, circ=238.76 → per-unit=2.3876 #}
+{% set circ = 238.76 %}
+{% set ppu  = 2.3876 %}
+
+{# Severity donut percentages #}
+{% if total > 0 %}
+  {% set p_blk = (blockers / total * 100)|round(1) %}
+  {% set p_crt = (criticals / total * 100)|round(1) %}
+  {% set p_err = (errors / total * 100)|round(1) %}
+  {% set p_wrn = (warnings / total * 100)|round(1) %}
+  {% set p_inf = (infos / total * 100)|round(1) %}
+  {# cumulative for conic-gradient #}
+  {% set c1 = p_blk %}
+  {% set c2 = c1 + p_crt %}
+  {% set c3 = c2 + p_err %}
+  {% set c4 = c3 + p_wrn %}
+{% else %}
+  {% set p_blk=0 %}{% set p_crt=0 %}{% set p_err=0 %}{% set p_wrn=0 %}{% set p_inf=0 %}
+  {% set c1=0 %}{% set c2=0 %}{% set c3=0 %}{% set c4=0 %}
+{% endif %}
+
+{# ═══════════════════════════════════════════════════════
+   NAVIGATION
+   ═══════════════════════════════════════════════════════ #}
+<nav class="nav">
+  <a class="nav-brand" href="#">
+    <div class="nav-logo">AC</div>
+    ACQC
+  </a>
+  <div class="nav-links">
+    <a href="#executive">Dashboard</a>
+    <a href="#insights">Insights</a>
+    <a href="#risks">Risks</a>
+    <a href="#analytics">Analytics</a>
+    <a href="#recommendations">Fixes</a>
+    <a href="#developer">Developer</a>
+    <a href="#violations">Violations</a>
+    {% if performance_targets is defined and performance_targets|length %}<a href="#perf-targets">Performance</a>{% endif %}
+  </div>
+  <div class="nav-actions">
+    <button class="btn btn-ghost btn-sm" onclick="exportCSV()">↓ CSV</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportJSON()">↓ JSON</button>
+    <button class="btn btn-ghost btn-sm" onclick="window.print()">⎙ Print</button>
+    <button class="theme-btn" onclick="toggleTheme()" id="theme-btn" title="Toggle dark mode">🌙</button>
+  </div>
+</nav>
+
+<div class="main">
+
+{# ═══════════════════════════════════════════════════════
+   EXECUTIVE HERO
+   ═══════════════════════════════════════════════════════ #}
+<section class="hero" id="executive">
+  <div class="hero-top">
+    <div>
+      <div class="hero-title">{{ report.title|default('Quality Report') }}</div>
+      <div class="hero-meta">
+        {{ report.project_name|default('Project') }}
+        &nbsp;·&nbsp; Generated {{ report.generated_at|default('') }}
+        &nbsp;·&nbsp; Role: {{ report.user_role|default('developer')|capitalize }}
+      </div>
+    </div>
+    <div class="readiness {{ r_cls }}">
+      <span class="rdot"></span>{{ r_ico }} {{ readiness }}
+    </div>
+  </div>
+
+  {# Score rings #}
+  <div class="scores-grid">
+    {% set ring_items = [
+      {'lbl': 'Overall',         'val': score,                'sub': 'Composite',     'color': score >= 80                ? '#34d399' : (score >= 60                ? '#fbbf24' : '#f87171')},
+      {'lbl': 'Reliability',     'val': reliability_score,    'sub': 'Errors/Bugs',   'color': reliability_score >= 80    ? '#34d399' : (reliability_score >= 60    ? '#fbbf24' : '#f87171')},
+      {'lbl': 'Security',        'val': security_score,       'sub': 'Vulnerabilities','color': security_score >= 80       ? '#34d399' : (security_score >= 60       ? '#fbbf24' : '#f87171')},
+      {'lbl': 'Performance',     'val': performance_score,    'sub': 'Speed/Load',    'color': performance_score >= 80    ? '#34d399' : (performance_score >= 60    ? '#fbbf24' : '#f87171')},
+      {'lbl': 'Maintainability', 'val': maintainability_score,'sub': 'Tech Debt',     'color': maintainability_score >= 80? '#34d399' : (maintainability_score >= 60? '#fbbf24' : '#f87171')},
+      {'lbl': 'Compliance',      'val': compliance_score,     'sub': 'Deprecations',  'color': compliance_score >= 80     ? '#34d399' : (compliance_score >= 60     ? '#fbbf24' : '#f87171')},
+      {'lbl': 'API Quality',     'val': api_score,            'sub': 'Interfaces',    'color': api_score >= 80            ? '#34d399' : (api_score >= 60            ? '#fbbf24' : '#f87171')},
+      {'lbl': 'Code Quality',    'val': code_quality_score,   'sub': 'Logic/Style',   'color': code_quality_score >= 80   ? '#34d399' : (code_quality_score >= 60   ? '#fbbf24' : '#f87171')},
+    ] %}
+    {% for ring in ring_items %}
+    <div class="score-card">
+      <div class="score-lbl">{{ ring.lbl }}</div>
+      <div class="ring-wrap">
+        <svg viewBox="0 0 90 90" width="80" height="80" class="donut-svg">
+          <circle cx="45" cy="45" r="38" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="7"/>
+          <circle cx="45" cy="45" r="38" fill="none"
+            stroke="{{ ring.color }}" stroke-width="7" stroke-linecap="round"
+            stroke-dasharray="{{ (ring.val * ppu)|round(1) }} {{ circ }}"
+            transform="rotate(-90 45 45)"/>
+        </svg>
+        <div class="ring-val">{{ ring.val }}</div>
+      </div>
+      <div class="score-trend">{{ ring.sub }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {# Color legend for score rings #}
+  <div style="display:flex;align-items:center;gap:18px;margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1);position:relative;z-index:1;flex-wrap:wrap">
+    <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.6px">Score Color Key:</span>
+    <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.7)"><span style="width:10px;height:10px;border-radius:50%;background:#34d399;display:inline-block"></span>80–100 Healthy</span>
+    <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.7)"><span style="width:10px;height:10px;border-radius:50%;background:#fbbf24;display:inline-block"></span>60–79 Needs attention</span>
+    <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.7)"><span style="width:10px;height:10px;border-radius:50%;background:#f87171;display:inline-block"></span>0–59 At risk</span>
+    <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.7);margin-left:8px;padding-left:12px;border-left:1px solid rgba(255,255,255,.15)"><span style="width:10px;height:10px;border-radius:50%;background:#f87171;display:inline-block"></span>Blocker / Critical</span>
+    <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.7)"><span style="width:10px;height:10px;border-radius:50%;background:#fbbf24;display:inline-block"></span>Warning</span>
+    <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.7)"><span style="width:10px;height:10px;border-radius:50%;background:#60a5fa;display:inline-block"></span>Info</span>
+    <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,.7)"><span style="width:10px;height:10px;border-radius:50%;background:#34d399;display:inline-block"></span>Healthy / No issues</span>
+  </div>
+</section>
+
+{# ═══════════════════════════════════════════════════════
+   STAT CARDS
+   ═══════════════════════════════════════════════════════ #}
+<div class="stats-row">
+  <div class="stat">
+    <div class="stat-lbl">Total Violations</div>
+    <div class="stat-val {% if total == 0 %}c-good{% elseif total < 50 %}c-warn{% else %}c-bad{% endif %}">{{ total|number_format }}</div>
+    <div class="stat-sub">Across all categories</div>
+  </div>
+  <div class="stat">
+    <div class="stat-lbl">Blockers</div>
+    <div class="stat-val {% if blockers == 0 %}c-good{% else %}c-bad{% endif %}">{{ blockers }}</div>
+    <div class="stat-sub">Release stoppers</div>
+  </div>
+  <div class="stat">
+    <div class="stat-lbl">Critical</div>
+    <div class="stat-val {% if criticals == 0 %}c-good{% else %}c-crit{% endif %}">{{ criticals }}</div>
+    <div class="stat-sub">Requires urgent fix</div>
+  </div>
+  <div class="stat">
+    <div class="stat-lbl">Errors</div>
+    <div class="stat-val {% if errors == 0 %}c-good{% elseif errors < 10 %}c-warn{% else %}c-bad{% endif %}">{{ errors|number_format }}</div>
+    <div class="stat-sub">Must resolve</div>
+  </div>
+  <div class="stat">
+    <div class="stat-lbl">Warnings</div>
+    <div class="stat-val c-warn">{{ warnings|number_format }}</div>
+    <div class="stat-sub">Should resolve</div>
+  </div>
+  <div class="stat">
+    <div class="stat-lbl">Files Analyzed</div>
+    {% set files_n = data.metrics.files_analyzed|default(data.total_files|default(0))|number_format %}
+    <div class="stat-val c-mut">{{ files_n != '0' ? files_n : '—' }}</div>
+    <div class="stat-sub">Source files scanned</div>
+  </div>
+  <div class="stat">
+    <div class="stat-lbl">Rules Evaluated</div>
+    {% set rules_n = data.rules_evaluated|default(0) %}
+    <div class="stat-val c-mut">{{ rules_n > 0 ? rules_n : '—' }}</div>
+    <div class="stat-sub">Active rule set</div>
+  </div>
+</div>
+
+{% if total == 0 %}
+<div class="clean">✓ Clean codebase — no violations detected!</div>
+{% else %}
+
+{# ═══════════════════════════════════════════════════════
+   AI INSIGHTS
+   ═══════════════════════════════════════════════════════ #}
+<section class="section" id="insights">
+  <div class="section-hd">
+    <div class="section-icon" style="background:var(--primary-lt);font-size:17px">🤖</div>
+    <div><div class="section-title">AI-Powered Analysis</div><div class="section-sub">Automated findings summary</div></div>
+  </div>
+  <div class="insight">
+    <div class="insight-icon">💡</div>
+    <div>
+      <h3>Executive Summary</h3>
+      {% if executive_summary.ai_narrative is defined and executive_summary.ai_narrative %}
+        <p>{{ executive_summary.ai_narrative }}</p>
+      {% else %}
+        <p>
+          {% if total == 0 %}
+            The codebase is in excellent condition. No violations were detected across all active rules. The project is ready for production deployment.
+          {% elseif blockers > 0 %}
+            <strong>Release is currently blocked.</strong> {{ blockers }} blocker-level violation{% if blockers > 1 %}s{% endif %} must be resolved before deployment.
+            {% if sec_issues > 0 %}Security issues ({{ sec_issues }}) require immediate attention as they represent active vulnerabilities. {% endif %}
+            Overall quality score stands at {{ score }}/100.
+          {% elseif criticals > 0 %}
+            The codebase has {{ total|number_format }} total violations with {{ criticals }} critical issue{% if criticals > 1 %}s{% endif %} flagged as high-priority.
+            {% if sec_issues > 0 %}{{ sec_issues }} security concern{% if sec_issues > 1 %}s{% endif %} detected — prioritize these for remediation. {% endif %}
+            {% if perf_issues > 0 %}{{ perf_issues }} performance issue{% if perf_issues > 1 %}s{% endif %} identified that may impact production response times. {% endif %}
+            Quality score: {{ score }}/100. Recommend resolving critical violations before next sprint.
+          {% else %}
+            Analysis identified {{ total|number_format }} violations at quality score {{ score }}/100.
+            {% if perf_issues > 0 %}{{ perf_issues }} performance issue{% if perf_issues > 1 %}s{% endif %} could affect page load times. {% endif %}
+            {% if warnings > 0 %}{{ warnings|number_format }} warnings represent technical debt that should be addressed in upcoming sprints. {% endif %}
+            No blockers or critical issues detected — the codebase is in a deployable state with recommended improvements.
+          {% endif %}
+        </p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{# ═══════════════════════════════════════════════════════
+   TOP RISKS
+   ═══════════════════════════════════════════════════════ #}
+<section class="section" id="risks">
+  <div class="section-hd">
+    <div class="section-icon" style="background:var(--danger-lt);font-size:17px">🎯</div>
+    <div><div class="section-title">Top Pre-Release Risks</div><div class="section-sub">Prioritized issues to resolve before shipping</div></div>
+  </div>
+  <ul class="risk-list">
+    {% set risk_n = 1 %}
+
+    {% if blockers > 0 %}
+    <li class="risk-item rb">
+      <span class="risk-num">#{{ risk_n }}</span>
+      <div class="risk-body">
+        <h4>Blocker-level violations prevent release</h4>
+        <p>{{ blockers }} blocker{% if blockers > 1 %}s{% endif %} detected — these are hard stops for production deployment and must be resolved immediately.</p>
+      </div>
+      <div class="risk-badges"><span class="badge badge-blocker">BLOCKER</span></div>
+    </li>
+    {% set risk_n = risk_n + 1 %}
+    {% endif %}
+
+    {% if criticals > 0 %}
+    <li class="risk-item rb">
+      <span class="risk-num">#{{ risk_n }}</span>
+      <div class="risk-body">
+        <h4>{{ criticals }} critical violation{% if criticals > 1 %}s{% endif %} require immediate attention</h4>
+        <p>Critical issues carry significant risk of data loss, security breach, or production outage if left unresolved.</p>
+      </div>
+      <div class="risk-badges"><span class="badge badge-critical">CRITICAL</span></div>
+    </li>
+    {% set risk_n = risk_n + 1 %}
+    {% endif %}
+
+    {% if sec_issues > 0 %}
+    <li class="risk-item re">
+      <span class="risk-num">#{{ risk_n }}</span>
+      <div class="risk-body">
+        <h4>{{ sec_issues }} security vulnerability{% if sec_issues > 1 %}s{% endif %} detected</h4>
+        <p>Security issues including potential injection vectors, XSS risks, and auth bypass patterns were found. These represent active attack surfaces.</p>
+      </div>
+      <div class="risk-badges"><span class="badge badge-error">SECURITY</span></div>
+    </li>
+    {% set risk_n = risk_n + 1 %}
+    {% endif %}
+
+    {% if perf_issues > 0 %}
+    <li class="risk-item rw">
+      <span class="risk-num">#{{ risk_n }}</span>
+      <div class="risk-body">
+        <h4>{{ perf_issues }} performance bottleneck{% if perf_issues > 1 %}s{% endif %} identified</h4>
+        <p>Performance patterns such as N+1 queries, unfiltered collection loads, and cache-busting code detected. May degrade production response times.</p>
+      </div>
+      <div class="risk-badges"><span class="badge badge-warning">PERF</span></div>
+    </li>
+    {% set risk_n = risk_n + 1 %}
+    {% endif %}
+
+    {% if dep_issues > 0 %}
+    <li class="risk-item rw">
+      <span class="risk-num">#{{ risk_n }}</span>
+      <div class="risk-body">
+        <h4>{{ dep_issues }} deprecated API{% if dep_issues > 1 %}s{% endif %} in use</h4>
+        <p>Deprecated Zend/Laminas patterns or removed APIs detected. These will cause fatal errors after Commerce version upgrades.</p>
+      </div>
+      <div class="risk-badges"><span class="badge badge-warning">DEPRECATED</span></div>
+    </li>
+    {% set risk_n = risk_n + 1 %}
+    {% endif %}
+
+    {% if errors > 0 %}
+    <li class="risk-item re">
+      <span class="risk-num">#{{ risk_n }}</span>
+      <div class="risk-body">
+        <h4>{{ errors|number_format }} error-level violations accumulating technical debt</h4>
+        <p>Each unresolved error increases upgrade friction and maintenance cost. Recommend targeting &lt;10 errors per sprint resolution cycle.</p>
+      </div>
+      <div class="risk-badges"><span class="badge badge-error">{{ errors|number_format }} ERRORS</span></div>
+    </li>
+    {% set risk_n = risk_n + 1 %}
+    {% endif %}
+
+    {% if score < 80 %}
+    <li class="risk-item ri">
+      <span class="risk-num">#{{ risk_n }}</span>
+      <div class="risk-body">
+        <h4>Quality score {{ score }}/100 below enterprise threshold (80)</h4>
+        <p>Quality score below 80 indicates systemic issues that will compound with each release. Establish a debt-reduction sprint to reach baseline quality.</p>
+      </div>
+      <div class="risk-badges"><span class="badge badge-info">SCORE {{ score }}</span></div>
+    </li>
+    {% set risk_n = risk_n + 1 %}
+    {% endif %}
+
+    {% if risk_n == 1 %}
+    <li class="risk-item ri">
+      <span class="risk-num">#1</span>
+      <div class="risk-body">
+        <h4>No critical pre-release risks detected</h4>
+        <p>All high-priority checks passed. Continue monitoring warning-level violations to maintain quality standards.</p>
+      </div>
+      <div class="risk-badges"><span class="badge badge-info">HEALTHY</span></div>
+    </li>
+    {% endif %}
+  </ul>
+</section>
+
+{# ═══════════════════════════════════════════════════════
+   ANALYTICS
+   ═══════════════════════════════════════════════════════ #}
+<section class="section" id="analytics">
+  <div class="section-hd">
+    <div class="section-icon" style="background:var(--purple-lt);font-size:17px">📊</div>
+    <div><div class="section-title">Analytics &amp; Distribution</div><div class="section-sub">Visual breakdown of violation patterns</div></div>
+  </div>
+
+  <div class="charts-grid">
+    {# ── Severity Donut (conic-gradient) ── #}
+    <div class="chart-card">
+      <div class="chart-card-title">Severity Distribution</div>
+      <div class="donut-wrap">
+        <div style="position:relative;width:120px;height:120px;flex-shrink:0">
+          {% if total > 0 %}
+          <div style="width:120px;height:120px;border-radius:50%;background:conic-gradient(
+            #1a1f3a 0% {{ c1 }}%,
+            #7c3aed {{ c1 }}% {{ c2 }}%,
+            #dc2626 {{ c2 }}% {{ c3 }}%,
+            #d97706 {{ c3 }}% {{ c4 }}%,
+            #4f46e5 {{ c4 }}% 100%
+          )"></div>
+          <div style="position:absolute;inset:24px;border-radius:50%;background:var(--surface)"></div>
+          {% else %}
+          <div style="width:120px;height:120px;border-radius:50%;background:var(--border)"></div>
+          <div style="position:absolute;inset:24px;border-radius:50%;background:var(--surface)"></div>
+          {% endif %}
+        </div>
+        <div class="donut-legend">
+          <div class="leg-row"><span class="leg-dot" style="background:#1a1f3a"></span>Blocker<span class="leg-pct">{{ p_blk }}%</span><span class="leg-val">{{ blockers }}</span></div>
+          <div class="leg-row"><span class="leg-dot" style="background:#7c3aed"></span>Critical<span class="leg-pct">{{ p_crt }}%</span><span class="leg-val">{{ criticals }}</span></div>
+          <div class="leg-row"><span class="leg-dot" style="background:#dc2626"></span>Error<span class="leg-pct">{{ p_err }}%</span><span class="leg-val">{{ errors|number_format }}</span></div>
+          <div class="leg-row"><span class="leg-dot" style="background:#d97706"></span>Warning<span class="leg-pct">{{ p_wrn }}%</span><span class="leg-val">{{ warnings|number_format }}</span></div>
+          <div class="leg-row"><span class="leg-dot" style="background:#4f46e5"></span>Info<span class="leg-pct">{{ p_inf }}%</span><span class="leg-val">{{ infos|number_format }}</span></div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Category Bars ── #}
+    <div class="chart-card">
+      <div class="chart-card-title">Violations by Category</div>
+      {% if by_cat|length > 0 %}
+      {% set cat_colors = ['#4f46e5','#dc2626','#d97706','#059669','#7c3aed','#0891b2','#db2777','#65a30d','#ea580c','#0d9488'] %}
+      <div class="cat-bars">
+        {% set cat_idx = 0 %}
+        {% for category, count in by_cat|sort|reverse %}
+        {% if cat_idx < 10 %}
+        <div class="cat-row" onclick="setCategoryFilter('{{ category|lower }}')" title="Filter by {{ category|capitalize }}">
+          <div class="cat-name" title="{{ category|capitalize }}">{{ category|capitalize }}</div>
+          <div class="cat-track">
+            <div class="cat-fill" style="width:{{ total > 0 ? (count / total * 100)|round(0) : 0 }}%;background:{{ cat_colors[cat_idx % (cat_colors|length)] }}">
+              {% if (count / total * 100)|round(0) > 8 %}<span class="cat-fill-txt">{{ (count / total * 100)|round(0) }}%</span>{% endif %}
+            </div>
+          </div>
+          <div class="cat-num">{{ count }}</div>
+        </div>
+        {% set cat_idx = cat_idx + 1 %}
+        {% endif %}
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="color:var(--text3);font-style:italic;padding:20px 0;text-align:center">No category data available</div>
+      {% endif %}
+    </div>
+
+    {# ── File Hotspots (rendered by JS) ── #}
+    <div class="chart-card">
+      <div class="chart-card-title">Hotspot Files (Top 10)</div>
+      <div id="hotspot-container">
+        <table class="hs-table" id="hotspot-table">
+          <thead><tr><th>#</th><th>File</th><th>Count</th><th>Bar</th></tr></thead>
+          <tbody id="hotspot-body"><tr><td colspan="4" style="text-align:center;color:var(--text3);font-style:italic;padding:20px">Computing…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ═══════════════════════════════════════════════════════
+   RECOMMENDATIONS
+   ═══════════════════════════════════════════════════════ #}
+<section class="section" id="recommendations">
+  <div class="section-hd">
+    <div class="section-icon" style="background:var(--warning-lt);font-size:17px">⚡</div>
+    <div><div class="section-title">Actionable Recommendations</div><div class="section-sub">Category-by-category fix guidance with effort estimates</div></div>
+  </div>
+  <div class="rec-grid">
+
+    {% if sec_issues > 0 %}
+    <div class="rec-card">
+      <div class="rec-head"><span class="rec-ico">🔒</span><span class="rec-cat">Security</span><span class="rec-count">{{ sec_issues }}</span></div>
+      <div class="rec-body">
+        <div class="rec-row"><span class="rec-key">What</span><span class="rec-val">SQL injection, XSS, CSRF, path traversal, hardcoded credentials</span></div>
+        <div class="rec-row"><span class="rec-key">Why</span><span class="rec-val">Active attack surface; OWASP Top 10 compliance requirement</span></div>
+        <div class="rec-row"><span class="rec-key">Impact</span><span class="rec-val">Data breach, customer PII exposure, PCI-DSS non-compliance</span></div>
+        <div class="rec-row"><span class="rec-key">Priority</span><span class="rec-val"><span class="pri-high">HIGH</span></span></div>
+        <div class="rec-row"><span class="rec-key">Effort</span><span class="rec-val"><span class="eff-badge">1–3 days</span></span></div>
+        <div class="rec-fix">→ Escape all output with $escaper->escapeHtml()<br>→ Use parameterized queries via resource model<br>→ Validate form_key on all POST controllers</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if perf_issues > 0 %}
+    <div class="rec-card">
+      <div class="rec-head"><span class="rec-ico">⚡</span><span class="rec-cat">Performance</span><span class="rec-count">{{ perf_issues }}</span></div>
+      <div class="rec-body">
+        <div class="rec-row"><span class="rec-key">What</span><span class="rec-val">N+1 queries, unfiltered collections, cache-busting layouts</span></div>
+        <div class="rec-row"><span class="rec-key">Why</span><span class="rec-val">Each unresolved N+1 adds O(n) database queries per page load</span></div>
+        <div class="rec-row"><span class="rec-key">Impact</span><span class="rec-val">Page load &gt; 3s, cart abandonment, search ranking drop</span></div>
+        <div class="rec-row"><span class="rec-key">Priority</span><span class="rec-val"><span class="pri-high">HIGH</span></span></div>
+        <div class="rec-row"><span class="rec-key">Effort</span><span class="rec-val"><span class="eff-badge">2–5 days</span></span></div>
+        <div class="rec-fix">→ Add addAttributeToSelect() with specific attributes<br>→ Use $collection->addFieldToFilter() before load<br>→ Remove cacheable="false" from layout XML</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if dep_issues > 0 %}
+    <div class="rec-card">
+      <div class="rec-head"><span class="rec-ico">🗄️</span><span class="rec-cat">Deprecation</span><span class="rec-count">{{ dep_issues }}</span></div>
+      <div class="rec-body">
+        <div class="rec-row"><span class="rec-key">What</span><span class="rec-val">Zend/Laminas deprecated classes, removed APIs</span></div>
+        <div class="rec-row"><span class="rec-key">Why</span><span class="rec-val">Will cause fatal errors after Commerce 2.4.7+ upgrade</span></div>
+        <div class="rec-row"><span class="rec-key">Impact</span><span class="rec-val">Blocks major version upgrades; upgrade cost grows over time</span></div>
+        <div class="rec-row"><span class="rec-key">Priority</span><span class="rec-val"><span class="pri-med">MEDIUM</span></span></div>
+        <div class="rec-row"><span class="rec-key">Effort</span><span class="rec-val"><span class="eff-badge">1–2 days</span></span></div>
+        <div class="rec-fix">→ Replace Zend\Http with Laminas\Http<br>→ Replace Zend\Mail with Laminas\Mail<br>→ Remove Zend_* (ZF1) class references</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if di_issues > 0 %}
+    <div class="rec-card">
+      <div class="rec-head"><span class="rec-ico">🔧</span><span class="rec-cat">Dependency Injection</span><span class="rec-count">{{ di_issues }}</span></div>
+      <div class="rec-body">
+        <div class="rec-row"><span class="rec-key">What</span><span class="rec-val">Direct ObjectManager use, around plugins missing $proceed</span></div>
+        <div class="rec-row"><span class="rec-key">Why</span><span class="rec-val">Bypasses DI container; untestable code; breaks plugin chain</span></div>
+        <div class="rec-row"><span class="rec-key">Impact</span><span class="rec-val">Breaks third-party extensions; unit test impossibility</span></div>
+        <div class="rec-row"><span class="rec-key">Priority</span><span class="rec-val"><span class="pri-med">MEDIUM</span></span></div>
+        <div class="rec-row"><span class="rec-key">Effort</span><span class="rec-val"><span class="eff-badge">2–4 days</span></span></div>
+        <div class="rec-fix">→ Inject dependencies via constructor<br>→ Always call $proceed(...$args) in around plugins<br>→ Use factory pattern for object creation in loops</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if arch_issues > 0 %}
+    <div class="rec-card">
+      <div class="rec-head"><span class="rec-ico">🏗️</span><span class="rec-cat">Architecture</span><span class="rec-count">{{ arch_issues }}</span></div>
+      <div class="rec-body">
+        <div class="rec-row"><span class="rec-key">What</span><span class="rec-val">Plugin conflicts, preference chains, missing sortOrder</span></div>
+        <div class="rec-row"><span class="rec-key">Why</span><span class="rec-val">Multiple plugins on same method without sortOrder causes unpredictable execution</span></div>
+        <div class="rec-row"><span class="rec-key">Impact</span><span class="rec-val">Incompatibility with third-party extensions; upgrade failures</span></div>
+        <div class="rec-row"><span class="rec-key">Priority</span><span class="rec-val"><span class="pri-med">MEDIUM</span></span></div>
+        <div class="rec-row"><span class="rec-key">Effort</span><span class="rec-val"><span class="eff-badge">1–3 days</span></span></div>
+        <div class="rec-fix">→ Add sortOrder to all plugins in di.xml<br>→ Replace preferences with plugins where possible<br>→ Declare module sequence in module.xml</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if maint_issues > 0 %}
+    <div class="rec-card">
+      <div class="rec-head"><span class="rec-ico">📋</span><span class="rec-cat">Maintainability</span><span class="rec-count">{{ maint_issues }}</span></div>
+      <div class="rec-body">
+        <div class="rec-row"><span class="rec-key">What</span><span class="rec-val">Complex classes, missing documentation, long methods</span></div>
+        <div class="rec-row"><span class="rec-key">Why</span><span class="rec-val">High cyclomatic complexity increases bug probability per change</span></div>
+        <div class="rec-row"><span class="rec-key">Impact</span><span class="rec-val">Developer onboarding time +40%; PR review cycle longer</span></div>
+        <div class="rec-row"><span class="rec-key">Priority</span><span class="rec-val"><span class="pri-low">LOW</span></span></div>
+        <div class="rec-row"><span class="rec-key">Effort</span><span class="rec-val"><span class="eff-badge">Ongoing</span></span></div>
+        <div class="rec-fix">→ Refactor classes &gt;500 lines into focused services<br>→ Extract methods &gt;30 lines into helpers<br>→ Add PHPDoc blocks to public API methods</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if (by_cat.graphql|default(0)) + (by_cat['graphql-schema']|default(0)) > 0 %}
+    <div class="rec-card">
+      <div class="rec-head"><span class="rec-ico">🌐</span><span class="rec-cat">GraphQL</span><span class="rec-count">{{ (by_cat.graphql|default(0)) + (by_cat['graphql-schema']|default(0)) }}</span></div>
+      <div class="rec-body">
+        <div class="rec-row"><span class="rec-key">What</span><span class="rec-val">Missing @cache directives, N+1 in resolvers, missing auth</span></div>
+        <div class="rec-row"><span class="rec-key">Why</span><span class="rec-val">GraphQL queries without caching flood the database on every request</span></div>
+        <div class="rec-row"><span class="rec-key">Impact</span><span class="rec-val">PWA/headless frontend degraded; unauthenticated data exposure</span></div>
+        <div class="rec-row"><span class="rec-key">Priority</span><span class="rec-val"><span class="pri-high">HIGH</span></span></div>
+        <div class="rec-row"><span class="rec-key">Effort</span><span class="rec-val"><span class="eff-badge">1–2 days</span></span></div>
+        <div class="rec-fix">→ Add @cache(cacheIdentity=...) to query types<br>→ Implement BatchServiceContractRequestInterface<br>→ Add @doc(description="...") + IsRequired annotations</div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+
+{# ═══════════════════════════════════════════════════════
+   DEVELOPER PANEL
+   ═══════════════════════════════════════════════════════ #}
+<section class="section" id="developer">
+  <div class="section-hd">
+    <div class="section-icon" style="background:var(--success-lt);font-size:17px">👨‍💻</div>
+    <div><div class="section-title">Developer Focus</div><div class="section-sub">Quick wins and most common patterns to fix</div></div>
+  </div>
+  <div class="dev-grid">
+
+    <div class="card">
+      <div class="card-header" style="padding:14px 18px 12px">
+        <span style="font-size:13px;font-weight:700;color:var(--text)">⚡ Quick Wins (&lt; 1 day each)</span>
+      </div>
+      <div style="padding:14px 16px">
+        {% set wins = [] %}
+        {% if dep_issues > 0 %}{% set wins = wins|merge([{'label': 'Replace ' ~ dep_issues ~ ' deprecated class references with Laminas equivalents (global find+replace)', 'cat': 'deprecation'}]) %}{% endif %}
+        {% if (by_cat.documentation|default(0)) > 0 %}{% set wins = wins|merge([{'label': 'Add missing PHPDoc blocks to ' ~ by_cat.documentation|default(0) ~ ' methods', 'cat': 'documentation'}]) %}{% endif %}
+        {% if (by_cat.indexing|default(0)) > 0 %}{% set wins = wins|merge([{'label': 'Fix ' ~ by_cat.indexing|default(0) ~ ' indexer mode violations (change to schedule in admin)', 'cat': 'indexing'}]) %}{% endif %}
+        {% if (by_cat.cron|default(0)) > 0 %}{% set wins = wins|merge([{'label': 'Review ' ~ by_cat.cron|default(0) ~ ' cron job implementations for cache flush issues', 'cat': 'cron'}]) %}{% endif %}
+        {% if (by_cat.guidance|default(0)) > 0 %}{% set wins = wins|merge([{'label': by_cat.guidance|default(0) ~ ' guidance-level issues to review and acknowledge', 'cat': 'guidance'}]) %}{% endif %}
+        {% if perf_issues > 0 %}{% set wins = wins|merge([{'label': 'Remove ' ~ perf_issues ~ ' addAttributeToSelect(\'*\') calls — replace with explicit attribute lists', 'cat': 'performance'}]) %}{% endif %}
+        {% if wins|length == 0 %}
+          <div style="color:var(--text3);font-style:italic;font-size:12px;padding:8px 0">No quick wins found — well done!</div>
+        {% else %}
+          {% for win in wins %}
+          <div class="win-item"><span class="win-n">{{ loop.index }}</span>{{ win.label }}</div>
+          {% endfor %}
+        {% endif %}
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">PR Review Focus Areas</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.8">
+            {% if sec_issues > 0 %}• Review all <code>$_GET/$_POST</code> usages for escaping<br>{% endif %}
+            {% if perf_issues > 0 %}• Check any new collection load inside foreach loops<br>{% endif %}
+            {% if di_issues > 0 %}• Flag direct <code>ObjectManager::getInstance()</code> calls<br>{% endif %}
+            • Ensure new plugins declare a <code>sortOrder</code> in di.xml<br>
+            • Verify observer methods don't modify shared state
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header" style="padding:14px 18px 12px">
+        <span style="font-size:13px;font-weight:700;color:var(--text)">📊 Most Common Rule Violations</span>
+      </div>
+      <div id="top-rules-container">
+        <div style="color:var(--text3);font-style:italic;font-size:12px;padding:20px;text-align:center">Computing…</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+{# ═══════════════════════════════════════════════════════
+   VIOLATIONS TABLE
+   ═══════════════════════════════════════════════════════ #}
+<section class="section" id="violations">
+  <div class="section-hd">
+    <div class="section-icon" style="background:var(--danger-lt);font-size:17px">🔍</div>
+    <div>
+      <div class="section-title" id="viol-heading">All Violations</div>
+      <div class="section-sub">Click a category above to filter · Click any row to expand details</div>
+    </div>
+  </div>
+
+  <div class="filter-strip">
+    <input type="text" id="search-input" placeholder="Search message, file, rule ID…" oninput="filterChanged()">
+    <select id="sev-filter" onchange="filterChanged()">
+      <option value="">All severities</option>
+      {% for sev in ['blocker','critical','error','warning','info','minor'] %}
+        {% if vis_sevs[sev] is defined %}<option value="{{ sev }}">{{ sev|capitalize }} ({{ vis_sevs[sev] }})</option>{% endif %}
+      {% endfor %}
+    </select>
+    <select id="cat-filter" onchange="filterChanged()">
+      <option value="">All categories</option>
+      {% for category, count in vis_cats %}
+      <option value="{{ category }}">{{ category|capitalize }} ({{ count }})</option>
+      {% endfor %}
+    </select>
+    <button class="btn-clear" onclick="clearAllFilters()">✕ Clear</button>
+    <span class="vcount" id="vcount"></span>
+  </div>
+
+  {% if truncated %}
+  <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--warning-lt);border:1px solid rgba(217,119,6,.2);border-radius:8px;margin-bottom:12px;font-size:12px;color:var(--warning)">
+    <span style="font-size:16px">⚠</span>
+    <span>Showing top <strong>{{ max_display }}</strong> of <strong>{{ all_v_raw|length|number_format }}</strong> total violations — filters apply to these {{ max_display }} rows only. Use <strong>↓ CSV</strong> or <strong>↓ JSON</strong> export above for the full dataset.</span>
+  </div>
+  {% endif %}
+
+  <div style="overflow-x:auto">
+    <table class="data-tbl" id="vtable">
+      <thead>
+        <tr>
+          <th onclick="sortTable(0)">Severity</th>
+          <th onclick="sortTable(1)">Rule ID</th>
+          <th onclick="sortTable(2)">Category</th>
+          <th onclick="sortTable(3)">File</th>
+          <th onclick="sortTable(4)">Line</th>
+          <th>Message <small style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px">(click row to expand)</small></th>
+        </tr>
+      </thead>
+      <tbody id="vbody">
+      {% for v in all_v %}
+      {% set vid = 'v' ~ loop.index %}
+      {# Normalise both violation formats: legacy uses v.type/v.rule; YAML uses v.category/v.rule_id #}
+      {% set v_cat  = v.category|default(v.type|default('general')) %}
+      {% set v_rule = v.rule_id|default(v.rule|default('—')) %}
+      {% set v_file = v.file|default(v.file_path|default('—')) %}
+      {% set v_sev  = v.severity|default('warning') %}
+      <tr class="vrow"
+          data-cat="{{ v_cat|lower }}"
+          data-sev="{{ v_sev|lower }}"
+          data-msg="{{ v.message|default('')|lower }}"
+          data-file="{{ v_file|lower }}"
+          data-rule="{{ v_rule|lower }}"
+          data-desc="{{ v.message|default('')|striptags|slice(0,100)|e('html_attr') }}"
+          onclick="toggleViol('{{ vid }}',this)">
+        <td><span class="badge badge-{{ v_sev }}">{{ v_sev|upper }}</span></td>
+        <td style="font-family:monospace;font-size:11px;color:var(--text)">{{ v_rule }}</td>
+        <td><span class="cat-lbl">{{ v_cat }}</span></td>
+        <td title="{{ v_file }}" style="font-size:11px;font-family:monospace;color:var(--text2)">
+          {{ v_file|split('/')|last }}
+        </td>
+        <td style="color:var(--text3)">{{ v.line|default('—') }}</td>
+        <td>
+          {{ v.message|default('')|slice(0,120) }}{% if v.message|default('')|length > 120 %}…{% endif %}
+          <span class="chev">▼</span>
+        </td>
+      </tr>
+      <tr class="drow" id="detail-{{ vid }}">
+        <td colspan="6">
+          <div class="det-grid">
+            <div>
+              <div class="det-lbl">Full Message</div>
+              <div class="det-val">{{ v.message|default('—') }}</div>
+            </div>
+            <div>
+              <div class="det-lbl">File &amp; Location</div>
+              <div class="det-val det-mono">{{ v_file }}{% if v.line is defined and v.line %}<br><span style="color:var(--text3)">Line {{ v.line }}</span>{% endif %}</div>
+            </div>
+            {% if v.recommendation is defined and v.recommendation %}
+            <div style="grid-column:1/-1">
+              <div class="det-lbl">Recommendation</div>
+              <div class="det-rec">{{ v.recommendation }}</div>
+            </div>
+            {% endif %}
+            <div>
+              <div class="det-lbl">Rule</div>
+              <div class="det-val" style="font-family:monospace">{{ v_rule }}</div>
+            </div>
+            <div>
+              <div class="det-lbl">Category / Severity</div>
+              <div class="det-val"><span class="cat-lbl">{{ v_cat }}</span> &nbsp; <span class="badge badge-{{ v_sev }}">{{ v_sev|upper }}</span></div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" style="padding:40px;text-align:center;color:var(--text3)">
+        <div style="font-size:32px;margin-bottom:8px">✓</div>
+        <div style="font-size:14px;font-weight:600;color:var(--success)">No violations found — clean codebase!</div>
+      </td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="pager" id="pager"></div>
+</section>
+
+{# ═══════════════════════════════════════════════════════
+   PERFORMANCE TARGETS
+   ═══════════════════════════════════════════════════════ #}
+{% if performance_targets is defined and performance_targets|length %}
+<section class="section" id="perf-targets">
+  <div class="section-hd">
+    <div class="section-icon" style="background:var(--success-lt);font-size:17px">🎯</div>
+    <div><div class="section-title">Performance Targets</div><div class="section-sub">APM metric targets vs. measured values (RAG status)</div></div>
+  </div>
+  <div class="card">
+    <div style="overflow-x:auto">
+      <table class="rag-tbl">
+        <thead><tr><th>Metric</th><th>Target</th><th>Measured</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for key, pt in performance_targets %}
+        <tr>
+          <td>{{ pt.label|default(key) }}</td>
+          <td style="font-family:monospace">{{ pt.target }}{{ pt.unit|default('') }}</td>
+          <td style="font-family:monospace">{% if pt.measured is defined and pt.measured is not null %}{{ pt.measured }}{{ pt.unit|default('') }}{% else %}—{% endif %}</td>
+          <td>
+            {% if pt.rag|default('') == 'green' %}
+              <span class="rag-dot dg"></span><span class="rag-g">Pass</span>
+            {% elseif pt.rag|default('') == 'amber' %}
+              <span class="rag-dot da"></span><span class="rag-a">Warning</span>
+            {% elseif pt.rag|default('') == 'red' %}
+              <span class="rag-dot dr"></span><span class="rag-r">Fail</span>
+            {% else %}
+              <span style="color:var(--text3)">Not measured</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<div class="divider"></div>
+
+{# ═══════════════════════════════════════════════════════
+   CI/CD GATE SUMMARY
+   ═══════════════════════════════════════════════════════ #}
+<section class="section">
+  <div class="section-hd">
+    <div class="section-icon" style="background:var(--primary-lt);font-size:17px">🚦</div>
+    <div><div class="section-title">CI/CD Gate Recommendation</div><div class="section-sub">Automated pipeline action based on results</div></div>
+  </div>
+  <div class="card" style="border-left:4px solid {% if blockers > 0 %}var(--danger){% elseif criticals > 0 or score < 70 %}var(--warning){% else %}var(--success){% endif %}">
+    <div style="padding:20px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+      <div style="font-size:32px">{% if blockers > 0 %}🚫{% elseif criticals > 0 or score < 70 %}⚠️{% else %}✅{% endif %}</div>
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">
+          {% if blockers > 0 %}
+            FAIL — Block merge and notify team lead
+          {% elseif criticals > 0 or score < 70 %}
+            WARN — Proceed with mandatory review gate
+          {% else %}
+            PASS — Safe to merge and deploy
+          {% endif %}
+        </div>
+        <div style="font-size:12px;color:var(--text2)">
+          Quality Score: <strong>{{ score }}/100</strong> &nbsp;·&nbsp;
+          Blockers: <strong {% if blockers > 0 %}style="color:var(--danger)"{% endif %}>{{ blockers }}</strong> &nbsp;·&nbsp;
+          Critical: <strong {% if criticals > 0 %}style="color:var(--purple)"{% endif %}>{{ criticals }}</strong> &nbsp;·&nbsp;
+          Errors: <strong>{{ errors|number_format }}</strong>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);text-align:right;line-height:1.7">
+        Threshold: score ≥ 65, blockers = 0<br>
+        Evaluated: {{ report.generated_at|default('') }}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endif %}{# end total > 0 #}
+
+<footer class="footer">
+  Adobe Commerce Quality Control (ACQC) &nbsp;·&nbsp; {{ report.generated_at|default('') }} &nbsp;·&nbsp; {{ total|number_format }} violation{% if total != 1 %}s{% endif %} &nbsp;·&nbsp; Score {{ score }}/100
+</footer>
+</div>{# /main #}
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ── Constants ── */
+var PAGE = 50;
+var page = 1;
+var allRows = [];
+var sortCol = -1, sortAsc = true;
+
+/* ── Boot ── */
+document.addEventListener('DOMContentLoaded', function(){
+  allRows = Array.from(document.querySelectorAll('#vbody .vrow'));
+  applyFilters();
+  computeHotspots();
+  computeTopRules();
+  initTheme();
+});
+
+/* ── Theme ── */
+function initTheme(){
+  var saved = localStorage.getItem('acqc-theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('theme-btn').textContent = saved === 'dark' ? '☀️' : '🌙';
+}
+window.toggleTheme = function(){
+  var cur = document.documentElement.getAttribute('data-theme');
+  var next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('acqc-theme', next);
+  document.getElementById('theme-btn').textContent = next === 'dark' ? '☀️' : '🌙';
+};
+
+/* ── Filters ── */
+window.filterChanged = function(){ page = 1; applyFilters(); };
+window.clearAllFilters = function(){
+  document.getElementById('search-input').value = '';
+  document.getElementById('sev-filter').value = '';
+  document.getElementById('cat-filter').value = '';
+  page = 1;
+  document.getElementById('viol-heading').textContent = 'All Violations';
+  applyFilters();
+};
+
+function applyFilters(){
+  var s  = (document.getElementById('search-input').value||'').toLowerCase();
+  var sv = (document.getElementById('sev-filter').value||'').toLowerCase();
+  var cv = (document.getElementById('cat-filter').value||'').toLowerCase();
+
+  var vis = allRows.filter(function(r){
+    if(cv && r.dataset.cat !== cv) return false;
+    if(sv && r.dataset.sev !== sv) return false;
+    if(s){
+      var h = (r.dataset.msg||'')+' '+(r.dataset.file||'')+' '+(r.dataset.rule||'');
+      if(!h.includes(s)) return false;
+    }
+    return true;
+  });
+
+  allRows.forEach(function(r){
+    r.style.display = 'none';
+    var d = document.getElementById('detail-'+getVid(r));
+    if(d){ d.style.display='none'; d.classList.remove('op'); }
+    r.classList.remove('xp');
+  });
+
+  var start = (page-1)*PAGE;
+  vis.slice(start, start+PAGE).forEach(function(r){ r.style.display=''; });
+
+  var el = document.getElementById('vcount');
+  if(el) el.textContent = (Math.min(PAGE,vis.length-start))+' of '+vis.length+' issue'+(vis.length===1?'':'s');
+  renderPager(vis.length);
+}
+
+function getVid(row){
+  var oc = row.getAttribute('onclick');
+  var m = oc && oc.match(/'(v\d+)'/);
+  return m ? m[1] : '';
+}
+
+/* ── Pagination ── */
+function renderPager(total){
+  var bar = document.getElementById('pager');
+  if(!bar) return;
+  bar.innerHTML = '';
+  var pages = Math.ceil(total/PAGE);
+  if(pages <= 1) return;
+  addBtn(bar,'‹',page>1,function(){page--;applyFilters();},false);
+  var s = Math.max(1,page-2), e = Math.min(pages,s+4);
+  if(e-s<4) s = Math.max(1,e-4);
+  for(var i=s;i<=e;i++){
+    (function(p){ addBtn(bar,p,true,function(){page=p;applyFilters();},p===page); })(i);
+  }
+  addBtn(bar,'›',page<pages,function(){page++;applyFilters();},false);
+  var inf = document.createElement('span');
+  inf.className='pg-info';
+  inf.textContent='Page '+page+' of '+pages;
+  bar.appendChild(inf);
+}
+function addBtn(bar,lbl,en,fn,active){
+  var b = document.createElement('button');
+  b.textContent = lbl;
+  b.disabled = !en;
+  if(active) b.classList.add('active');
+  b.addEventListener('click',function(e){e.stopPropagation();fn();});
+  bar.appendChild(b);
+}
+
+/* ── Expand detail ── */
+window.toggleViol = function(id,row){
+  var d = document.getElementById('detail-'+id);
+  if(!d) return;
+  var open = d.classList.contains('op');
+  document.querySelectorAll('.drow.op').forEach(function(x){x.classList.remove('op');x.style.display='none';});
+  document.querySelectorAll('.vrow.xp').forEach(function(x){x.classList.remove('xp');});
+  if(!open){ d.classList.add('op'); d.style.display=''; row.classList.add('xp'); }
+};
+
+/* ── Sort ── */
+window.sortTable = function(col){
+  var asc = (sortCol === col) ? !sortAsc : true;
+  sortCol = col; sortAsc = asc;
+  document.querySelectorAll('#vtable th').forEach(function(th,i){
+    th.classList.remove('sa','sd');
+    if(i===col) th.classList.add(asc?'sa':'sd');
+  });
+  allRows.sort(function(a,b){
+    var av = a.children[col] ? a.children[col].textContent.trim() : '';
+    var bv = b.children[col] ? b.children[col].textContent.trim() : '';
+    var n = !isNaN(parseFloat(av)) && !isNaN(parseFloat(bv));
+    if(n) return asc ? parseFloat(av)-parseFloat(bv) : parseFloat(bv)-parseFloat(av);
+    return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+  });
+  var tbody = document.getElementById('vbody');
+  allRows.forEach(function(r){
+    var vid = getVid(r);
+    var d = document.getElementById('detail-'+vid);
+    tbody.appendChild(r);
+    if(d) tbody.appendChild(d);
+  });
+  page = 1;
+  applyFilters();
+};
+
+/* ── Hotspot Files ── */
+function computeHotspots(){
+  var map = {};
+  allRows.forEach(function(r){
+    var f = r.dataset.file || '(unknown)';
+    if(!f) return;
+    map[f] = (map[f]||0)+1;
+  });
+  var list = Object.keys(map).map(function(f){ return {file:f,count:map[f]}; });
+  list.sort(function(a,b){return b.count-a.count;});
+  list = list.slice(0,10);
+  var max = list.length ? list[0].count : 1;
+  var tbody = document.getElementById('hotspot-body');
+  if(!tbody) return;
+  if(!list.length){ tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--text3);font-style:italic;padding:20px">No data</td></tr>'; return; }
+  tbody.innerHTML = list.map(function(item,i){
+    var pct = Math.round(item.count/max*100);
+    var short = item.file.split('/').slice(-2).join('/');
+    return '<tr><td style="color:var(--text3);font-size:10px;font-weight:700">'+(i+1)+'</td>'
+      +'<td><span class="hs-file" title="'+item.file+'">'+short+'</span></td>'
+      +'<td style="font-weight:700;color:var(--text);font-size:12px">'+item.count+'</td>'
+      +'<td style="width:80px"><div class="hs-bar" style="width:'+pct+'%"></div></td></tr>';
+  }).join('');
+}
+
+/* ── Top Rules ── */
+function computeTopRules(){
+  var map = {};
+  var descMap = {};
+  allRows.forEach(function(r){
+    var rule = r.dataset.rule || '—';
+    map[rule] = (map[rule]||0)+1;
+    if(!descMap[rule] && r.dataset.desc) descMap[rule] = r.dataset.desc;
+  });
+  var list = Object.keys(map).map(function(r){ return {rule:r,count:map[r]}; });
+  list.sort(function(a,b){return b.count-a.count;});
+  list = list.slice(0,8);
+  var max = list.length ? list[0].count : 1;
+  var cont = document.getElementById('top-rules-container');
+  if(!cont) return;
+  if(!list.length){ cont.innerHTML='<div style="color:var(--text3);font-style:italic;font-size:12px;padding:20px;text-align:center">No data</div>'; return; }
+  cont.innerHTML = list.map(function(item){
+    var pct = Math.round(item.count/max*100);
+    var desc = descMap[item.rule] || '';
+    return '<div class="rule-row">'
+      +'<span class="rule-id">'+item.rule+'</span>'
+      +(desc ? '<span class="rule-desc" title="'+desc+'">'+desc+'</span>' : '')
+      +'<div class="rule-mini"><div class="rule-mini-fill" style="width:'+pct+'%"></div></div>'
+      +'<span class="rule-cnt">'+item.count+'</span>'
+      +'</div>';
+  }).join('');
+}
+
+/* ── Category filter from chart bars ── */
+window.setCategoryFilter = function(cat){
+  var sel = document.getElementById('cat-filter');
+  if(!sel) return;
+  var found = false;
+  for(var i=0;i<sel.options.length;i++){
+    if(sel.options[i].value === cat){ found = true; break; }
+  }
+  if(found){
+    sel.value = cat;
+    document.getElementById('viol-heading').textContent = cat.charAt(0).toUpperCase()+cat.slice(1)+' Violations';
+  } else {
+    toast('No '+cat+' violations in the top '+allRows.length+' visible rows');
+    return;
+  }
+  page = 1;
+  applyFilters();
+  var sec = document.getElementById('violations');
+  if(sec) sec.scrollIntoView({behavior:'smooth'});
+};
+
+/* ── Export CSV ── */
+window.exportCSV = function(){
+  var rows = [['Severity','Rule ID','Category','File','Line','Message']];
+  allRows.forEach(function(r){
+    var cells = r.querySelectorAll('td');
+    if(cells.length < 6) return;
+    rows.push([
+      cells[0].textContent.trim(),
+      cells[1].textContent.trim(),
+      cells[2].textContent.trim(),
+      r.dataset.file||'',
+      cells[4].textContent.trim(),
+      r.dataset.msg||''
+    ]);
+  });
+  var csv = rows.map(function(row){
+    return row.map(function(c){ return '"'+String(c).replace(/"/g,'""')+'"'; }).join(',');
+  }).join('\n');
+  download('acqc-violations.csv','text/csv',csv);
+  toast('CSV downloaded ('+allRows.length+' rows)');
+};
+
+/* ── Export JSON ── */
+window.exportJSON = function(){
+  var data = allRows.map(function(r){
+    var cells = r.querySelectorAll('td');
+    return {
+      severity: cells[0]?cells[0].textContent.trim():'',
+      rule_id:  cells[1]?cells[1].textContent.trim():'',
+      category: r.dataset.cat||'',
+      file:     r.dataset.file||'',
+      line:     cells[4]?cells[4].textContent.trim():'',
+      message:  r.dataset.msg||''
+    };
+  });
+  download('acqc-violations.json','application/json',JSON.stringify(data,null,2));
+  toast('JSON downloaded ('+allRows.length+' records)');
+};
+
+function download(name,mime,content){
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content],{type:mime}));
+  a.download = name;
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); },1000);
+}
+
+/* ── Toast ── */
+function toast(msg){
+  var el = document.getElementById('toast');
+  if(!el) return;
+  el.textContent = '✓ '+msg;
+  el.classList.add('show');
+  setTimeout(function(){ el.classList.remove('show'); },2800);
+}
+
+})();
+</script>
+</body>
+</html>

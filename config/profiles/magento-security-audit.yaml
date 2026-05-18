@@ -1,0 +1,205 @@
+# Magento Security Audit Profile
+# Focused on security vulnerabilities and best practices
+
+profile:
+  name: "Magento Security Audit"
+  description: "Comprehensive security analysis for Magento 2 projects"
+  role: "security-auditor"
+  focus: ["security", "vulnerabilities", "data-protection", "access-control"]
+
+analyzers:
+  # Core Magento security analyzers
+  magento:
+    structure:
+      enabled: true
+      severity_missing_required: "error"
+      severity_wrong_placement: "error"
+      check_acl_xml: true
+      check_webapi_xml: true
+      check_system_xml: true
+    
+    dependency_injection:
+      enabled: true
+      severity_objectmanager_usage: "critical"  # Security risk
+      severity_concrete_injection: "error"
+      allow_objectmanager_in_factories: false  # Strict security
+      allow_objectmanager_in_tests: false      # No exceptions
+      check_constructor_arguments: true
+    
+    plugins:
+      enabled: true
+      severity_method_signature: "critical"
+      severity_security_sensitive: "critical"  # New security check
+      check_around_plugins: true
+      check_security_bypass: true             # Check for auth bypasses
+    
+    observers:
+      enabled: true
+      severity_interface_implementation: "error"
+      severity_security_events: "critical"    # Security event handling
+      check_sensitive_data_logging: true
+    
+    database:
+      enabled: true
+      severity_schema_issues: "critical"
+      severity_sql_injection: "critical"
+      severity_data_exposure: "critical"
+      check_sensitive_data_fields: true
+      check_encryption_requirements: true
+    
+    performance:
+      enabled: false  # Not primary focus for security audit
+    
+    security:
+      enabled: true
+      severity_sql_injection: "critical"
+      severity_xss_vulnerabilities: "critical"
+      severity_csrf_vulnerabilities: "critical"
+      severity_hardcoded_secrets: "critical"
+      severity_file_upload_issues: "critical"
+      severity_authentication_bypass: "critical"
+      severity_authorization_issues: "critical"
+      severity_session_management: "critical"
+      severity_data_validation: "error"
+      severity_output_encoding: "error"
+      check_admin_security: true
+      check_api_security: true
+      check_graphql_security: true
+      check_payment_security: true
+      check_customer_data_protection: true
+    
+    upgrade:
+      enabled: true
+      severity_security_patches: "critical"    # Focus on security patches
+      severity_deprecated_usage: "error"
+      target_version: "2.4.7"
+      check_security_fixes: true
+
+  # Frontend security analyzers
+  frontend:
+    react:
+      enabled: true
+      severity_security_issues: "critical"
+      check_dangerous_html: true
+      check_xss_vulnerabilities: true
+    
+    pwa:
+      enabled: true
+      severity_security_headers: "critical"
+      check_content_security_policy: true
+      check_secure_contexts: true
+    
+    seo:
+      enabled: false  # Not security focused
+    
+    accessibility:
+      enabled: false  # Not security focused
+    
+    performance:
+      enabled: false  # Not primary focus
+    
+    security:
+      enabled: true
+      severity_high_security: "critical"
+      severity_medium_security: "error"
+      severity_csp_issues: "critical"
+      severity_https_issues: "critical"
+      severity_cookie_security: "error"
+      check_sensitive_data_exposure: true
+      check_client_side_validation: true
+
+  # PHP security tools
+  php:
+    phpcs:
+      enabled: true
+      standard: "Security"
+      severity: "error"
+      security_rules_only: true
+    
+    phpstan:
+      enabled: true
+      level: "8"  # Maximum strictness
+      severity: "error"
+      security_extensions: true
+    
+    phpmd:
+      enabled: true
+      rules: "security"
+      severity: "error"
+    
+    phpcpd:
+      enabled: false  # Not security relevant
+
+# Security-focused rule customizations
+rules:
+  # Critical security rules - zero tolerance
+  severity_overrides:
+    "sql-injection": "critical"
+    "xss-vulnerability": "critical"
+    "csrf-missing": "critical"
+    "hardcoded-credentials": "critical"
+    "insecure-random": "critical"
+    "path-traversal": "critical"
+    "command-injection": "critical"
+    "weak-crypto": "critical"
+    "session-fixation": "critical"
+    "authentication-bypass": "critical"
+    "authorization-bypass": "critical"
+    "sensitive-data-exposure": "critical"
+    "unvalidated-input": "error"
+    "missing-authorization": "error"
+    "weak-validation": "error"
+  
+  # Security-specific thresholds
+  max_violations_per_file: 0  # Zero tolerance for security issues
+  fail_on_critical: true
+  fail_on_error: true
+  exclude_test_files: false    # Include tests in security analysis
+
+# File patterns - focus on security-sensitive files
+files:
+  include_patterns:
+    - "**/*.php"
+    - "**/*.phtml"
+    - "**/*.xml"
+    - "**/*.json"
+    - "**/*.js"
+    - "**/*.jsx"
+    - "**/*.ts"
+    - "**/*.tsx"
+    - "**/acl.xml"
+    - "**/webapi.xml"
+    - "**/system.xml"
+    - "**/di.xml"
+  
+  exclude_patterns:
+    - "*/vendor/*"
+    - "*/node_modules/*"
+    - "*/var/*"
+    - "*/generated/*"
+    - "*/pub/static/*"
+    # Do NOT exclude tests for security analysis
+
+# Security-focused output
+output:
+  format: "json"  # Machine readable for security tools
+  show_context: true
+  group_by_severity: true
+  max_violations_shown: 0     # Show all violations
+  show_fix_suggestions: true
+  include_cwe_mapping: true   # Map to CWE numbers
+  include_owasp_mapping: true # Map to OWASP categories
+
+# Security audit performance settings
+performance:
+  parallel_processing: true
+  max_workers: 2  # Conservative for thorough analysis
+  cache_enabled: false  # Always fresh analysis for security
+  incremental_mode: false  # Full analysis required
+
+# Integration settings for security
+integration:
+  git_hooks: true
+  security_scanners: true
+  vulnerability_databases: true
+  ci_mode: false  # Interactive mode for detailed analysis 

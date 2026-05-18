@@ -1,0 +1,183 @@
+# Magento Developer Configuration Profile
+# Optimized for day-to-day Magento development tasks
+
+profile:
+  name: "Magento Developer"
+  description: "Standard configuration for Magento 2 developers"
+  role: "developer"
+  focus: ["code-quality", "magento-patterns", "performance"]
+
+analyzers:
+  # Enable core Magento analyzers with developer-friendly settings
+  magento:
+    structure:
+      enabled: true
+      severity_missing_required: "error"
+      severity_wrong_placement: "warning"
+      severity_naming_convention: "warning"
+      check_composer_structure: true
+      check_module_xml: true
+    
+    dependency_injection:
+      enabled: true
+      severity_objectmanager_usage: "error"
+      severity_concrete_injection: "warning"
+      allow_objectmanager_in_factories: true
+      allow_objectmanager_in_tests: true
+      check_constructor_arguments: true
+    
+    plugins:
+      enabled: true
+      severity_method_signature: "error"
+      severity_performance_sensitive: "warning"
+      severity_sort_order: "info"
+      check_around_plugins: true
+      check_method_naming: true
+    
+    observers:
+      enabled: true
+      severity_interface_implementation: "warning"
+      severity_performance_impact: "info"
+      check_event_names: true
+    
+    database:
+      enabled: true
+      severity_schema_issues: "warning"
+      severity_query_performance: "warning"
+      check_db_schema_xml: true
+      check_install_upgrade_scripts: false  # Less critical for developers
+    
+    performance:
+      enabled: true
+      severity_n_plus_one: "warning"
+      severity_inefficient_loops: "warning"
+      severity_memory_issues: "info"
+      check_collection_loading: true
+      check_model_loading: true
+    
+    security:
+      enabled: true
+      severity_sql_injection: "error"
+      severity_xss_vulnerabilities: "error"
+      severity_hardcoded_secrets: "error"
+      check_input_validation: true
+      check_output_encoding: true
+    
+    upgrade:
+      enabled: true
+      severity_deprecated_usage: "warning"
+      severity_removed_apis: "error"
+      target_version: "2.4.7"  # Current stable version
+      check_deprecated_classes: true
+
+  # Frontend development support
+  frontend:
+    react:
+      enabled: true
+      severity_naming_issues: "warning"
+      severity_hook_issues: "error"
+      severity_performance_issues: "warning"
+      check_pwa_studio_patterns: true
+    
+    pwa:
+      enabled: true
+      severity_manifest_issues: "warning"
+      severity_service_worker_issues: "warning"
+      check_pwa_studio_compliance: true
+    
+    seo:
+      enabled: false  # Usually handled by frontend specialists
+    
+    accessibility:
+      enabled: false  # Usually handled by frontend specialists
+    
+    performance:
+      enabled: true
+      severity_performance_warning: "warning"
+      check_bundle_size: true
+      check_lazy_loading: true
+    
+    security:
+      enabled: true
+      severity_high_security: "error"
+      severity_medium_security: "warning"
+      check_xss_vulnerabilities: true
+
+  # PHP quality tools (optional)
+  php:
+    phpcs:
+      enabled: true
+      standard: "Magento2"
+      severity: "warning"
+      exclude_patterns:
+        - "*/Test/*"
+        - "*/generated/*"
+    
+    phpstan:
+      enabled: true
+      level: "7"  # Balanced for development
+      severity: "warning"
+      magento_compatibility: true
+    
+    phpmd:
+      enabled: false  # Can be noisy during development
+    
+    phpcpd:
+      enabled: false  # Run during code review instead
+
+# Rule customizations for developers
+rules:
+  # Relaxed settings for development workflow
+  max_violations_per_file: 20
+  exclude_test_files: true
+  exclude_generated_files: true
+  
+  # Custom severity overrides
+  severity_overrides:
+    "magento-missing-composer": "info"  # Nice to have, not critical
+    "react-inline-styles": "info"       # Common during prototyping
+    "seo-missing-meta": "info"          # Not developer's primary concern
+
+# File patterns and exclusions
+files:
+  include_patterns:
+    - "app/code/**/*.php"
+    - "app/code/**/*.phtml"
+    - "app/code/**/*.xml"
+    - "app/code/**/*.json"
+    - "pwa-studio/**/*.js"
+    - "pwa-studio/**/*.jsx"
+    - "pwa-studio/**/*.ts"
+    - "pwa-studio/**/*.tsx"
+  
+  exclude_patterns:
+    - "*/vendor/*"
+    - "*/node_modules/*"
+    - "*/var/*"
+    - "*/generated/*"
+    - "*/pub/static/*"
+    - "*/Test/*"
+    - "*/tests/*"
+    - "*.min.js"
+    - "*.min.css"
+
+# Output preferences for developers
+output:
+  format: "table"  # Easy to read in terminal
+  show_context: true
+  group_by_file: true
+  max_violations_shown: 50
+  show_fix_suggestions: true
+
+# Performance settings
+performance:
+  parallel_processing: true
+  max_workers: 4
+  cache_enabled: true
+  incremental_mode: true  # Only analyze changed files
+
+# Integration settings
+integration:
+  git_hooks: true
+  ide_integration: true
+  ci_mode: false 

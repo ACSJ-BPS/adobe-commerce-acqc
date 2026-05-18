@@ -1,0 +1,63 @@
+schema_version: "1.0"
+id: "AC_CRON_004"
+name: "ac-cron-004-heavy-cron-operation"
+title: "Heavy Loop Operation in Cron Execute Method"
+description: >
+  Cron job classes that iterate over large collections with foreach loops directly
+  in their execute() method risk memory exhaustion and timeout failures. PHP memory
+  limits accumulate across iterations, and a single failed cron execution can block
+  the entire cron group. Large data operations should be chunked or dispatched to
+  a message queue for reliable async processing.
+category: "cron"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-cron.mdc"
+tags:
+  - cron
+  - performance
+  - memory
+  - queue
+globs:
+  - "**/Cron/**/*.php"
+check:
+  type: regex
+  pattern: '\bforeach\s*\('
+recommendation: >
+  Process large datasets in configurable chunks using array_chunk() or collection
+  setPageSize(). For truly heavy workloads, dispatch a message queue message for
+  each item and let queue consumers handle processing asynchronously:
+  $this->publisher->publish('vendor.module.process', $message);
+examples:
+  bad: |
+    public function execute(): void
+    {
+        $orders = $this->orderCollection->create()->load();
+        foreach ($orders as $order) {
+            $this->processOrder($order); // Memory grows per iteration
+        }
+    }
+  good: |
+    public function execute(): void
+    {
+        $page = 1;
+        do {
+            $orders = $this->orderCollection->create()
+                ->setPageSize(100)
+                ->setCurPage($page)
+                ->load();
+            foreach ($orders as $order) {
+                $this->publisher->publish('vendor.process_order', $order->getId());
+            }
+            $page++;
+        } while ($orders->count() === 100);
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/cache/partial/database-caching/"
+  - "https://developer.adobe.com/commerce/php/development/components/message-queues/"

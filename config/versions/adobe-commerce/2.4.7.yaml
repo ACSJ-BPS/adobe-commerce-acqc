@@ -1,0 +1,262 @@
+schema_version: "1"
+version: "2.4.7"
+release_date: "2024-04-09"
+eol_date: "2026-04-09"
+release_type: "minor"
+
+patch_releases:
+  - "2.4.7-p1"
+  - "2.4.7-p2"
+  - "2.4.7-p3"
+
+php_support:
+  minimum: "8.2"
+  maximum: "8.3"
+  recommended: "8.3"
+  dropped: ["8.1"]
+
+search_engine_support:
+  opensearch: ["2.12", "2.13"]
+  elasticsearch: []
+
+composer_requirements:
+  magento/framework: "103.0.7"
+  php: ">=8.2 <8.4"
+  platform_extensions:
+    required: ["ext-bcmath", "ext-ctype", "ext-curl", "ext-dom", "ext-gd",
+                "ext-hash", "ext-iconv", "ext-intl", "ext-mbstring",
+                "ext-openssl", "ext-pdo_mysql", "ext-simplexml", "ext-soap",
+                "ext-xsl", "ext-zip", "ext-sockets"]
+    removed: []
+
+upgrade_notes:
+  minimum_source_version: "2.4.5"
+  recommended_intermediate_versions: ["2.4.6"]
+  breaking_change_count: 14
+  deprecation_count: 28
+  db_schema_change_count: 7
+
+breaking_changes:
+  - id: "BC-2.4.7-001"
+    type: class_removed
+    symbol: "Magento\\Framework\\Search\\Adapter\\Elasticsearch\\Aggregation\\Builder"
+    replacement: "Magento\\OpenSearch\\SearchAdapter\\Aggregation\\Builder"
+    severity: error
+    affected_files_pattern: "*.php"
+    remediation_summary: "Elasticsearch adapter fully removed; migrate all custom search adapters to OpenSearch equivalents"
+    doc_url: "https://developer.adobe.com/commerce/php/development/search/search-adapter/"
+
+  - id: "BC-2.4.7-002"
+    type: class_removed
+    symbol: "Magento\\Elasticsearch\\Model\\Adapter\\ElasticsearchAdapter"
+    replacement: "Magento\\OpenSearch\\Model\\Adapter\\OpenSearchAdapter"
+    severity: error
+    affected_files_pattern: "*.php"
+    remediation_summary: "Replace all Elasticsearch adapter DI preferences with OpenSearch equivalents"
+    doc_url: ""
+
+  - id: "BC-2.4.7-003"
+    type: config_key_removed
+    symbol: "catalog/search/elasticsearch7_server_hostname"
+    severity: error
+    affected_files_pattern: "config.php"
+    remediation_summary: "Elasticsearch config keys replaced with opensearch_server_hostname equivalents"
+    doc_url: ""
+
+  - id: "BC-2.4.7-004"
+    type: class_removed
+    symbol: "Magento\\Customer\\Model\\Session"
+    replacement: "Magento\\Customer\\Model\\ResourceModel\\CustomerRepository"
+    severity: warning
+    affected_files_pattern: "*.php"
+    remediation_summary: "Direct Session injection in non-frontend context deprecated; use CustomerRepository"
+    doc_url: ""
+
+  - id: "BC-2.4.7-005"
+    type: method_signature_changed
+    class: "Magento\\Framework\\HTTP\\Client\\Curl"
+    method: "post"
+    change_description: "Third parameter $headers removed from signature; use setHeaders() before post()"
+    severity: warning
+    remediation_summary: "Call setHeaders() separately before invoking post()"
+    doc_url: ""
+
+  - id: "BC-2.4.7-006"
+    type: class_removed
+    symbol: "Zend_Validate"
+    replacement: "Magento\\Framework\\Validator\\AbstractValidator"
+    severity: error
+    affected_files_pattern: "*.php"
+    remediation_summary: "All remaining Zend_ validator aliases removed; use Magento Framework validators"
+    doc_url: ""
+
+  - id: "BC-2.4.7-007"
+    type: class_removed
+    symbol: "Magento\\Elasticsearch\\Model\\Config"
+    replacement: "Magento\\OpenSearch\\Model\\Config"
+    severity: error
+    affected_files_pattern: "*.php"
+    remediation_summary: "Elasticsearch config class replaced with OpenSearch config; update DI preferences"
+    doc_url: ""
+
+  - id: "BC-2.4.7-008"
+    type: event_removed
+    symbol: "catalog_product_flat_rebuild"
+    severity: warning
+    affected_files_pattern: "events.xml"
+    remediation_summary: "Flat catalog fully deprecated; remove flat catalog observers"
+    doc_url: ""
+
+  - id: "BC-2.4.7-009"
+    type: graphql_field_changed
+    symbol: "Cart.email"
+    change_description: "Field now returns null for guest carts without email; was previously empty string"
+    severity: notice
+    affected_files_pattern: "*.graphql"
+    remediation_summary: "Update GraphQL client code to handle null email on guest carts"
+    doc_url: ""
+
+  - id: "BC-2.4.7-010"
+    type: method_removed
+    class: "Magento\\Framework\\Encryption\\Encryptor"
+    method: "validateKey"
+    severity: warning
+    affected_files_pattern: "*.php"
+    remediation_summary: "Key validation removed from encryptor; perform validation before passing to encryptor"
+    doc_url: ""
+
+  - id: "BC-2.4.7-011"
+    type: class_removed
+    symbol: "Magento\\Framework\\Search\\Adapter\\Mysql\\DocumentFactory"
+    replacement: "Magento\\Framework\\Search\\Adapter\\Document"
+    severity: error
+    affected_files_pattern: "*.php"
+    remediation_summary: "MySQL search adapter document factory removed with MySQL search engine"
+    doc_url: ""
+
+  - id: "BC-2.4.7-012"
+    type: method_signature_changed
+    class: "Magento\\Catalog\\Model\\Product"
+    method: "getMediaGalleryImages"
+    change_description: "Return type changed to MediaGalleryDataInterface; DataObject-based code breaks"
+    severity: warning
+    remediation_summary: "Update type hints and processing logic for new return type"
+    doc_url: ""
+
+  - id: "BC-2.4.7-013"
+    type: column_dropped
+    symbol: "catalog_product_entity.flat_enabled"
+    change_description: "Column removed with flat catalog deprecation"
+    severity: warning
+    affected_files_pattern: "*.php"
+    remediation_summary: "Remove references to flat_enabled column from custom queries"
+    doc_url: ""
+
+  - id: "BC-2.4.7-014"
+    type: method_removed
+    class: "Magento\\Indexer\\Model\\Indexer\\Collection"
+    method: "getIndexersByIds"
+    severity: notice
+    affected_files_pattern: "*.php"
+    remediation_summary: "Use IndexerRegistry to load indexers by ID individually"
+    doc_url: ""
+
+deprecated_symbols:
+  classes:
+    - symbol: "Magento\\Customer\\Model\\Session"
+      since: "2.4.7"
+      replacement: "Magento\\Customer\\Model\\ResourceModel\\CustomerRepository"
+    - symbol: "Magento\\Catalog\\Model\\Product\\Flat\\Indexer"
+      since: "2.4.7"
+      replacement: "Flat catalog fully removed in next major version"
+    - symbol: "Magento\\Framework\\Encryption\\Encryptor"
+      since: "2.4.7"
+      replacement: "Magento\\Framework\\Encryption\\EncryptorInterface"
+    - symbol: "Magento\\Sales\\Model\\Order\\Payment\\Transaction"
+      since: "2.4.7"
+      replacement: "Magento\\Sales\\Api\\Data\\TransactionInterface"
+    - symbol: "Magento\\Framework\\Filesystem\\Driver\\File"
+      since: "2.4.7"
+      replacement: "Magento\\Framework\\Filesystem\\DriverInterface"
+  methods:
+    - class: "Magento\\Catalog\\Model\\ResourceModel\\Product"
+      method: "getProductIdsByAttributeId"
+      since: "2.4.7"
+      replacement: "Use SearchCriteria-based repository methods"
+    - class: "Magento\\Framework\\Model\\AbstractModel"
+      method: "load"
+      since: "2.4.7"
+      replacement: "Use repository pattern with load-by-id methods"
+    - class: "Magento\\Framework\\Model\\AbstractModel"
+      method: "save"
+      since: "2.4.7"
+      replacement: "Use repository pattern with save methods"
+  events:
+    - event: "catalog_product_flat_rebuild"
+      since: "2.4.7"
+      reason: "Flat catalog deprecated in favor of Elasticsearch/OpenSearch"
+    - event: "catalog_category_flat_load_after"
+      since: "2.4.7"
+      reason: "Flat catalog fully deprecated"
+
+db_schema_changes:
+  - table: "quote_item"
+    column: "tax_before_discount"
+    change_type: column_dropped
+    migration_risk: high
+    data_migration_required: false
+    estimated_duration_minutes: 5
+  - table: "catalog_product_entity"
+    change_type: index_added
+    index_name: "IDX_CPE_CREATED_AT_UPDATED_AT"
+    index_type: index
+    migration_risk: high
+    estimated_duration_minutes: 60
+  - table: "customer_entity"
+    column: "lock_expires"
+    change_type: column_added
+    migration_risk: low
+    data_migration_required: false
+    estimated_duration_minutes: 2
+  - table: "sales_order_item"
+    column: "weee_base_tax_applied_row_amnt"
+    change_type: column_dropped
+    migration_risk: medium
+    data_migration_required: false
+    estimated_duration_minutes: 5
+  - table: "catalog_category_entity"
+    change_type: index_added
+    index_name: "IDX_CCE_PATH"
+    index_type: index
+    migration_risk: medium
+    estimated_duration_minutes: 15
+  - table: "wishlist_item"
+    column: "added_at"
+    change_type: column_type_changed
+    migration_risk: medium
+    data_migration_required: false
+    estimated_duration_minutes: 10
+  - table: "cataloginventory_stock_item"
+    change_type: index_added
+    index_name: "IDX_CATINV_STOCK_ITEM_PRODUCT_ID_WEBSITE_ID"
+    index_type: index
+    migration_risk: high
+    estimated_duration_minutes: 90
+
+security_advisories:
+  - id: "APSB24-018"
+    cve: "CVE-2024-20758"
+    severity: critical
+    description: "Server-side request forgery via media gallery URL parameter"
+    affected_versions: ["2.4.5", "2.4.5-p1", "2.4.5-p2", "2.4.6", "2.4.6-p1"]
+    fixed_in: "2.4.7"
+    patch_available: true
+    patch_url: "https://experienceleague.adobe.com/docs/commerce-operations/release/notes/security-patches/2-4-7-patches.html"
+  - id: "APSB24-019"
+    cve: "CVE-2024-20759"
+    severity: high
+    description: "Improper authorization in Admin Panel REST API endpoints"
+    affected_versions: ["2.4.6", "2.4.6-p1", "2.4.6-p2"]
+    fixed_in: "2.4.7"
+    patch_available: true
+    patch_url: "https://experienceleague.adobe.com/docs/commerce-operations/release/notes/security-patches/2-4-7-patches.html"

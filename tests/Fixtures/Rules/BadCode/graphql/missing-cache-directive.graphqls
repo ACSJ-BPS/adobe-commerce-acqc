@@ -1,0 +1,12 @@
+type Query {
+    # Bad: resolver declared without @cache directive — every request hits PHP
+    vendorProducts(
+        search: String
+        pageSize: Int = 20
+        currentPage: Int = 1
+    ): VendorProductConnection
+        resolver : "Vendor\Module\Model\Resolver\ProductsResolver"
+
+    vendorCategory(id: Int!): VendorCategory
+        resolver : "Vendor\Module\Model\Resolver\CategoryResolver"
+}

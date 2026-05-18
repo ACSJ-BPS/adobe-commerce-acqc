@@ -1,0 +1,7 @@
+{
+    "name": "test/b2b-project",
+    "require": {
+        "magento/product-community-edition": "2.4.6",
+        "magento/extension-b2b": "1.3.5"
+    }
+}

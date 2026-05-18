@@ -1,0 +1,53 @@
+schema_version: "1.0"
+id: "AC_ARCH_002"
+name: "ac-arch-002-preference-override"
+title: "Class Preference Overriding Core Magento Class"
+description: >
+  Declaring a class preference to override a core Magento class directly substitutes
+  the implementation and prevents any other module from also overriding the same
+  class. Only one preference can win — if two modules declare conflicting preferences,
+  the last one loaded wins and the other is silently ignored. This creates fragile
+  extensions that break compatibility with other modules and Magento upgrades.
+  Use plugins or event observers to modify behavior without full class replacement.
+category: "architecture"
+severity: "warning"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-architecture.mdc"
+tags:
+  - architecture
+  - di
+  - compatibility
+  - magento2
+globs:
+  - "**/di.xml"
+check:
+  type: structural
+  strategy: preference_override_check
+recommendation: >
+  Use plugins (before/around/after methods) instead of class preferences whenever
+  possible. Plugins allow multiple modules to modify the same class without conflict.
+  Reserve class preferences for implementing interfaces that have no default
+  implementation, not for overriding existing core classes.
+examples:
+  bad: |
+    <!-- Overrides core class — prevents other modules from doing the same -->
+    <preference for="Magento\Catalog\Model\Product"
+                type="Vendor\Module\Model\Catalog\Product"/>
+  good: |
+    <!-- Use a plugin instead to avoid override conflicts -->
+    <type name="Magento\Catalog\Model\Product">
+        <plugin name="vendor_module_product_plugin"
+                type="Vendor\Module\Plugin\ProductPlugin"
+                sortOrder="10"/>
+    </type>
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/plugins/"
+  - "https://developer.adobe.com/commerce/php/development/components/dependency-injection/"

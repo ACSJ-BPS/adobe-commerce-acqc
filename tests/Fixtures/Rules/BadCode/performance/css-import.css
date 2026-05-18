@@ -1,0 +1,9 @@
+/* Bad: @import causes sequential CSS loading — blocks rendering */
+@import "vendor-reset.css";
+@import "vendor-typography.css";
+@import "vendor-components.css";
+
+.vendor-block {
+    display: block;
+    margin: 0 auto;
+}

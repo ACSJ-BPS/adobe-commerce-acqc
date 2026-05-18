@@ -1,0 +1,35 @@
+schema_version: "1.0"
+id: "AC_GUID_002"
+name: "ac-guid-002-coding-standards"
+title: "Magento Coding Standards Not Enforced"
+description: >
+  Adobe Commerce has a comprehensive set of coding standards enforced by the
+  Magento Coding Standard PHP_CodeSniffer ruleset. Projects without automated
+  coding standards enforcement accumulate inconsistent code style, deprecated
+  patterns, and violations of Magento-specific conventions. These inconsistencies
+  increase review burden, mask real issues in diffs, and create friction during
+  code reviews with Adobe Commerce engineers.
+category: "guidance"
+severity: "info"
+tier: 3
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+introduced_in: "3.0.0"
+source: "adobe-commerce-guidance.mdc"
+tags:
+  - guidance
+  - coding-standards
+  - tooling
+  - php
+recommendation: >
+  Install and configure the Magento Coding Standard in your project:
+  composer require --dev magento/magento-coding-standard
+  vendor/bin/phpcs --standard=Magento2 app/code/Vendor/Module/
+  Add a pre-commit hook or CI step to enforce standards on every commit.
+  Use vendor/bin/phpcbf to automatically fix fixable violations.
+references:
+  - "https://github.com/magento/magento-coding-standard"
+  - "https://developer.adobe.com/commerce/php/coding-standards/"

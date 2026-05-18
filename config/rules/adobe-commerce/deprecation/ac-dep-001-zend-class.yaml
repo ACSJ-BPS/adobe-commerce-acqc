@@ -1,0 +1,47 @@
+schema_version: "1.0"
+id: "AC_DEP_001"
+name: "ac-dep-001-zend-class"
+title: "Deprecated Zend Framework Class Usage"
+description: >
+  Zend Framework classes (prefixed with Zend_) have been replaced by their Laminas equivalents
+  in Adobe Commerce 2.4+. Using Zend_ classes causes compatibility issues on PHP 8.x and will
+  break in future Adobe Commerce versions where the Zend compatibility shim is removed.
+category: "deprecation"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "1.0.0"
+tags:
+  - deprecation
+  - zend
+  - laminas
+  - magento2
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: 'Zend_[A-Za-z]'
+recommendation: >
+  Replace Zend Framework classes with their Laminas equivalents.
+  Examples: Zend_Db → Laminas\Db, Zend_Mail → Laminas\Mail, Zend_Log → Laminas\Log.
+  Run `bin/magento setup:upgrade` after updating dependencies.
+examples:
+  bad: |
+    use Zend_Mail;
+    $mail = new Zend_Mail('UTF-8');
+    $mail->setSubject('Hello');
+  good: |
+    use Laminas\Mail\Message;
+    use Laminas\Mail\Transport\Sendmail;
+    $message = (new Message())->setSubject('Hello');
+references:
+  - "https://developer.adobe.com/commerce/php/development/backward-incompatible-changes/highlights/"
+  - "https://docs.laminas.dev/migration/"

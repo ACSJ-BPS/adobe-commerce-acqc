@@ -1,0 +1,54 @@
+schema_version: "1.0"
+id: "AC_DEP_005"
+name: "ac-dep-005-mage-facade"
+title: "Deprecated Mage Facade Usage"
+description: >
+  The Mage:: static facade (Mage::getModel(), Mage::getSingleton(), Mage::app()) was
+  the core API in Magento 1 and was completely removed in Magento 2. Any code that
+  references Mage:: is either migrated Magento 1 code or code copied from outdated
+  tutorials. These calls will cause fatal errors on any Magento 2 installation.
+category: "deprecation"
+severity: "critical"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-deprecation.mdc"
+tags:
+  - deprecation
+  - magento1
+  - mage-facade
+  - fatal-error
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: regex
+  pattern: '\bMage::(?:getModel|getSingleton|helper|app|getStoreConfig)\s*\('
+recommendation: >
+  Replace Mage:: calls with Magento 2 equivalents:
+  Mage::getModel() → inject a Factory and call $factory->create()
+  Mage::getSingleton() → inject the class directly via constructor
+  Mage::app() → inject ObjectManagerInterface (only in bootstrapping code)
+  Mage::getStoreConfig() → inject ScopeConfigInterface
+examples:
+  bad: |
+    $order   = Mage::getModel('sales/order')->load($orderId);
+    $session = Mage::getSingleton('customer/session');
+    $config  = Mage::getStoreConfig('payment/paypal/active');
+  good: |
+    public function __construct(
+        private readonly \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
+        private readonly \Magento\Customer\Model\Session $customerSession,
+        private readonly \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
+    ) {}
+references:
+  - "https://developer.adobe.com/commerce/php/development/backward-incompatible-changes/"
+  - "https://developer.adobe.com/commerce/php/development/components/dependency-injection/"

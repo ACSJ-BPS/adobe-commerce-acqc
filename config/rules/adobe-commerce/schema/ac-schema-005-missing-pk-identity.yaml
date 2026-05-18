@@ -1,0 +1,59 @@
+schema_version: "1.0"
+id: "AC_SCHEMA_005"
+name: "ac-schema-005-missing-pk-identity"
+title: "Primary Key Column Missing identity=\"true\""
+description: >
+  The primary key column (entity_id) in a custom db_schema.xml table must have
+  identity="true" to enable MySQL AUTO_INCREMENT. Without it, the column will not
+  auto-increment and every INSERT will require the application to supply an ID
+  manually, breaking Magento's ResourceModel save() flow and causing duplicate key
+  errors in concurrent scenarios.
+category: "schema"
+severity: "critical"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "schema-patterns.md"
+tags:
+  - schema
+  - primary-key
+  - database
+  - data-integrity
+globs:
+  - "**/db_schema.xml"
+check:
+  type: xml_xpath
+  expression: "//constraint[@xsi:type='primary']/following-sibling::column[@name='entity_id'][not(@identity='true')] | //constraint[@xsi:type='primary']/preceding-sibling::column[@name='entity_id'][not(@identity='true')]"
+  attribute: "name"
+  message: "Primary key column 'entity_id' in this table is missing identity=\"true\" (AUTO_INCREMENT)."
+recommendation: >
+  Add identity="true" to the entity_id column declaration:
+    <column name="entity_id" xsi:type="int" unsigned="true" nullable="false" identity="true"
+            comment="Entity ID"/>
+  This generates an AUTO_INCREMENT column in MySQL and is required for
+  Magento's AbstractModel::save() to populate the ID after insert.
+examples:
+  bad: |
+    <column name="entity_id" xsi:type="int" unsigned="true" nullable="false"
+            comment="Entity ID"/>
+    <constraint xsi:type="primary" referenceId="PRIMARY">
+        <column name="entity_id"/>
+    </constraint>
+  good: |
+    <column name="entity_id" xsi:type="int" unsigned="true" nullable="false"
+            identity="true" comment="Entity ID"/>
+    <constraint xsi:type="primary" referenceId="PRIMARY">
+        <column name="entity_id"/>
+    </constraint>
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/declarative-schema/configuration/"
+  - "https://dev.mysql.com/doc/refman/8.0/en/example-auto-increment.html"

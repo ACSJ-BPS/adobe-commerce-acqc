@@ -1,0 +1,46 @@
+schema_version: "1.0"
+id: "AC_PERF_007"
+name: "ac-perf-007-script-no-defer"
+title: "JavaScript in <head> Without defer or async"
+description: >
+  Script tags with `src` attributes that are placed in the `<head>` without `defer`
+  or `async` attributes block HTML parsing, delaying First Contentful Paint and
+  increasing Time to Interactive. The browser must download, parse, and execute the
+  script before it can continue rendering the page. Use `defer` for scripts that
+  need the DOM, and `async` for independent scripts like analytics.
+category: "performance"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-performance.mdc"
+tags:
+  - performance
+  - javascript
+  - core-web-vitals
+  - rendering
+globs:
+  - "**/*.phtml"
+  - "**/*.html"
+check:
+  type: regex
+  pattern: '<script\b(?![^>]*(?:defer|async))[^>]*\bsrc\s*='
+recommendation: >
+  Add defer or async to script tags in templates:
+  <script defer src="..."></script>   <!-- for DOM-dependent scripts -->
+  <script async src="..."></script>   <!-- for independent analytics/tracking -->
+  For Magento-managed scripts, use the page_var_export API or requirejs
+  instead of raw script tags in templates.
+examples:
+  bad: |
+    <script src="<?= $block->getViewFileUrl('Vendor_Module::js/widget.js') ?>"></script>
+  good: |
+    <script defer src="<?= $block->getViewFileUrl('Vendor_Module::js/widget.js') ?>"></script>
+references:
+  - "https://developer.mozilla.org/en-US/docs/Web/HTML/Element/script"
+  - "https://developer.adobe.com/commerce/frontend-core/javascript/"

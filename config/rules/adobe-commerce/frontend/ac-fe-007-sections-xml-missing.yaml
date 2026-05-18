@@ -1,0 +1,83 @@
+schema_version: "1.0"
+id: "AC_FE_007"
+name: "ac-fe-007-sections-xml-missing"
+title: "Frontend Controller: POST Action Missing sections.xml Invalidation"
+description: >
+  Custom frontend controllers that modify customer state (cart, wishlist, account, quotes,
+  checkout) without declaring a corresponding invalidation in etc/frontend/sections.xml
+  cause stale private content to appear after the action completes. The CustomerData
+  system caches section data in localStorage; without an explicit invalidation mapping,
+  the cached stale data persists across the POST action until the browser session expires
+  or the cache TTL is reached. This creates UX bugs (wrong cart totals, stale addresses)
+  that are difficult to reproduce and hard to trace.
+category: "frontend"
+severity: "warning"
+tier: 3
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.1.0"
+tags:
+  - frontend
+  - sections
+  - customer-data
+  - cache
+  - private-content
+globs:
+  - "**/frontend/sections.xml"
+check:
+  type: guidance
+  message: >
+    Verify that every custom frontend POST controller action that modifies customer
+    state (cart, wishlist, quotes, checkout, account) has a corresponding entry in
+    etc/frontend/sections.xml. Missing entries cause stale CustomerData section cache
+    after the action completes. See docs/references/adobe_commerce_frontend.md for
+    the sections.xml mapping pattern.
+recommendation: >
+  For every custom controller action that modifies customer-session state, add an
+  invalidation entry in etc/frontend/sections.xml:
+
+    <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:noNamespaceSchemaLocation="...">
+        <action name="vendor_module/cart/add">
+            <section name="cart"/>
+            <section name="checkout-data"/>
+        </action>
+        <action name="vendor_module/wishlist/add">
+            <section name="wishlist"/>
+        </action>
+    </config>
+
+  Section names correspond to section provider keys defined in di.xml under
+  Magento\Customer\CustomerData\SectionPool. Use 'cart', 'wishlist', 'checkout-data',
+  'customer', 'compare-products' as appropriate.
+examples:
+  bad: |
+    <!-- etc/frontend/sections.xml — missing the custom action -->
+    <config>
+        <!-- no entry for vendor_module/cart/addgift -->
+    </config>
+
+    <!-- Controller: app/code/Vendor/Module/Controller/Cart/AddGift.php -->
+    class AddGift extends Action
+    {
+        public function execute()
+        {
+            $this->cart->addProduct($product, $buyRequest); // modifies cart
+            $this->cart->save();
+            return $this->resultRedirectFactory->create()->setPath('checkout/cart');
+        }
+    }
+  good: |
+    <!-- etc/frontend/sections.xml -->
+    <config>
+        <action name="vendor_module/cart/addgift">
+            <section name="cart"/>
+            <section name="checkout-data"/>
+        </action>
+    </config>
+references:
+  - "https://developer.adobe.com/commerce/php/development/cache/page/private-content/"

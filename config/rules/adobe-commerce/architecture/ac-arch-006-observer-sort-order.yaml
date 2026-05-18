@@ -1,0 +1,64 @@
+schema_version: "1.0"
+id: "AC_ARCH_006"
+name: "ac-arch-006-observer-sort-order"
+title: "Multiple Observers on Same Event Missing sortOrder"
+description: >
+  When multiple observers are registered for the same event without a sortOrder
+  attribute, their execution order depends on module load sequence. If two observers
+  both modify the same data (e.g. both set a custom price), the last one to run wins
+  and the other's change is silently overwritten. This is an observer conflict that
+  is invisible in normal operation but breaks unpredictably when module load order
+  changes (e.g. after adding a new module or running setup:upgrade).
+category: "architecture"
+severity: "error"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "conflict-types.md"
+tags:
+  - architecture
+  - observer
+  - event
+  - conflict
+  - non-deterministic
+globs:
+  - "**/etc/events.xml"
+  - "**/etc/frontend/events.xml"
+  - "**/etc/adminhtml/events.xml"
+  - "**/etc/webapi_rest/events.xml"
+check:
+  type: xml_xpath
+  expression: "//observer[not(@sortOrder) and count(//observer[@name=current()/@name]) > 0]"
+  attribute: "name"
+  message: "Observer '{{value}}' has no sortOrder — execution order with other observers on the same event is non-deterministic."
+recommendation: >
+  Add sortOrder to each observer declaration in events.xml. Observers with lower
+  sortOrder values run first. Document the intent:
+    <observer name="vendor_module_checkout_observer" instance="Vendor\Module\Observer\CheckoutObserver"
+              sortOrder="100"/>
+  If two observers conflict on what they modify, consider consolidating them into
+  one observer or using different events at different lifecycle points.
+examples:
+  bad: |
+    <!-- Module A events.xml -->
+    <event name="checkout_submit_all_after">
+        <observer name="module_a_set_price" instance="ModuleA\Observer\SetCustomPrice"/>
+    </event>
+
+    <!-- Module B events.xml — both will run, last wins -->
+    <event name="checkout_submit_all_after">
+        <observer name="module_b_set_price" instance="ModuleB\Observer\SetCustomPrice"/>
+    </event>
+  good: |
+    <event name="checkout_submit_all_after">
+        <observer name="module_a_set_price" instance="ModuleA\Observer\SetCustomPrice"
+                  sortOrder="10"/>
+    </event>
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/events-and-observers/"

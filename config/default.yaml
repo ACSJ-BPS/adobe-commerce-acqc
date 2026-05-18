@@ -1,0 +1,255 @@
+general:
+  project_name: 'Developer Project'
+
+analyzers:
+  magento:
+    enabled: true
+    rules:
+      # Architecture & Framework Rules
+      direct_objectmanager_usage:
+        enabled: true
+        severity: error
+      factory_without_di:
+        enabled: true
+        severity: warning
+      plugin_missing_methods:
+        enabled: true
+        severity: error
+      manual_interceptor:
+        enabled: true
+        severity: error
+      preference_structure_violation:
+        enabled: true
+        severity: warning
+      
+      # Module Structure Rules
+      invalid_registration_structure:
+        enabled: true
+        severity: error
+      invalid_module_xml:
+        enabled: true
+        severity: error
+      invalid_module_sequence:
+        enabled: true
+        severity: warning
+      invalid_composer_json:
+        enabled: true
+        severity: error
+      invalid_module_namespace:
+        enabled: true
+        severity: error
+      missing_module_files:
+        enabled: true
+        severity: error
+      
+      # Database Rules
+      direct_sql_query:
+        enabled: true
+        severity: error
+      missing_schema_versioning:
+        enabled: true
+        severity: warning
+      mixed_schema_approaches:
+        enabled: true
+        severity: warning
+      resource_model_violations:
+        enabled: true
+        severity: error
+      collection_violations:
+        enabled: true
+        severity: warning
+      repository_violations:
+        enabled: true
+        severity: error
+      
+      # Coding Standards Rules
+      missing_api_annotation:
+        enabled: true
+        severity: error
+      missing_api_annotation_method:
+        enabled: true
+        severity: warning
+      service_contract_violations:
+        enabled: true
+        severity: error
+      extension_attributes_violations:
+        enabled: true
+        severity: warning
+      webapi_configuration_issues:
+        enabled: true
+        severity: error
+      hardcoded_frontend_path:
+        enabled: true
+        severity: warning
+      hardcoded_url:
+        enabled: true
+        severity: warning
+      improper_constant_naming:
+        enabled: true
+        severity: warning
+      exception_handling_issues:
+        enabled: true
+        severity: warning
+      
+      # API & Service Contract Rules
+      repository_pattern_violations:
+        enabled: true
+        severity: error
+      data_interface_violations:
+        enabled: true
+        severity: error
+      api_response_issues:
+        enabled: true
+        severity: warning
+      
+      # Legacy Rules (keeping for backward compatibility)
+      deprecated_patterns:
+        enabled: true
+        severity: error
+      dependency_injection:
+        enabled: true
+        severity: warning
+      object_manager_usage:
+        enabled: true
+        severity: error
+
+  security:
+    enabled: true
+    rules:
+      sql_injection:
+        enabled: true
+        severity: critical
+      xss_vulnerability:
+        enabled: true
+        severity: error
+      hardcoded_secrets:
+        enabled: true
+        severity: critical
+
+  performance:
+    enabled: true
+    rules:
+      n_plus_one_query:
+        enabled: true
+        severity: error
+      inefficient_loops:
+        enabled: true
+        severity: warning
+
+  quality:
+    enabled: true
+    rules:
+      max_method_length: 50
+      max_complexity: 10
+      require_documentation: false
+      enforce_naming_conventions: true
+
+rules:
+  enabled:
+    - code-quality
+    - performance
+    - magento-architecture
+    - magento-module-structure
+    - magento-database
+    - magento-coding-standards
+    - magento-api-service
+
+output:
+  default_format: console
+  include_metrics: true
+  include_recommendations: true
+  output_directory: ./reports
+
+paths:
+  source: .
+  reports: ./reports
+  cache: ./var/cache
+
+scanner:
+  # Directories and file patterns to exclude from analysis (from docs/references/ignore-patterns.md)
+  exclude_patterns:
+    - 'vendor/**'
+    - 'lib/**'
+    - 'node_modules/**'
+    - 'generated/**'
+    - 'var/generation/**'
+    - 'var/**'
+    - 'pub/static/**'
+    - 'pub/media/**'
+    - 'pub/errors/**'
+    - 'pub/opt/**'
+    - 'dev/tests/**'
+    - 'dev/tools/**'
+    - '**/Test/**'
+    - 'setup/**'
+    - '.git/**'
+    - 'phpserver/**'
+    - 'update/**'
+    - 'backup/**'
+  # File extensions to skip
+  exclude_extensions:
+    - '*.sample'
+    - '*.dist'
+    - '*.bak'
+    - '*.tmp'
+    - '*.min.js'
+    - '*.min.css'
+    - '*.log'
+    - '*.jpg'
+    - '*.jpeg'
+    - '*.png'
+    - '*.gif'
+    - '*.pdf'
+    - '*.zip'
+    - '*.woff'
+    - '*.woff2'
+    - '*.ttf'
+  # Priority-ordered glob patterns for scanning (from docs/references/file-priority.md)
+  # High-priority paths are scanned first so critical issues surface at the top of reports
+  priority_globs:
+    high:
+      - '*/Controller/**'
+      - '*/Api/**'
+      - '*/Observer/Webhook/**'
+      - '*/Observer/Payment/**'
+      - '*/Model/ResourceModel/**'
+      - '*/Plugin/**'
+      - '*/Cron/**'
+      - '*/Gateway/**'
+    medium:
+      - '*/Model/**'
+      - '*/Block/**'
+      - '*/Helper/**'
+      - '*/Observer/**'
+      - '*/Console/**'
+      - '*/Ui/**'
+    low:
+      - '*/Setup/**'
+      - '*/etc/**'
+      - '*/view/**'
+      - '*/i18n/**'
+      - 'registration.php'
+      - 'composer.json'
+
+thresholds:
+  quality_score: 7.0
+  test_coverage: 70
+
+ai:
+  enabled: true
+  default_provider: local
+  
+  # AI Provider configurations
+  providers:
+    openai:
+      enabled: true
+      api_key: ""
+      model: "gpt-4"
+      base_url: "https://api.openai.com/v1"
+      timeout: 30
+      
+    local:
+      enabled: true
+      base_url: "http://localhost:11434"
+      model: "codellama:latest"
+      timeout: 120

@@ -1,0 +1,54 @@
+schema_version: "1.0"
+id: "AC_SCHEMA_008"
+name: "ac-schema-008-boolean-as-varchar"
+title: "Boolean Flag Column Stored as varchar Instead of smallint"
+description: >
+  Columns representing boolean flags (is_active, is_enabled, is_visible, etc.) stored
+  as xsi:type="varchar" instead of xsi:type="smallint" waste storage, prevent numeric
+  comparisons (WHERE is_active = 1), and cause unexpected behaviour in collection
+  filters. Commerce convention is smallint unsigned with default 0 or 1 and an is_
+  prefix on the column name.
+category: "schema"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "schema-patterns.md"
+tags:
+  - schema
+  - database
+  - boolean
+  - naming
+  - data-integrity
+globs:
+  - "**/db_schema.xml"
+check:
+  type: xml_xpath
+  expression: "//column[starts-with(@name,'is_')][@xsi:type='varchar']"
+  attribute: "name"
+  message: "Boolean column '{{value}}' uses varchar — should be xsi:type=\"smallint\" unsigned=\"true\" default=\"0\"."
+recommendation: >
+  Change boolean columns from varchar to the Commerce smallint convention:
+    <column name="is_active" xsi:type="smallint" unsigned="true" nullable="false"
+            default="1" comment="Is active flag (1=yes, 0=no)"/>
+  Update all application code that compares the value as a string ('0'/'1')
+  to use integer comparison (0/1) or cast with (int) or (bool).
+examples:
+  bad: |
+    <column name="is_active" xsi:type="varchar" length="1" nullable="false" default="1"/>
+    <column name="is_enabled" xsi:type="varchar" length="5" nullable="true"/>
+  good: |
+    <column name="is_active" xsi:type="smallint" unsigned="true" nullable="false"
+            default="1" comment="Record active state"/>
+    <column name="is_enabled" xsi:type="smallint" unsigned="true" nullable="false"
+            default="0" comment="Feature enabled flag"/>
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/declarative-schema/configuration/"

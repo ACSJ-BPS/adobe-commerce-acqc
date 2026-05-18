@@ -1,0 +1,69 @@
+schema_version: "1.0"
+id: "AC_DEP_008"
+name: "ac-dep-008-zend-crypt"
+title: "Zend Crypt / Math\\Rand — Use Magento Encryptor or random_int()"
+description: >
+  Zend\Crypt and Zend\Math\Rand used in custom modules create upgrade risk and security
+  concerns. Zend\Math\Rand is not cryptographically secure in all configurations.
+  Adobe Commerce provides Magento\Framework\Encryption\EncryptorInterface for
+  encryption/decryption and PHP's random_int() for CSPRNG randomness.
+category: "deprecation"
+severity: "critical"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "zend-laminas-deprecations.md"
+tags:
+  - deprecation
+  - zend
+  - security
+  - cryptography
+  - random
+  - upgrade-risk
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: '(use\s+Zend\\(Crypt|Math\\Rand)|Zend_Crypt\b)'
+recommendation: >
+  Replace Zend\Crypt with Magento\Framework\Encryption\EncryptorInterface injected
+  via DI for encryption operations. Replace Zend\Math\Rand with PHP's random_int()
+  or random_bytes() for cryptographically secure random values. Never use mt_rand()
+  or rand() for security-sensitive values.
+examples:
+  bad: |
+    use Zend\Math\Rand;
+    use Zend\Crypt\Password\Bcrypt;
+
+    $token = Rand::getString(32);
+    $bcrypt = new Bcrypt();
+    $hash = $bcrypt->create($password);
+  good: |
+    use Magento\Framework\Encryption\EncryptorInterface;
+
+    class TokenService
+    {
+        public function __construct(private readonly EncryptorInterface $encryptor) {}
+
+        public function generateToken(): string
+        {
+            return bin2hex(random_bytes(16));
+        }
+
+        public function hashPassword(string $password): string
+        {
+            return $this->encryptor->getHash($password, true);
+        }
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/security/encryption/"
+  - "https://www.php.net/manual/en/function.random-int.php"

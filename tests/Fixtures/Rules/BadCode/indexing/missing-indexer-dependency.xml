@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Indexer/etc/indexer.xsd">
+    <!-- Bad: indexer that reads product attribute data but declares no dependencies -->
+    <indexer id="vendor_module_product_custom"
+             view_id="vendor_module_product"
+             class="Vendor\Module\Model\Indexer\ProductIndexer"
+             label="Vendor Product Custom Index">
+        <fieldsets>
+            <fieldset name="sales_order">
+                <field name="entity_id" xsi:type="filterable" handler="Magento\Elasticsearch\Model\Indexer\Fulltext\Plugin\Order"/>
+            </fieldset>
+        </fieldsets>
+    </indexer>
+</config>

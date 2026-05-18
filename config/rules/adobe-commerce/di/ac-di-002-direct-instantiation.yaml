@@ -1,0 +1,59 @@
+schema_version: "1.0"
+id: "AC_DI_002"
+name: "ac-di-002-direct-instantiation"
+title: "Direct Instantiation of Injectable Magento Classes"
+description: >
+  Using the `new` keyword to instantiate Magento framework or module classes bypasses
+  the dependency injection container, breaking constructor argument injection, plugin
+  interception, and preference overrides. Code that uses `new ClassName()` cannot be
+  properly unit tested and tightly couples modules to concrete implementations.
+category: "dependency_injection"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-di.mdc"
+tags:
+  - di
+  - coupling
+  - magento2
+  - testing
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: regex
+  pattern: '\bnew\s+\\Magento\\'
+recommendation: >
+  Inject the required factory or interface through the constructor and let the DI
+  container manage instantiation. For value objects, inject a Factory class generated
+  by `bin/magento setup:di:compile`. Replace `new \Magento\Foo\Bar()` with
+  `$this->barFactory->create()` or inject `BarInterface` directly.
+examples:
+  bad: |
+    public function getPrice(): float
+    {
+        $registry = new \Magento\Framework\Registry();
+        $product  = new \Magento\Catalog\Model\Product();
+        return $product->getPrice();
+    }
+  good: |
+    public function __construct(
+        private readonly \Magento\Catalog\Api\ProductRepositoryInterface $productRepository
+    ) {}
+
+    public function getPrice(int $id): float
+    {
+        return (float) $this->productRepository->getById($id)->getPrice();
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/dependency-injection/"
+  - "https://developer.adobe.com/commerce/php/best-practices/extensions/"

@@ -1,0 +1,35 @@
+schema_version: "1"
+version: "2.4.7-p1"
+release_date: "2024-08-13"
+eol_date: "2026-04-09"
+release_type: "security"
+parent_version: "2.4.7"
+
+php_support:
+  minimum: "8.2"
+  maximum: "8.3"
+  recommended: "8.3"
+  dropped: []
+
+search_engine_support:
+  opensearch: ["2.12", "2.13"]
+  elasticsearch: []
+
+breaking_changes: []
+
+deprecated_symbols:
+  classes: []
+  methods: []
+  events: []
+
+db_schema_changes: []
+
+security_advisories:
+  - id: "APSB24-061"
+    cve: "CVE-2024-39397"
+    severity: critical
+    description: "Unrestricted file upload via product import endpoint allows RCE"
+    affected_versions: ["2.4.6", "2.4.6-p1", "2.4.6-p2", "2.4.7"]
+    fixed_in: "2.4.7-p1"
+    patch_available: true
+    patch_url: "https://experienceleague.adobe.com/docs/commerce-operations/release/notes/security-patches/2-4-7-patches.html"

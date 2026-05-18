@@ -1,0 +1,98 @@
+services:
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "${APP_PORT:-80}:80"
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./server/public:/var/www/public:ro
+      - ./dist:/var/www/dist:ro
+    depends_on:
+      - laravel
+    networks:
+      - acqc
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/api/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  laravel:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    volumes:
+      - ./server:/var/www/server
+      - ./src:/var/www/src:ro
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - acqc
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "php", "-r", "require '/var/www/server/vendor/autoload.php'; exit(0);"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  queue-worker:
+    build:
+      context: ./docker/php
+      dockerfile: Dockerfile
+    command: php /var/www/server/artisan queue:work redis --queue=scans,reports,default --sleep=3 --tries=3
+    volumes:
+      - ./server:/var/www/server
+      - ./src:/var/www/src:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - acqc
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-secret}
+      MYSQL_DATABASE: ${DB_DATABASE:-acqc}
+      MYSQL_USER: ${DB_USERNAME:-acqc}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - acqc
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - acqc
+
+networks:
+  acqc:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:

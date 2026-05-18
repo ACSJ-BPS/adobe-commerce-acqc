@@ -1,0 +1,49 @@
+schema_version: "1.0"
+id: "GL_PHP_001"
+name: "gl-php-001-throwable-catch"
+title: "Catch Throwable Instead of Exception"
+description: >
+  Catching only Exception misses PHP 7+ Error subclasses (TypeError, ParseError, ArithmeticError,
+  etc.). Use Throwable to catch both Error and Exception hierarchies and prevent silent crashes
+  from PHP engine-level errors that bypass Exception-only catch blocks.
+category: "php_best_practices"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "1.0.0"
+tags:
+  - php
+  - error-handling
+  - throwable
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: 'catch\s*\(\s*\\?Exception\s'
+recommendation: >
+  Replace catch (Exception $e) with catch (\Throwable $e) to also handle PHP Errors.
+  If you intentionally want only exceptions, add a comment explaining why.
+examples:
+  bad: |
+    try {
+        $result = riskyOperation();
+    } catch (Exception $e) {
+        $this->logger->error($e->getMessage());
+    }
+  good: |
+    try {
+        $result = riskyOperation();
+    } catch (\Throwable $e) {
+        $this->logger->error($e->getMessage());
+    }
+references:
+  - "https://www.php.net/manual/en/class.throwable.php"
+  - "https://www.php.net/manual/en/language.exceptions.php"

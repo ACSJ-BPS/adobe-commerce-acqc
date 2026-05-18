@@ -1,0 +1,53 @@
+schema_version: "1.0"
+id: "AC_SCHEMA_001"
+name: "ac-schema-001-table-naming"
+title: "Database Table Name Does Not Follow vendor_module_entity Convention"
+description: >
+  Adobe Commerce requires custom database table names to follow the snake_case
+  vendor_module_entity pattern (all lowercase with underscores). Table names using
+  camelCase, hyphens, reserved SQL words (order, user, group, table), or missing a
+  vendor prefix cause naming conflicts, upgrade issues, and potential SQL errors on
+  strict MySQL modes. Table names must be unique across all installed modules.
+category: "schema"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "naming-conventions.md"
+tags:
+  - schema
+  - naming
+  - database
+  - upgrade-risk
+globs:
+  - "**/db_schema.xml"
+check:
+  type: xml_xpath
+  expression: "//table[not(translate(@name,'ABCDEFGHIJKLMNOPQRSTUVWXYZ-','abcdefghijklmnopqrstuvwxyz_') = @name) or @name = translate(@name,'_','') or contains('order user group table index select','@name')]"
+  attribute: "name"
+  message: "Table '{{value}}' does not follow the vendor_module_entity naming convention (lowercase, underscores, vendor prefix required)."
+recommendation: >
+  Rename the table to follow the pattern: {vendor}_{module}_{entity}
+  Examples: acme_catalog_product_extra, vendor_sales_order_comment
+  All lowercase, underscores as separators, no hyphens, no SQL reserved words.
+  Update all references in di.xml, PHP models, and any hardcoded table name strings.
+examples:
+  bad: |
+    <table name="orderComments" ...>
+    <table name="user" ...>
+    <table name="my-custom-table" ...>
+  good: |
+    <table name="acme_sales_order_comment" comment="Custom order comments">
+    <table name="vendor_customer_extra_data" comment="Additional customer attributes">
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/declarative-schema/configuration/"
+  - "https://dev.mysql.com/doc/refman/8.0/en/reserved-words.html"

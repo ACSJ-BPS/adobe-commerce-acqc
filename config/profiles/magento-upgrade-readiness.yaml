@@ -1,0 +1,287 @@
+# Magento Upgrade Readiness Profile
+# Focused on upgrade compatibility and preparation
+
+profile:
+  name: "Magento Upgrade Readiness"
+  description: "Upgrade compatibility analysis for Magento 2 version transitions"
+  role: "upgrade-specialist"
+  focus: ["compatibility", "deprecated-apis", "breaking-changes", "migration"]
+
+analyzers:
+  # Upgrade-focused Magento analyzers
+  magento:
+    structure:
+      enabled: true
+      severity_missing_required: "error"
+      severity_deprecated_structure: "critical"
+      check_module_structure_changes: true
+      check_composer_compatibility: true
+      check_php_version_compatibility: true
+    
+    dependency_injection:
+      enabled: true
+      severity_objectmanager_usage: "critical"  # Must be fixed for upgrades
+      severity_concrete_injection: "error"
+      allow_objectmanager_in_factories: false   # Strict for upgrades
+      allow_objectmanager_in_tests: false       # Clean up for upgrade
+      check_di_compatibility: true
+      check_constructor_changes: true
+    
+    plugins:
+      enabled: true
+      severity_method_signature: "critical"
+      severity_plugin_compatibility: "critical"
+      check_plugin_method_changes: true
+      check_interceptor_compatibility: true
+      check_around_plugin_changes: true
+    
+    observers:
+      enabled: true
+      severity_event_changes: "critical"
+      severity_observer_compatibility: "error"
+      check_event_signature_changes: true
+      check_observer_interface_changes: true
+    
+    database:
+      enabled: true
+      severity_schema_compatibility: "critical"
+      severity_migration_issues: "critical"
+      check_schema_changes: true
+      check_data_migration_requirements: true
+      check_index_compatibility: true
+    
+    performance:
+      enabled: false  # Not primary focus for upgrade readiness
+    
+    security:
+      enabled: true
+      severity_security_patches: "critical"
+      check_security_fixes_required: true
+      check_deprecated_security_methods: true
+    
+    upgrade:
+      enabled: true
+      severity_deprecated_usage: "critical"
+      severity_removed_apis: "critical"
+      severity_breaking_changes: "critical"
+      severity_compatibility_issues: "error"
+      target_version: "2.4.7"  # Can be overridden
+      check_deprecated_classes: true
+      check_deprecated_methods: true
+      check_deprecated_interfaces: true
+      check_removed_functionality: true
+      check_api_changes: true
+      check_configuration_changes: true
+      check_template_changes: true
+      check_layout_changes: true
+      check_javascript_changes: true
+      check_css_changes: true
+
+  # Frontend compatibility
+  frontend:
+    react:
+      enabled: true
+      severity_compatibility_issues: "error"
+      check_react_version_compatibility: true
+      check_pwa_studio_compatibility: true
+    
+    pwa:
+      enabled: true
+      severity_pwa_compatibility: "error"
+      check_pwa_studio_version: true
+      check_build_tool_compatibility: true
+    
+    seo:
+      enabled: false  # Not upgrade critical
+    
+    accessibility:
+      enabled: false  # Not upgrade critical
+    
+    performance:
+      enabled: false  # Not primary focus
+    
+    security:
+      enabled: true
+      severity_frontend_security_changes: "error"
+      check_csp_changes: true
+      check_security_header_changes: true
+
+  # PHP compatibility tools
+  php:
+    phpcs:
+      enabled: true
+      standard: "Magento2"
+      severity: "error"
+      check_coding_standards_changes: true
+    
+    phpstan:
+      enabled: true
+      level: "8"  # Strict for upgrade readiness
+      severity: "error"
+      magento_compatibility: true
+      check_type_compatibility: true
+    
+    phpmd:
+      enabled: false  # Not upgrade critical
+    
+    phpcpd:
+      enabled: false  # Not upgrade critical
+
+# Upgrade-specific rule customizations
+rules:
+  # Critical upgrade compatibility rules
+  severity_overrides:
+    "deprecated-class": "critical"
+    "deprecated-method": "critical"
+    "deprecated-interface": "critical"
+    "removed-class": "critical"
+    "removed-method": "critical"
+    "removed-interface": "critical"
+    "breaking-change": "critical"
+    "api-change": "error"
+    "signature-change": "critical"
+    "behavior-change": "error"
+    "configuration-change": "error"
+    "database-schema-change": "critical"
+    "migration-required": "critical"
+    "compatibility-issue": "error"
+    "version-constraint": "error"
+    "php-version-incompatible": "critical"
+    "extension-incompatible": "error"
+    "composer-incompatible": "error"
+  
+  # Upgrade readiness thresholds
+  max_violations_per_file: 0  # Must fix all issues
+  fail_on_critical: true
+  fail_on_error: true
+  exclude_test_files: false   # Include tests in upgrade analysis
+  exclude_generated_files: true
+
+# File patterns - comprehensive coverage for upgrades
+files:
+  include_patterns:
+    - "**/*.php"
+    - "**/*.phtml"
+    - "**/*.xml"
+    - "**/*.json"
+    - "**/*.js"
+    - "**/*.jsx"
+    - "**/*.ts"
+    - "**/*.tsx"
+    - "**/*.css"
+    - "**/*.scss"
+    - "composer.json"
+    - "package.json"
+    - "*.lock"
+    - "etc/**"
+    - "view/**"
+    - "web/**"
+  
+  exclude_patterns:
+    - "*/vendor/*"
+    - "*/node_modules/*"
+    - "*/var/*"
+    - "*/generated/*"
+    - "*/pub/static/*"
+    # Do NOT exclude tests - they need upgrade compatibility too
+
+# Upgrade readiness output
+output:
+  format: "json"
+  show_context: true
+  group_by_severity: true
+  group_by_category: true
+  max_violations_shown: 0  # Show all upgrade issues
+  show_fix_suggestions: true
+  include_upgrade_path: true
+  include_migration_steps: true
+  include_testing_recommendations: true
+
+# Upgrade analysis settings
+performance:
+  parallel_processing: true
+  max_workers: 4
+  cache_enabled: false  # Always fresh for upgrade analysis
+  incremental_mode: false  # Full analysis required
+  comprehensive_scan: true
+
+# Integration settings for upgrades
+integration:
+  upgrade_tools: true
+  migration_tools: true
+  testing_frameworks: true
+  ci_mode: false  # Interactive for detailed upgrade planning
+
+# Version compatibility matrix
+compatibility:
+  source_versions:
+    - "2.4.4"
+    - "2.4.5"
+    - "2.4.6"
+  
+  target_versions:
+    - "2.4.7"
+    - "2.4.8"  # Future version
+  
+  php_versions:
+    "2.4.7": ["8.1", "8.2", "8.3"]
+    "2.4.8": ["8.2", "8.3"]
+  
+  mysql_versions:
+    "2.4.7": ["8.0"]
+    "2.4.8": ["8.0", "8.1"]
+
+# Upgrade roadmap generation
+roadmap:
+  enabled: true
+  include_timelines: true
+  include_effort_estimates: true
+  include_risk_assessment: true
+  include_testing_strategy: true
+  include_rollback_plan: true
+  
+  phases:
+    - name: "Pre-upgrade Assessment"
+      tasks:
+        - "Run compatibility analysis"
+        - "Review deprecated API usage"
+        - "Check third-party extensions"
+        - "Validate system requirements"
+    
+    - name: "Code Preparation"
+      tasks:
+        - "Fix critical compatibility issues"
+        - "Update deprecated API usage"
+        - "Refactor problematic code"
+        - "Update dependencies"
+    
+    - name: "Testing & Validation"
+      tasks:
+        - "Run automated tests"
+        - "Perform manual testing"
+        - "Validate performance"
+        - "Security testing"
+    
+    - name: "Deployment & Migration"
+      tasks:
+        - "Database migration"
+        - "Configuration updates"
+        - "Frontend asset compilation"
+        - "Post-upgrade validation"
+
+# Risk assessment
+risk_assessment:
+  enabled: true
+  factors:
+    - "deprecated_api_usage"
+    - "custom_module_complexity"
+    - "third_party_extensions"
+    - "custom_theme_modifications"
+    - "database_customizations"
+    - "integration_complexity"
+  
+  risk_levels:
+    low: "Minimal issues, straightforward upgrade"
+    medium: "Some compatibility issues, moderate effort required"
+    high: "Significant issues, substantial development effort"
+    critical: "Major blocking issues, extensive refactoring required" 

@@ -1,0 +1,52 @@
+schema_version: "1.0"
+id: "AC_SCHEMA_002"
+name: "ac-schema-002-index-naming"
+title: "Database Index Name Does Not Follow UPPERCASE Convention"
+description: >
+  Adobe Commerce requires index referenceId values in db_schema.xml to be UPPERCASE,
+  following the pattern TABLE_NAME_COLUMN1_COLUMN2. Lowercase or mixed-case index
+  names cause inconsistency in the generated schema diff and can conflict with
+  Magento's own index naming in upgrade scripts. MySQL treats index names
+  case-insensitively but the declarative schema does a string comparison.
+category: "schema"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "naming-conventions.md"
+tags:
+  - schema
+  - naming
+  - database
+  - index
+globs:
+  - "**/db_schema.xml"
+check:
+  type: xml_xpath
+  expression: "//index[@referenceId != translate(@referenceId,'abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ')]"
+  attribute: "referenceId"
+  message: "Index '{{value}}' should be UPPERCASE (e.g. TABLE_NAME_COLUMN_NAME)."
+recommendation: >
+  Rename the index referenceId to UPPERCASE following the pattern:
+  TABLE_NAME_COLUMN1_COLUMN2 (max 64 characters).
+  Examples: VENDOR_ORDERS_CUSTOMER_ID, ACME_PRODUCTS_STATUS_CREATED_AT
+  Run `bin/magento setup:db:status` after renaming to verify schema is in sync.
+examples:
+  bad: |
+    <index referenceId="vendor_orders_customer_id" indexType="btree">
+        <column name="customer_id"/>
+    </index>
+  good: |
+    <index referenceId="VENDOR_ORDERS_CUSTOMER_ID" indexType="btree">
+        <column name="customer_id"/>
+    </index>
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/declarative-schema/configuration/"

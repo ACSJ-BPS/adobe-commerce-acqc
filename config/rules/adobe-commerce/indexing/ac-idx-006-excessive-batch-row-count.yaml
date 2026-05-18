@@ -1,0 +1,50 @@
+schema_version: "1.0"
+id: "AC_IDX_006"
+name: "ac-idx-006-excessive-batch-row-count"
+title: "Indexer Batch Row Count Exceeds Recommended Maximum"
+description: >
+  A batchRowsCount value above 10,000 in indexer.xml or di.xml causes each indexer
+  batch to load an excessive number of rows into PHP memory simultaneously. On large
+  catalogs this leads to PHP memory exhaustion, timeouts, and index failures during
+  scheduled reindexing. Adobe Commerce recommends keeping batches between 1,000
+  and 5,000 rows for production workloads.
+category: "indexing"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "index-guidelines.md"
+tags:
+  - indexing
+  - performance
+  - memory
+  - batch
+  - database
+globs:
+  - "**/indexer.xml"
+  - "**/etc/di.xml"
+check:
+  type: xml_xpath
+  expression: "//argument[@name='batchRowsCount'][number(.) > 10000]"
+  attribute: "."
+  message: "batchRowsCount value '{{value}}' exceeds the recommended maximum of 10,000. Target 1,000–5,000 for production."
+recommendation: >
+  Set batchRowsCount between 1,000 and 5,000 in your indexer configuration. If you
+  need to process large datasets, run indexers during off-peak hours with adequate
+  PHP memory_limit (at least 2G for catalog indexers). Monitor memory usage with
+  `bin/magento indexer:reindex --mode=schedule` and adjust batch size accordingly.
+examples:
+  bad: |
+    <!-- indexer.xml or di.xml -->
+    <argument name="batchRowsCount" xsi:type="number">50000</argument>
+  good: |
+    <argument name="batchRowsCount" xsi:type="number">3000</argument>
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/indexing/"
+  - "https://experienceleague.adobe.com/docs/commerce-operations/performance-best-practices/configuration.html"

@@ -1,0 +1,276 @@
+# Magento Performance Audit Profile
+# Focused on performance optimization and bottleneck detection
+
+profile:
+  name: "Magento Performance Audit"
+  description: "Performance analysis and optimization for Magento 2 projects"
+  role: "performance-engineer"
+  focus: ["performance", "scalability", "optimization", "caching"]
+
+analyzers:
+  # Performance-focused Magento analyzers
+  magento:
+    structure:
+      enabled: true
+      severity_missing_required: "warning"
+      severity_performance_impact: "error"
+      check_autoloading_efficiency: true
+      check_file_organization: true
+    
+    dependency_injection:
+      enabled: true
+      severity_objectmanager_usage: "critical"  # Major performance impact
+      severity_concrete_injection: "warning"
+      allow_objectmanager_in_factories: false   # Strict for performance
+      allow_objectmanager_in_tests: true
+      check_constructor_arguments: true
+      check_circular_dependencies: true
+    
+    plugins:
+      enabled: true
+      severity_performance_sensitive: "critical"
+      severity_around_plugin_usage: "error"     # Around plugins are slower
+      severity_sort_order: "error"              # Affects plugin execution order
+      check_plugin_performance_impact: true
+      check_multiple_plugins_same_method: true
+    
+    observers:
+      enabled: true
+      severity_performance_impact: "error"
+      severity_heavy_operations: "critical"
+      check_event_frequency: true
+      check_observer_complexity: true
+    
+    database:
+      enabled: true
+      severity_query_performance: "critical"
+      severity_n_plus_one: "critical"
+      severity_missing_indexes: "critical"
+      severity_inefficient_queries: "critical"
+      check_collection_performance: true
+      check_query_optimization: true
+      check_index_usage: true
+      check_large_result_sets: true
+    
+    performance:
+      enabled: true
+      severity_n_plus_one: "critical"
+      severity_inefficient_loops: "error"
+      severity_memory_issues: "critical"
+      severity_slow_operations: "critical"
+      severity_caching_issues: "error"
+      check_collection_loading: true
+      check_model_loading: true
+      check_cache_usage: true
+      check_full_page_cache: true
+      check_block_cache: true
+      check_session_usage: true
+    
+    security:
+      enabled: false  # Not primary focus for performance audit
+    
+    upgrade:
+      enabled: true
+      severity_performance_regressions: "error"
+      check_performance_improvements: true
+      target_version: "2.4.7"
+
+  # Frontend performance analyzers
+  frontend:
+    react:
+      enabled: true
+      severity_performance_issues: "critical"
+      severity_unnecessary_renders: "error"
+      check_component_optimization: true
+      check_state_management: true
+      check_memo_usage: true
+    
+    pwa:
+      enabled: true
+      severity_performance_issues: "critical"
+      check_service_worker_caching: true
+      check_app_shell_optimization: true
+      check_critical_rendering_path: true
+    
+    seo:
+      enabled: true
+      severity_performance_seo: "error"
+      check_core_web_vitals: true
+      check_page_speed_factors: true
+    
+    accessibility:
+      enabled: false  # Not performance focused
+    
+    performance:
+      enabled: true
+      severity_performance_warning: "error"
+      severity_bundle_size: "critical"
+      severity_loading_performance: "critical"
+      severity_runtime_performance: "error"
+      check_bundle_optimization: true
+      check_code_splitting: true
+      check_lazy_loading: true
+      check_image_optimization: true
+      check_css_optimization: true
+      check_javascript_optimization: true
+      check_web_vitals: true
+    
+    security:
+      enabled: false  # Not primary focus
+
+  # PHP performance tools
+  php:
+    phpcs:
+      enabled: false  # Not performance relevant
+    
+    phpstan:
+      enabled: true
+      level: "5"
+      severity: "warning"
+      performance_extensions: true
+      check_type_performance: true
+    
+    phpmd:
+      enabled: true
+      rules: "codesize,design"  # Focus on complexity
+      severity: "warning"
+    
+    phpcpd:
+      enabled: true
+      severity: "warning"
+      performance_impact_analysis: true
+
+# Performance-focused rule customizations
+rules:
+  # Critical performance rules
+  severity_overrides:
+    "n-plus-one-query": "critical"
+    "objectmanager-usage": "critical"
+    "inefficient-loop": "critical"
+    "missing-cache": "error"
+    "large-collection": "error"
+    "heavy-operation-in-loop": "critical"
+    "database-query-in-loop": "critical"
+    "full-table-scan": "critical"
+    "missing-index": "critical"
+    "large-memory-usage": "error"
+    "slow-operation": "error"
+    "cache-miss": "warning"
+    "bundle-size-too-large": "critical"
+    "unoptimized-images": "error"
+    "blocking-resources": "error"
+    "unused-css": "warning"
+    "unused-javascript": "warning"
+    "large-dom-size": "error"
+    "excessive-rerendering": "error"
+  
+  # Performance thresholds
+  performance_thresholds:
+    max_query_time: "100ms"
+    max_memory_usage: "128MB"
+    max_bundle_size: "1MB"
+    max_image_size: "500KB"
+    max_dom_nodes: "1500"
+    max_collection_size: "1000"
+    max_loop_iterations: "1000"
+    max_method_execution_time: "50ms"
+  
+  max_violations_per_file: 10
+  exclude_test_files: true
+  exclude_generated_files: true
+
+# File patterns - focus on performance-critical files
+files:
+  include_patterns:
+    - "**/*.php"
+    - "**/*.phtml"
+    - "**/*.js"
+    - "**/*.jsx"
+    - "**/*.ts"
+    - "**/*.tsx"
+    - "**/*.css"
+    - "**/*.scss"
+    - "**/*.xml"
+    - "**/Block/**"
+    - "**/Model/**"
+    - "**/ResourceModel/**"
+    - "**/Controller/**"
+    - "**/Observer/**"
+    - "**/Plugin/**"
+  
+  exclude_patterns:
+    - "*/vendor/*"
+    - "*/node_modules/*"
+    - "*/var/*"
+    - "*/generated/*"
+    - "*/pub/static/*"
+    - "*/Test/*"
+    - "*/tests/*"
+    - "*/dev/*"
+
+# Performance-focused output
+output:
+  format: "json"
+  show_context: true
+  group_by_severity: true
+  group_by_category: true
+  max_violations_shown: 0  # Show all performance issues
+  show_fix_suggestions: true
+  include_performance_metrics: true
+  include_timing_data: true
+  include_memory_usage: true
+  include_optimization_suggestions: true
+
+# Performance analysis settings
+performance:
+  parallel_processing: true
+  max_workers: 6  # Higher for performance analysis
+  cache_enabled: false  # Always fresh analysis
+  incremental_mode: false  # Full analysis for comprehensive performance audit
+  profiling_enabled: true
+  memory_profiling: true
+  timing_analysis: true
+
+# Integration settings for performance
+integration:
+  performance_monitoring: true
+  apm_tools: true
+  profiling_tools: true
+  load_testing_integration: true
+  ci_mode: false  # Interactive for detailed analysis
+  
+# Performance monitoring
+monitoring:
+  enabled: true
+  metrics:
+    - "response_time"
+    - "memory_usage"
+    - "database_queries"
+    - "cache_hit_ratio"
+    - "cpu_usage"
+    - "file_system_operations"
+  
+  thresholds:
+    response_time_warning: "2s"
+    response_time_critical: "5s"
+    memory_usage_warning: "256MB"
+    memory_usage_critical: "512MB"
+    query_count_warning: 50
+    query_count_critical: 100
+    cache_hit_ratio_warning: 80  # percentage
+    cache_hit_ratio_critical: 60  # percentage
+
+# Optimization recommendations
+recommendations:
+  enabled: true
+  categories:
+    - "database_optimization"
+    - "cache_optimization"
+    - "frontend_optimization"
+    - "code_optimization"
+    - "infrastructure_optimization"
+  
+  auto_suggestions: true
+  priority_ranking: true
+  impact_analysis: true
+  implementation_complexity: true 

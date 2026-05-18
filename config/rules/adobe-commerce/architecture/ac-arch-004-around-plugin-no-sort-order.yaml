@@ -1,0 +1,70 @@
+schema_version: "1.0"
+id: "AC_ARCH_004"
+name: "ac-arch-004-around-plugin-no-sort-order"
+title: "Multiple Around Plugins on Same Method Without sortOrder"
+description: >
+  When two or more plugins declare an aroundXxx method for the same type and method
+  without a sortOrder attribute, Magento cannot guarantee the execution order. The
+  actual order depends on module load sequence, which is non-deterministic and can
+  change with module enable/disable operations. This leads to subtle bugs that are
+  difficult to reproduce and debug. The around plugin that runs last controls the
+  final return value; without ordering, either module's logic may silently win.
+category: "architecture"
+severity: "critical"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "conflict-types.md"
+tags:
+  - architecture
+  - plugin
+  - di
+  - conflict
+  - non-deterministic
+globs:
+  - "**/etc/di.xml"
+check:
+  type: xml_xpath
+  expression: "//type/plugin[@type[contains(.,'around') or following-sibling::plugin] and not(@sortOrder)]"
+  attribute: "name"
+  message: "Plugin '{{value}}' is missing sortOrder. Without it, execution order with other plugins on the same type is non-deterministic."
+recommendation: >
+  Add a sortOrder attribute to every plugin declaration in di.xml:
+    <plugin name="vendor_module_my_plugin" type="Vendor\Module\Plugin\MyPlugin" sortOrder="10"/>
+  Lower numbers execute first for before/after plugins. For around plugins,
+  lower sortOrder wraps outermost (first called, last to return).
+  Convention: use multiples of 10 (10, 20, 30) to leave room for insertion.
+  Convert around plugins to before/after when possible to reduce conflict surface.
+examples:
+  bad: |
+    <!-- Module A di.xml -->
+    <type name="Magento\Checkout\Model\Cart">
+        <plugin name="module_a_cart_plugin" type="ModuleA\Plugin\CartPlugin"/>
+    </type>
+
+    <!-- Module B di.xml — same type, no sortOrder on either -->
+    <type name="Magento\Checkout\Model\Cart">
+        <plugin name="module_b_cart_plugin" type="ModuleB\Plugin\CartPlugin"/>
+    </type>
+  good: |
+    <!-- Module A di.xml -->
+    <type name="Magento\Checkout\Model\Cart">
+        <plugin name="module_a_cart_plugin" type="ModuleA\Plugin\CartPlugin" sortOrder="10"/>
+    </type>
+
+    <!-- Module B di.xml -->
+    <type name="Magento\Checkout\Model\Cart">
+        <plugin name="module_b_cart_plugin" type="ModuleB\Plugin\CartPlugin" sortOrder="20"/>
+    </type>
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/plugins/"
+  - "https://developer.adobe.com/commerce/php/development/components/plugins/#limitations"

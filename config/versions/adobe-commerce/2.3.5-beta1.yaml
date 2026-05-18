@@ -1,0 +1,11 @@
+schema_version: '1'
+version: 2.3.5-beta1
+release_date: null
+release_type: prerelease
+breaking_changes: {  }
+deprecated_symbols:
+  classes: {  }
+  methods: {  }
+  events: {  }
+db_schema_changes: {  }
+security_advisories: {  }

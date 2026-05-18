@@ -1,0 +1,57 @@
+schema_version: "1.0"
+id: "AC_SEC_006"
+name: "ac-sec-006-unsafe-deserialize"
+title: "Deserialization of Untrusted Data"
+description: >
+  PHP's unserialize() function on untrusted data is a critical security vulnerability
+  that can lead to remote code execution through PHP object injection. Attackers can
+  craft serialized payloads that instantiate arbitrary classes and call destructors
+  or other magic methods with attacker-controlled property values. Always use JSON
+  or other safe serialization formats for untrusted data.
+category: "security"
+severity: "blocker"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-security.mdc"
+tags:
+  - security
+  - deserialization
+  - owasp-a08
+  - rce
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: regex
+  pattern: '\bunserialize\s*\('
+recommendation: >
+  Replace unserialize() with json_decode() for storing/retrieving structured data.
+  If deserialization of PHP objects is unavoidable, use the allowed_classes option
+  with a strict whitelist: unserialize($data, ['allowed_classes' => [MyValueObject::class]]).
+  Never deserialize user input or data from external systems.
+examples:
+  bad: |
+    $data   = $this->request->getParam('payload');
+    $object = unserialize($data);
+
+    $cached = $this->cache->load('config_data');
+    $config = unserialize($cached);
+  good: |
+    $data   = $this->request->getParam('payload');
+    $object = json_decode($data, true);
+
+    $cached = $this->cache->load('config_data');
+    $config = $this->serializer->unserialize($cached); // Uses Magento's JSON serializer
+references:
+  - "https://owasp.org/www-community/vulnerabilities/PHP_Object_Injection"
+  - "https://developer.adobe.com/commerce/php/development/security/"

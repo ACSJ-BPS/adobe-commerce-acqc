@@ -1,0 +1,8 @@
+<?php /** @var \Magento\Framework\View\Element\Template $block */ ?>
+<div class="vendor-form">
+    <!-- Bad: POST form without CSRF form key field -->
+    <form method="post" action="/vendor/module/save">
+        <input type="text" name="product_name" placeholder="Product Name"/>
+        <input type="submit" value="Save"/>
+    </form>
+</div>

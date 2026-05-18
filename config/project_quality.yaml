@@ -1,0 +1,84 @@
+project_quality:
+  enabled: true
+  
+  # Sprint metrics thresholds
+  thresholds:
+    test_coverage:
+      excellent: 90
+      good: 80
+      warning: 50
+      critical: 30
+    code_quality:
+      excellent: 90
+      good: 80
+      warning: 60
+      critical: 40
+    effort_deviation:
+      good: 10      # % deviation acceptable
+      warning: 20   # % deviation needs attention
+      critical: 30  # % deviation critical
+    defect_density:
+      good: 1.0     # defects per 1000 LOC
+      warning: 2.0
+      critical: 3.0
+    velocity:
+      good: 90      # % of planned work completed
+      warning: 70
+      critical: 50
+  
+  # Report styling
+  styling:
+    colors:
+      header: "4472C4"           # Blue
+      section: "D9E2F3"          # Light blue
+      stage: "F2F2F2"            # Light gray
+      excellent: "00B050"        # Green
+      good: "92D050"             # Light green
+      warning: "FFC000"          # Orange
+      critical: "FF0000"         # Red
+    fonts:
+      header:
+        name: "Calibri"
+        size: 11
+        bold: true
+      data:
+        name: "Calibri"
+        size: 11
+        bold: false
+  
+  # Default values
+  defaults:
+    region: "EMEA"
+    kind: "Implementation"
+    qa_percentage: 20
+    sprint_duration_weeks: 2
+    
+  # Documentation files to check
+  documentation:
+    discovery:
+      - "BRD.md"
+      - "BRD.docx"
+      - "requirements.md"
+      - "business_requirements.md"
+    design:
+      - "DESIGN.md"
+      - "ARCHITECTURE.md"
+      - "design.docx"
+      - "architecture.docx"
+      - "technical_design.md"
+  
+  # Sprint metrics calculation
+  sprint_metrics:
+    enabled: true
+    track_baselines: true
+    compare_with_previous: true
+    
+  # Report sections to include
+  report_sections:
+    summary: true
+    project_info: true
+    discovery_stage: true
+    design_stage: true
+    sprint_metrics: true
+    recommendations: true
+

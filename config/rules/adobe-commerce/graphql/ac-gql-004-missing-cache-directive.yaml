@@ -1,0 +1,53 @@
+schema_version: "1.0"
+id: "AC_GQL_004"
+name: "ac-gql-004-missing-cache-directive"
+title: "GraphQL Query Field Missing @cache Directive"
+description: >
+  GraphQL query fields that return frequently-read, non-personalized data without a
+  `@cache` directive cause unnecessary resolver execution on every request. The
+  `@cache` directive enables Magento's GraphQL response caching layer, which stores
+  the serialized response in the cache backend and serves it without executing the
+  resolver for subsequent identical requests.
+category: "graphql"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-graphql.mdc"
+tags:
+  - graphql
+  - cache
+  - performance
+  - schema
+globs:
+  - "**/*.graphqls"
+check:
+  type: regex
+  pattern: 'resolver\s*:\s*"[^"]*"(?!\s*@cache)'
+recommendation: >
+  Add the @cache directive to frequently-read query fields in your .graphqls schema:
+  myProducts: [Product] @resolver(class: "Vendor\\Module\\Resolver\\Products")
+      @cache(cacheIdentity: "Vendor\\Module\\Resolver\\Cache\\ProductsIdentity")
+  Implement the CacheIdentityInterface to generate cache keys based on query parameters.
+examples:
+  bad: |
+    type Query {
+        vendorProducts(pageSize: Int, currentPage: Int): ProductList
+            @resolver(class: "Vendor\\Module\\Resolver\\ProductList")
+            @doc(description: "Returns vendor product list")
+    }
+  good: |
+    type Query {
+        vendorProducts(pageSize: Int, currentPage: Int): ProductList
+            @resolver(class: "Vendor\\Module\\Resolver\\ProductList")
+            @doc(description: "Returns vendor product list")
+            @cache(cacheIdentity: "Vendor\\Module\\Resolver\\Cache\\ProductListIdentity")
+    }
+references:
+  - "https://developer.adobe.com/commerce/webapi/graphql/develop/caching/"
+  - "https://developer.adobe.com/commerce/webapi/graphql/develop/resolvers/"

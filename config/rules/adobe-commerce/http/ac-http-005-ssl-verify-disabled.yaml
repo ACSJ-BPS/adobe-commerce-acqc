@@ -1,0 +1,56 @@
+schema_version: "1.0"
+id: "AC_HTTP_005"
+name: "ac-http-005-ssl-verify-disabled"
+title: "SSL Certificate Verification Disabled in cURL"
+description: >
+  Setting CURLOPT_SSL_VERIFYPEER to false or 0 disables TLS certificate validation,
+  making all HTTPS connections vulnerable to man-in-the-middle attacks. Attackers on
+  the same network can intercept and modify traffic to external APIs including payment
+  gateways and shipping providers. This is never acceptable in production code and is
+  a PCI-DSS compliance violation for payment integrations.
+category: "http"
+severity: "critical"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-http.mdc"
+tags:
+  - http
+  - security
+  - ssl
+  - tls
+  - pci-dss
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: regex
+  pattern: 'CURLOPT_SSL_VERIFYPEER\s*,\s*(?:0|false\b)'
+recommendation: >
+  Remove the CURLOPT_SSL_VERIFYPEER false setting and instead fix the underlying
+  SSL issue by providing the correct CA bundle:
+  curl_setopt($ch, CURLOPT_CAINFO, '/path/to/cacert.pem');
+  On Adobe Commerce Cloud, the system CA bundle is always up to date. If you need
+  to test with self-signed certs in development, use environment-based config, never
+  hardcoded false in source code.
+examples:
+  bad: |
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // NEVER do this
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+  good: |
+    // Let cURL use the system CA bundle (default, no option needed)
+    // Or explicitly point to the CA file:
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+    curl_setopt($ch, CURLOPT_CAINFO, \Composer\CaBundle\CaBundle::getSystemCaRootBundlePath());
+references:
+  - "https://curl.se/docs/sslcerts.html"
+  - "https://owasp.org/www-community/vulnerabilities/Improper_Certificate_Validation"

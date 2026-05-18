@@ -1,0 +1,62 @@
+schema_version: "1.0"
+id: "AC_CRON_005"
+name: "ac-cron-005-no-interface"
+title: "Cron Class Without Interface Declaration"
+description: >
+  Cron classes that do not declare or implement a named interface cannot be properly
+  mocked in unit tests, cannot be substituted via di.xml preferences, and lack a
+  clear API contract. Implementing a dedicated interface for cron execute() methods
+  allows proper dependency injection, testability, and enables other modules to
+  extend or replace the cron behavior.
+category: "cron"
+severity: "info"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-cron.mdc"
+tags:
+  - cron
+  - interfaces
+  - testing
+  - di
+globs:
+  - "**/Cron/**/*.php"
+check:
+  type: regex
+  pattern: '\bclass\s+[A-Z]\w+\s*\{'
+recommendation: >
+  Define a corresponding interface for the cron class in the Api directory and
+  have the class implement it. Then reference the interface in di.xml:
+  interface CleanupCronInterface { public function execute(): void; }
+  class Cleanup implements CleanupCronInterface { ... }
+examples:
+  bad: |
+    namespace Vendor\Module\Cron;
+
+    class Cleanup
+    {
+        public function execute(): void
+        {
+            // perform cleanup
+        }
+    }
+  good: |
+    namespace Vendor\Module\Cron;
+
+    use Vendor\Module\Api\CleanupCronInterface;
+
+    class Cleanup implements CleanupCronInterface
+    {
+        public function execute(): void
+        {
+            // perform cleanup
+        }
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/dependency-injection/"
+  - "https://developer.adobe.com/commerce/php/development/components/service-contracts/"

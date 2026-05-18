@@ -1,0 +1,46 @@
+schema_version: "1.0"
+id: "AC_IDX_001"
+name: "ac-idx-001-programmatic-reindex"
+title: "Programmatic Full Reindex Call for Narrow Data Change"
+description: >
+  Triggering a full indexer reindex programmatically for a narrow data change
+  (e.g., updating a single product's price) causes all indexed entities to be
+  reprocessed, which can take minutes on large catalogs. This blocks the catalog
+  from updating during the reindex and puts excessive load on the database.
+  Use targeted row-level invalidation or changelog-based (mview) incremental indexing instead.
+category: "indexing"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-indexing.mdc"
+tags:
+  - indexing
+  - performance
+  - mview
+  - magento2
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: regex
+  pattern: '->reindex\s*\('
+recommendation: >
+  Use indexer invalidation via \Magento\Framework\Indexer\IndexerRegistry::get()->invalidate()
+  or better, use the mview changelog mechanism so only changed rows are reindexed incrementally.
+  For row-level updates, use IndexerInterface::executeRow() with the affected entity ID.
+examples:
+  bad: |
+    $indexer = $this->indexerRegistry->get(\Magento\Catalog\Model\Indexer\Product\Price::INDEXER_ID);
+    $indexer->reindex(); // reindexes ALL products
+  good: |
+    $indexer = $this->indexerRegistry->get(\Magento\Catalog\Model\Indexer\Product\Price::INDEXER_ID);
+    $indexer->executeRow($productId); // reindexes only the changed product
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/indexing/"
+  - "https://developer.adobe.com/commerce/php/development/components/indexing/custom-indexer/"

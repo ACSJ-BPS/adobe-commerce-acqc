@@ -1,0 +1,97 @@
+schema_version: "1"
+
+known_large_tables:
+  - table: catalog_product_entity
+    typical_rows: "100K–50M"
+    ddl_risk: high
+    notes: "Core product entity table; any DDL requires maintenance window"
+
+  - table: catalog_product_entity_varchar
+    typical_rows: "1M–100M"
+    ddl_risk: critical
+    notes: "EAV varchar values; adding indexes on this table can take hours"
+
+  - table: catalog_product_entity_int
+    typical_rows: "500K–50M"
+    ddl_risk: high
+    notes: "EAV int values; high row count typical on stores with many attributes"
+
+  - table: catalog_product_entity_decimal
+    typical_rows: "200K–20M"
+    ddl_risk: high
+    notes: "EAV decimal values for price/weight attributes"
+
+  - table: catalog_product_entity_text
+    typical_rows: "100K–10M"
+    ddl_risk: high
+    notes: "EAV text values; large rows due to description content"
+
+  - table: sales_order
+    typical_rows: "10K–10M"
+    ddl_risk: high
+    notes: "Core order table; avoid locking DDL on busy stores"
+
+  - table: sales_order_item
+    typical_rows: "50K–50M"
+    ddl_risk: high
+    notes: "Order line items; typically 3-10x the orders table row count"
+
+  - table: sales_order_grid
+    typical_rows: "10K–10M"
+    ddl_risk: medium
+    notes: "Grid view table; DDL impact lower but still significant"
+
+  - table: quote
+    typical_rows: "10K–5M"
+    ddl_risk: high
+    notes: "Active and abandoned cart data; can grow unbounded without cleanup"
+
+  - table: quote_item
+    typical_rows: "50K–25M"
+    ddl_risk: high
+    notes: "Cart line items; proportional to quote table size"
+
+  - table: customer_entity
+    typical_rows: "1K–10M"
+    ddl_risk: medium
+    notes: "Customer records; DDL generally manageable but depends on row count"
+
+  - table: customer_entity_varchar
+    typical_rows: "5K–50M"
+    ddl_risk: high
+    notes: "EAV customer attribute values; large on stores with many custom attributes"
+
+  - table: cataloginventory_stock_item
+    typical_rows: "100K–50M"
+    ddl_risk: high
+    notes: "Inventory per-product-per-website; can be very large on multi-source setups"
+
+  - table: catalog_category_product_index
+    typical_rows: "1M–500M"
+    ddl_risk: critical
+    notes: "Category product index; reindexing and DDL can take hours on large catalogs"
+
+  - table: catalog_category_product_index_store1
+    typical_rows: "1M–500M"
+    ddl_risk: critical
+    notes: "Per-store category index replica; same risk as parent table"
+
+  - table: url_rewrite
+    typical_rows: "100K–50M"
+    ddl_risk: high
+    notes: "URL rewrites grow with every product/category; avoid lock-causing DDL"
+
+  - table: report_event
+    typical_rows: "1M–1B"
+    ddl_risk: critical
+    notes: "Analytics event log; frequently the largest table on stores; archive before DDL"
+
+  - table: log_visitor
+    typical_rows: "1M–500M"
+    ddl_risk: critical
+    notes: "Visitor log; large on busy stores without log cleanup cron"
+
+  - table: magento_logging_event
+    typical_rows: "100K–50M"
+    ddl_risk: high
+    notes: "Admin action log (EE only); large on busy multi-admin stores"

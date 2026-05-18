@@ -1,0 +1,184 @@
+{
+  "name": "Production Configuration",
+  "description": "Strict configuration for production deployments",
+  "extends": [
+    "config/rules/magento2-core.yaml",
+    "config/rules/security.yaml",
+    "config/rules/performance.yaml"
+  ],
+  
+  "analyzers": [
+    "phpcs",
+    "phpmd",
+    "phpstan",
+    "security",
+    "magento",
+    "performance"
+  ],
+  
+  "rules": {
+    "severity": "error",
+    "failure_threshold": "error",
+    "exclude_patterns": [
+      "vendor/*",
+      "var/*",
+      "pub/static/*",
+      "generated/*",
+      "dev/*",
+      "tests/*"
+    ]
+  },
+  
+  "analyzers_config": {
+    "phpcs": {
+      "standard": ["Magento2", "PSR12"],
+      "severity": 1,
+      "warning_severity": 1,
+      "parallel": 8,
+      "cache": true
+    },
+    
+    "phpmd": {
+      "rulesets": ["cleancode", "codesize", "controversial", "design", "naming", "unusedcode"],
+      "minimum_priority": 1,
+      "strict": true,
+      "rules": {
+        "CyclomaticComplexity": {
+          "reportLevel": 10
+        },
+        "ExcessiveMethodLength": {
+          "minimum": 100
+        },
+        "ExcessiveClassLength": {
+          "minimum": 1000
+        }
+      }
+    },
+    
+    "phpstan": {
+      "level": 6,
+      "memory_limit": "1G",
+      "strict_rules": true,
+      "treatPhpDocTypesAsCertain": false
+    },
+    
+    "security": {
+      "check_sql_injection": true,
+      "check_xss": true,
+      "check_file_inclusion": true,
+      "check_command_injection": true,
+      "check_crypto_usage": true,
+      "check_session_security": true,
+      "severity_mapping": {
+        "sql_injection": "critical",
+        "xss": "critical",
+        "command_injection": "critical",
+        "file_inclusion": "error",
+        "weak_crypto": "error"
+      }
+    },
+    
+    "magento": {
+      "check_di_usage": true,
+      "validate_observers": true,
+      "check_plugin_patterns": true,
+      "validate_module_structure": true,
+      "check_api_usage": true,
+      "validate_acl": true,
+      "rules": {
+        "object_manager_usage": "critical",
+        "missing_type_hints": "error",
+        "plugin_naming": "error",
+        "observer_naming": "error"
+      }
+    },
+    
+    "performance": {
+      "check_n_plus_one": true,
+      "check_memory_leaks": true,
+      "check_algorithm_efficiency": true,
+      "performance_budgets": {
+        "max_execution_time": 2.0,
+        "max_memory_usage": 256,
+        "max_db_queries": 20
+      }
+    }
+  },
+  
+  "performance": {
+    "enable_caching": true,
+    "enable_parallel": true,
+    "enable_incremental": true,
+    "max_parallel_processes": 8,
+    "cache_ttl": 3600,
+    "memory_threshold": 0.9
+  },
+  
+  "ai": {
+    "provider": "openai",
+    "model": "gpt-4",
+    "role_perspective": "architect",
+    "enable_explanations": false,
+    "enable_suggestions": true,
+    "focus_areas": [
+      "security",
+      "performance",
+      "maintainability"
+    ]
+  },
+  
+  "reporting": {
+    "formats": ["json", "junit", "html", "pdf"],
+    "output_dir": "reports/production",
+    "include_trends": true,
+    "include_metrics": true,
+    "include_recommendations": true,
+    "pdf": {
+      "include_executive_summary": true,
+      "include_charts": true
+    }
+  },
+  
+  "integrations": {
+    "ci_cd": {
+      "quality_gate": true,
+      "failure_threshold": "error",
+      "coverage_threshold": 90,
+      "baseline_required": true
+    },
+    "slack": {
+      "webhook_url": "${SLACK_WEBHOOK_URL}",
+      "channel": "#production-quality",
+      "notify_on": ["critical", "error"]
+    },
+    "email": {
+      "smtp_host": "${SMTP_HOST}",
+      "recipients": ["tech-leads@company.com"],
+      "notify_on_critical": true
+    }
+  },
+  
+  "baseline": {
+    "file": "baseline-production.json",
+    "auto_update": false,
+    "fail_on_new": true,
+    "track_new_issues": true
+  },
+  
+  "security_headers": {
+    "content_security_policy": {
+      "enabled": true,
+      "policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+    },
+    "x_frame_options": "DENY",
+    "x_content_type_options": "nosniff",
+    "x_xss_protection": "1; mode=block"
+  },
+  
+  "compliance": {
+    "pci_dss": true,
+    "gdpr": true,
+    "sox": true,
+    "generate_compliance_report": true
+  }
+} 

@@ -1,0 +1,38 @@
+schema_version: "1.0"
+id: "AC_GUID_005"
+name: "ac-guid-005-testing-strategy"
+title: "Insufficient Test Coverage for Custom Module"
+description: >
+  Custom Magento modules without automated tests are high-risk during upgrades and
+  refactors. Adobe Commerce provides a full testing framework including unit tests
+  (PHPUnit + ObjectManager mocking), integration tests (test database), API
+  functional tests, and MFTF UI tests. Projects without tests accumulate hidden
+  regressions and require expensive manual QA cycles before each deployment.
+category: "guidance"
+severity: "info"
+tier: 3
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+introduced_in: "3.0.0"
+source: "adobe-commerce-guidance.mdc"
+tags:
+  - guidance
+  - testing
+  - quality
+  - magento2
+recommendation: >
+  Establish a testing strategy covering all three layers:
+  1. Unit tests in Test/Unit/ using ObjectManagerHelper for DI
+  2. Integration tests in Test/Integration/ for database-touching code
+  3. API functional tests in Test/Api/ for REST/GraphQL endpoints
+  Target minimum 70% unit test coverage for business logic classes.
+  Run vendor/bin/phpunit -c dev/tests/unit/phpunit.xml.dist app/code/Vendor/Module/
+  before every deployment.
+references:
+  - "https://developer.adobe.com/commerce/testing/guide/"
+  - "https://developer.adobe.com/commerce/testing/guide/unit/"
+  - "https://developer.adobe.com/commerce/testing/guide/integration/"

@@ -1,0 +1,20 @@
+name: executive
+description: "Executive profile — tier 1 only, file paths and rule IDs hidden, never fails CI"
+tiers: [1]
+min_severity: error
+categories: []
+format: json
+fail_on: []
+personal_rules: false
+hide_file_paths: true
+hide_line_numbers: true
+hide_rule_ids: true
+tier2_as_warnings: false
+secondary_format: ~
+severity_labels:
+  blocker: "Critical Issue"
+  critical: "Major Issue"
+  error: "Issue"
+  warning: "Minor Issue"
+  info: "Note"
+  minor: "Note"

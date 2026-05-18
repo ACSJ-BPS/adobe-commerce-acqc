@@ -1,0 +1,48 @@
+schema_version: "1.0"
+id: "AC_SEC_002"
+name: "ac-sec-002-unescaped-output"
+title: "Unescaped Output in PHTML Templates"
+description: >
+  Directly echoing variables in .phtml templates without escaping exposes the application
+  to Cross-Site Scripting (XSS) attacks. All dynamic output in Magento 2 templates must
+  be escaped using the appropriate block escape method: escapeHtml(), escapeHtmlAttr(),
+  escapeUrl(), or escapeJs() depending on the output context.
+category: "security"
+severity: "critical"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-security.mdc"
+tags:
+  - security
+  - xss
+  - owasp-a03
+  - templates
+globs:
+  - "**/*.phtml"
+check:
+  type: regex
+  pattern: 'echo\s+\$(?!this->escape)'
+recommendation: >
+  Wrap all dynamic output with the appropriate escape method:
+  echo $this->escapeHtml($block->getData('title'));
+  echo $this->escapeHtmlAttr($block->getUrl('path'));
+  Use <?= $block->escapeHtml($value) ?> for short echo syntax.
+examples:
+  bad: |
+    <h1><?php echo $block->getData('title'); ?></h1>
+    <p><?php echo $message; ?></p>
+  good: |
+    <h1><?= $block->escapeHtml($block->getData('title')) ?></h1>
+    <p><?= $block->escapeHtml($message) ?></p>
+references:
+  - "https://developer.adobe.com/commerce/php/development/security/cross-site-scripting/"
+  - "https://owasp.org/www-community/attacks/xss/"

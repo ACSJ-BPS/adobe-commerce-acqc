@@ -1,0 +1,61 @@
+schema_version: "1.0"
+id: "AC_PERF_006"
+name: "ac-perf-006-requirejs-bundle"
+title: "RequireJS Bundling Enabled in Configuration"
+description: >
+  RequireJS bundling (bundles configuration in requirejs_config.js) can cause
+  performance regressions in modern HTTP/2 environments where the protocol handles
+  multiple parallel asset requests efficiently. Large bundles also defeat cache
+  granularity: a single change invalidates the entire bundle. Adobe Commerce 2.4+
+  recommends using the built-in static content deployment with JavaScript minification
+  instead of manual bundling.
+category: "performance"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-performance.mdc"
+tags:
+  - performance
+  - javascript
+  - requirejs
+  - frontend
+globs:
+  - "**/requirejs_config.js"
+  - "**/requirejs-config.js"
+check:
+  type: regex
+  pattern: '\bbundles\s*:\s*\{'
+recommendation: >
+  Remove custom RequireJS bundle configuration. Use Adobe Commerce's built-in
+  JavaScript bundling: bin/magento config:set dev/js/enable_js_bundling 1
+  Or better, use the Baler or Magento Bundler for production deployments.
+  For development, ensure Dev Mode is active so bundles are not applied.
+examples:
+  bad: |
+    var config = {
+        bundles: {
+            'js/bundle/vendor': [
+                'jquery',
+                'mage/translate',
+                'underscore'
+            ]
+        }
+    };
+  good: |
+    var config = {
+        map: {
+            '*': {
+                'Vendor_Module/js/component': 'Vendor_Module/js/component'
+            }
+        }
+    };
+references:
+  - "https://developer.adobe.com/commerce/frontend-core/javascript/requirejs/"
+  - "https://experienceleague.adobe.com/docs/commerce-operations/performance-best-practices/"

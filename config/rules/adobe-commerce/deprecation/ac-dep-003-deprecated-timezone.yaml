@@ -1,0 +1,46 @@
+schema_version: "1.0"
+id: "AC_DEP_003"
+name: "ac-dep-003-deprecated-timezone"
+title: "Deprecated TimezoneInterface Method Usage"
+description: >
+  The toTimestamp() method on Magento\Framework\Stdlib\DateTime\TimezoneInterface was
+  deprecated in Adobe Commerce 2.4 and will be removed in a future major version.
+  It returns a Unix timestamp in a way that ignores the store timezone, causing
+  incorrect datetime calculations. Use the date() method and standard PHP DateTime
+  operations instead.
+category: "deprecation"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-deprecation.mdc"
+tags:
+  - deprecation
+  - datetime
+  - timezone
+  - magento2
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: regex
+  pattern: '->toTimestamp\s*\('
+recommendation: >
+  Replace ->toTimestamp($date) with ->date($date)->getTimestamp() or use a
+  standard DateTime conversion. For date display, use ->formatDate() or
+  ->date($date)->format('Y-m-d H:i:s') with proper timezone handling.
+examples:
+  bad: |
+    $timestamp = $this->timezone->toTimestamp($order->getCreatedAt());
+    $timestamp = $this->localeDate->toTimestamp($date);
+  good: |
+    $timestamp = $this->timezone->date($order->getCreatedAt())->getTimestamp();
+    $timestamp = (new \DateTime($date))->getTimestamp();
+references:
+  - "https://developer.adobe.com/commerce/php/development/backward-incompatible-changes/highlights/"
+  - "https://developer.adobe.com/commerce/php/development/components/localization/"

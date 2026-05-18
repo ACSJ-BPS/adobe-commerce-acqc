@@ -1,0 +1,57 @@
+schema_version: "1.0"
+id: "AC_PERF_001"
+name: "ac-perf-001-n-plus-one"
+title: "N+1 Query: Model Load Inside Loop"
+description: >
+  Calling ->load() on a model inside a foreach loop executes one SELECT query per
+  iteration, causing N+1 query problems that scale linearly with collection size.
+  Loading 100 orders this way generates 101 database queries instead of 1. This
+  pattern is the most common performance issue in Adobe Commerce customizations and
+  can bring a site to its knees under moderate load.
+category: "performance"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-performance.mdc"
+tags:
+  - performance
+  - database
+  - n-plus-one
+  - collections
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: regex
+  pattern: '->load\s*\(\s*\$[a-zA-Z_]'
+recommendation: >
+  Load all required data in a single query using a collection with addFieldToFilter()
+  or a repository getList() call with search criteria. Pass the full set of IDs using
+  ->addFieldToFilter('entity_id', ['in' => $ids]) to batch-load records.
+examples:
+  bad: |
+    foreach ($orderIds as $id) {
+        $order = $this->orderFactory->create();
+        $order->load($id); // 1 query per order = N queries
+        $this->processOrder($order);
+    }
+  good: |
+    $searchCriteria = $this->searchCriteriaBuilder
+        ->addFilter('entity_id', $orderIds, 'in')
+        ->create();
+    $orders = $this->orderRepository->getList($searchCriteria)->getItems();
+    foreach ($orders as $order) {
+        $this->processOrder($order);
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/service-contracts/"
+  - "https://experienceleague.adobe.com/docs/commerce-operations/performance-best-practices/"

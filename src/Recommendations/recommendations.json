@@ -1,0 +1,88 @@
+{
+    "layout-missing-cache-ttl": {
+        "title": "Add Cache TTL to Layout Block",
+        "action": "Add cacheable=\"true\" and ttl attribute to block element",
+        "code": "<block class=\"...\" name=\"...\" cacheable=\"true\" ttl=\"3600\">",
+        "values": "Dynamic content: 3600s (1 hour)\nSemi-static: 21600s (6 hours)\nStatic: 86400s (24 hours)",
+        "impact": "Reduces server load 30-50%, improves page load 200-500ms",
+        "docs": "https:\/\/devdocs.magento.com\/guides\/v2.4\/extension-dev-guide\/cache\/partial-caching.html"
+    },
+    "opcache-max-files-too-low": {
+        "title": "Increase OPcache Max Accelerated Files",
+        "action": "Update opcache.max_accelerated_files in PHP configuration",
+        "code": "opcache.max_accelerated_files=16229\nopcache.memory_consumption=256\nopcache.validate_timestamps=0",
+        "file": "\/etc\/php.ini or \/etc\/php.d\/10-opcache.ini",
+        "command": "sudo systemctl restart php-fpm",
+        "verify": "php -i | grep opcache.max_accelerated_files",
+        "impact": "15-25% faster PHP execution, better memory utilization",
+        "docs": "https:\/\/www.php.net\/manual\/en\/opcache.configuration.php"
+    },
+    "opcache-interned-strings-low": {
+        "title": "Increase OPcache Interned Strings Buffer",
+        "action": "Increase opcache.interned_strings_buffer for better memory efficiency",
+        "code": "opcache.interned_strings_buffer=16",
+        "file": "\/etc\/php.ini",
+        "command": "sudo systemctl restart php-fpm",
+        "impact": "Reduces memory usage, faster string operations",
+        "docs": "https:\/\/www.php.net\/manual\/en\/opcache.configuration.php"
+    },
+    "graphql-complexity-unlimited": {
+        "title": "Add GraphQL Query Complexity Limit",
+        "action": "Implement query complexity and depth limits to prevent resource exhaustion",
+        "code": "<type name=\"Magento\\GraphQl\\Model\\Query\\ComplexityValidator\">\n    <arguments>\n        <argument name=\"queryComplexity\" xsi:type=\"number\">300<\/argument>\n        <argument name=\"queryDepth\" xsi:type=\"number\">20<\/argument>\n    <\/arguments>\n<\/type>",
+        "file": "etc\/di.xml",
+        "alternative": "app\/etc\/env.php:\n'graphql' => ['query_complexity_limit' => 300, 'query_depth_limit' => 20]",
+        "impact": "Prevents DoS attacks, protects server resources",
+        "docs": "https:\/\/devdocs.magento.com\/guides\/v2.4\/graphql\/develop\/create-custom-url-resolver.html"
+    },
+    "server-php-fpm-not-running": {
+        "title": "CRITICAL: Start PHP-FPM Service",
+        "action": "PHP-FPM service is not running. Start immediately.",
+        "command": "# Check status\nsudo systemctl status php-fpm\n\n# Start service\nsudo systemctl start php-fpm\n\n# Enable auto-start\nsudo systemctl enable php-fpm",
+        "verify": "ps aux | grep php-fpm",
+        "troubleshoot": "If won't start:\n1. Check logs: tail -f \/var\/log\/php-fpm\/error.log\n2. Test config: php-fpm -t\n3. Check port: netstat -tulpn | grep 9000",
+        "impact": "CRITICAL: Site is completely down without this",
+        "priority": "FIX IMMEDIATELY"
+    },
+    "search-engine-not-elasticsearch": {
+        "title": "Switch to Elasticsearch for Better Search Performance",
+        "action": "MySQL search is slow and limited. Configure Elasticsearch for production.",
+        "command": "# Configure Magento\nbin\/magento config:set catalog\/search\/engine elasticsearch7\nbin\/magento config:set catalog\/search\/elasticsearch7_server_hostname localhost\nbin\/magento config:set catalog\/search\/elasticsearch7_server_port 9200\n\n# Reindex\nbin\/magento indexer:reindex catalogsearch_fulltext",
+        "code": "'catalog' => ['search' => ['engine' => 'elasticsearch7']]",
+        "file": "app\/etc\/env.php",
+        "impact": "Search speed 10-50x faster, better relevance, faceted search enabled",
+        "docs": "https:\/\/devdocs.magento.com\/guides\/v2.4\/config-guide\/elasticsearch\/es-overview.html"
+    },
+    "cdn-not-detected": {
+        "title": "Implement CDN for Static Assets",
+        "action": "Configure CDN to serve static assets for 40-60% faster global load times",
+        "steps": "1. Choose CDN provider (Cloudflare free tier recommended)\n2. Stores \u2192 Configuration \u2192 Web \u2192 Base URLs\n3. Set 'Base URL for Static View Files'\n4. Set 'Base URL for User Media Files'\n5. Deploy static content\n6. Test: View page source, verify assets load from CDN",
+        "code": "Unsecure: http:\/\/cdn.yourdomain.com\/static\/\\nSecure: https:\/\/cdn.yourdomain.com\/static\/",
+        "impact": "Global page load -40-60%, origin server load -60-80%, bandwidth cost -50-70%",
+        "providers": "Cloudflare (Free), AWS CloudFront, Fastly, KeyCDN",
+        "docs": "https:\/\/devdocs.magento.com\/guides\/v2.4\/config-guide\/cdn\/cloud-fastly.html"
+    },
+    "database-query-n-plus-one": {
+        "title": "Fix N+1 Query Problem",
+        "action": "Loading items in loop causes N+1 queries. Use collection loading or join.",
+        "code": "\/\/ Bad:\nforeach ($orders as $order) {\n    $customer = $order->getCustomer(); \/\/ N queries\n}\n\n\/\/ Good:\n$orders->addFieldToFilter('customer_id', ['in' => $customerIds]);\n$customers = $customerRepository->getList($searchCriteria);",
+        "impact": "Reduces database queries from N+1 to 1, 80-95% faster",
+        "docs": "https:\/\/devdocs.magento.com\/guides\/v2.4\/extension-dev-guide\/searching-with-repositories.html"
+    },
+    "cache-disabled": {
+        "title": "Enable Magento Cache Types",
+        "action": "Critical cache types are disabled. Enable for production.",
+        "command": "# Enable all caches\nbin\/magento cache:enable\n\n# Or specific caches\nbin\/magento cache:enable config layout block_html full_page",
+        "verify": "bin\/magento cache:status",
+        "impact": "Page load time -60-80%, database queries -70%",
+        "docs": "https:\/\/devdocs.magento.com\/guides\/v2.4\/config-guide\/cli\/config-cli-subcommands-cache.html"
+    },
+    "flat-catalog-disabled": {
+        "title": "Enable Flat Catalog for Better Performance",
+        "action": "Flat catalog reduces EAV queries and improves product\/category load times",
+        "command": "bin\/magento config:set catalog\/frontend\/flat_catalog_category 1\nbin\/magento config:set catalog\/frontend\/flat_catalog_product 1\nbin\/magento indexer:reindex catalog_category_flat catalog_product_flat",
+        "impact": "Category pages 30-50% faster, product pages 20-40% faster",
+        "note": "Requires additional disk space, increases indexing time",
+        "docs": "https:\/\/docs.magento.com\/user-guide\/catalog\/catalog-flat.html"
+    }
+}

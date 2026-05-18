@@ -1,0 +1,46 @@
+<?php
+/**
+ * Custom override of Magento_Checkout::cart/item/default.phtml
+ *
+ * Adds a custom loyalty points display to each cart line item.
+ */
+
+/** @var \Magento\Checkout\Block\Cart\Item\Renderer $block */
+$_item = $block->getItem();
+$_product = $_item->getProduct();
+?>
+<tbody class="cart item">
+    <tr class="item-info">
+        <td data-th="<?= $block->escapeHtmlAttr(__('Item')) ?>" class="col item">
+            <?php if ($block->hasProductUrl()): ?>
+                <a href="<?= $block->escapeUrl($block->getProductUrl()) ?>" title="<?= $block->escapeHtmlAttr($block->getProductName()) ?>" tabindex="-1" class="product-item-photo">
+            <?php else: ?>
+                <span class="product-item-photo">
+            <?php endif; ?>
+                <?= $block->getImage($block->getProductForThumbnail(), 'cart_page_product_thumbnail')->toHtml() ?>
+            <?php if ($block->hasProductUrl()): ?>
+                </a>
+            <?php else: ?>
+                </span>
+            <?php endif; ?>
+
+            <div class="product-item-details">
+                <strong class="product-item-name">
+                    <?php if ($block->hasProductUrl()): ?>
+                        <a href="<?= $block->escapeUrl($block->getProductUrl()) ?>"><?= $block->escapeHtml($block->getProductName()) ?></a>
+                    <?php else: ?>
+                        <?= $block->escapeHtml($block->getProductName()) ?>
+                    <?php endif; ?>
+                </strong>
+
+                <!-- Custom: loyalty points display -->
+                <div class="custom-loyalty-points">
+                    <?php $loyaltyPoints = (int)($_product->getData('loyalty_points') ?? 0); ?>
+                    <?php if ($loyaltyPoints > 0): ?>
+                        <span class="points-earn">+<?= (int)$loyaltyPoints ?> pts</span>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </td>
+    </tr>
+</tbody>

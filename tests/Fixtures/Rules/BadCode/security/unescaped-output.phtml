@@ -1,0 +1,10 @@
+<?php
+/** @var \Magento\Framework\View\Element\Template $block */
+$productName = $block->getData('product_name');
+$customerName = $block->getData('customer_name');
+?>
+<div class="product-info">
+    <!-- Bad: echoing raw variable without escaping — XSS vulnerability -->
+    <h1><?php echo $productName; ?></h1>
+    <p>Welcome, <?php echo $customerName; ?></p>
+</div>

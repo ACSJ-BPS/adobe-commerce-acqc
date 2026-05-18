@@ -1,0 +1,74 @@
+schema_version: "1.0"
+id: "AC_DEP_009"
+name: "ac-dep-009-zend-escaper"
+title: "Zend Escaper — Use Magento\\Framework\\Escaper Instead"
+description: >
+  Zend\Escaper\Escaper used in custom blocks and templates bypasses Magento's context-aware
+  escaping methods. Magento\Framework\Escaper provides escapeHtml(), escapeUrl(),
+  escapeHtmlAttr(), and escapeJs() which are integrated with the template engine and
+  properly handle all Commerce rendering contexts. Using raw Zend Escaper risks missing
+  security context and breaks the upgrade path.
+category: "deprecation"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "zend-laminas-deprecations.md"
+tags:
+  - deprecation
+  - zend
+  - xss
+  - escaping
+  - upgrade-risk
+globs:
+  - "**/*.php"
+  - "**/*.phtml"
+check:
+  type: regex
+  pattern: '(use\s+Zend\\Escaper|new\s+\\?Zend\\Escaper)'
+recommendation: >
+  In Block classes, inject Magento\Framework\Escaper via constructor DI and use
+  $this->escaper->escapeHtml(), escapeUrl(), etc. In .phtml templates, use
+  $block->escapeHtml(), $block->escapeUrl(), or $block->escapeHtmlAttr() — these
+  delegate to the same Escaper and are already available without injection.
+examples:
+  bad: |
+    use Zend\Escaper\Escaper;
+
+    class MyBlock extends \Magento\Framework\View\Element\Template
+    {
+        public function getSafeTitle(): string
+        {
+            $escaper = new Escaper('utf-8');
+            return $escaper->escapeHtml($this->getTitle());
+        }
+    }
+  good: |
+    use Magento\Framework\Escaper;
+
+    class MyBlock extends \Magento\Framework\View\Element\Template
+    {
+        public function __construct(
+            \Magento\Framework\View\Element\Template\Context $context,
+            private readonly Escaper $escaper,
+            array $data = []
+        ) {
+            parent::__construct($context, $data);
+        }
+
+        public function getSafeTitle(): string
+        {
+            return $this->escaper->escapeHtml($this->getTitle());
+        }
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/security/xss-protection/"
+  - "https://developer.adobe.com/commerce/php/development/components/view-library/"

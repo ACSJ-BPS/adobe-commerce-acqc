@@ -1,0 +1,69 @@
+{
+  "name": "CI/CD Configuration",
+  "description": "Optimized configuration for continuous integration pipelines",
+  
+  "analyzers": ["phpcs", "security", "magento"],
+  
+  "rules": {
+    "severity": "error",
+    "failure_threshold": "error",
+    "exclude_patterns": [
+      "vendor/*", "var/*", "pub/static/*", "generated/*", 
+      "dev/*", "tests/*", "*.min.js", "*.min.css"
+    ]
+  },
+  
+  "analyzers_config": {
+    "phpcs": {
+      "standard": ["Magento2"],
+      "severity": 1,
+      "parallel": 8,
+      "cache": true
+    },
+    "security": {
+      "check_sql_injection": true,
+      "check_xss": true,
+      "severity_mapping": {
+        "sql_injection": "critical",
+        "xss": "critical"
+      }
+    },
+    "magento": {
+      "check_di_usage": true,
+      "rules": {
+        "object_manager_usage": "critical"
+      }
+    }
+  },
+  
+  "performance": {
+    "enable_caching": true,
+    "enable_parallel": true,
+    "max_parallel_processes": 8,
+    "timeout": 600
+  },
+  
+  "ai": {
+    "enabled": false
+  },
+  
+  "reporting": {
+    "formats": ["json", "junit", "github-actions"],
+    "output_dir": "reports",
+    "quiet": true
+  },
+  
+  "integrations": {
+    "ci_cd": {
+      "quality_gate": true,
+      "failure_threshold": "error",
+      "exit_code_on_failure": true
+    }
+  },
+  
+  "baseline": {
+    "file": "ci-baseline.json",
+    "auto_update": false,
+    "fail_on_new": true
+  }
+} 

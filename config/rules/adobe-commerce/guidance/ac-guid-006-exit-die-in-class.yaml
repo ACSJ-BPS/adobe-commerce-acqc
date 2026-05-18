@@ -1,0 +1,75 @@
+schema_version: "1.0"
+id: "AC_GUID_006"
+name: "ac-guid-006-exit-die-in-class"
+title: "PHP: exit() / die() in Class Code Breaks API and Test Harnesses"
+description: >
+  Calling exit() or die() inside a PHP class method terminates the PHP process
+  immediately, bypassing Magento's response pipeline, REST/GraphQL response serializers,
+  error handlers, and output buffers. This causes API endpoints to return an empty HTTP
+  200 response instead of a proper JSON error, breaks PHPUnit test suites that run
+  in the same process, and makes the code untestable. In Commerce, all termination
+  should be handled by throwing exceptions (which propagate through the framework's
+  exception handlers) or by returning an appropriate response object.
+category: "guidance"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.1.0"
+tags:
+  - php
+  - anti-pattern
+  - testing
+  - api
+  - quality
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: '\b(exit|die)\s*(\(|;)'
+recommendation: >
+  Replace exit()/die() with proper exception throwing or framework response patterns:
+
+    // Bad
+    if (!$this->isValid($data)) {
+        die('Invalid data');
+    }
+
+    // Good — throw an exception; framework handles HTTP response codes
+    if (!$this->isValid($data)) {
+        throw new \Magento\Framework\Exception\InputException(__('Invalid data'));
+    }
+
+  In console commands (where process termination IS expected), use the Symfony
+  Command return codes instead:
+    return Command::FAILURE; // not exit(1)
+
+  The only acceptable use of exit() in Commerce code is in bin/magento entry scripts,
+  never in library or module code.
+examples:
+  bad: |
+    public function validateRequest(array $data): void
+    {
+        if (empty($data['token'])) {
+            die('Unauthorized'); // returns empty HTTP 200 body to REST clients
+        }
+    }
+  good: |
+    public function validateRequest(array $data): void
+    {
+        if (empty($data['token'])) {
+            throw new \Magento\Framework\Exception\AuthorizationException(
+                __('Unauthorized: missing token')
+            );
+        }
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/exception-handling/"
+  - "https://developer.adobe.com/commerce/php/coding-standards/"

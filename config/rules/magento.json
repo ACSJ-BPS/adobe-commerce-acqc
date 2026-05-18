@@ -1,0 +1,45 @@
+{
+    "rules": {
+        "deprecated_patterns": {
+            "enabled": true,
+            "severity": "error",
+            "patterns": {
+                "Mage::": "Direct Mage class usage is deprecated in Magento 2",
+                "->getModel(": "Use dependency injection instead of getModel()",
+                "->getSingleton(": "Use dependency injection instead of getSingleton()",
+                "Varien_": "Varien classes are deprecated in Magento 2"
+            }
+        },
+        "dependency_injection": {
+            "enabled": true,
+            "severity": "warning",
+            "require_constructor_injection": true,
+            "allow_factory_pattern": true
+        },
+        "object_manager_usage": {
+            "enabled": true,
+            "severity": "error",
+            "allow_in_factories": false,
+            "allow_in_tests": true
+        },
+        "plugin_implementation": {
+            "enabled": true,
+            "severity": "error",
+            "check_method_signatures": true,
+            "require_proper_parameters": true
+        },
+        "module_structure": {
+            "enabled": true,
+            "severity": "warning",
+            "enforce_namespace_conventions": true,
+            "require_registration_php": true
+        }
+    },
+    "file_patterns": {
+        "include": [
+            "app/code/**/*.php",
+            "app/design/**/*.php"
+        ],
+        "exclude": [
+            "app/code/*/Test/**",
+ 

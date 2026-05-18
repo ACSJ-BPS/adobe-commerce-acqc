@@ -1,0 +1,82 @@
+schema_version: "1.0"
+id: "AC_GQL_006"
+name: "ac-gql-006-write-in-query-resolver"
+title: "State Modification (Write) Inside GraphQL Query Resolver"
+description: >
+  A GraphQL Query resolver that performs save(), update(), or delete() operations
+  violates the GraphQL specification and HTTP semantics. Queries must be idempotent
+  and side-effect-free — the same query run multiple times must produce the same state.
+  Writes inside query resolvers cause unintended state changes when clients use
+  automatic retry or caching, and break GraphQL introspection tools that assume
+  queries are safe to replay.
+category: "graphql"
+severity: "critical"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "graphql-patterns.md"
+tags:
+  - graphql
+  - mutation
+  - side-effects
+  - api-design
+  - idempotency
+globs:
+  - "**/GraphQl/Resolver/**/*.php"
+  - "**/Model/Resolver/**/*.php"
+check:
+  type: regex
+  pattern: '(?:->save\s*\(|->update\s*\(|->delete\s*\(|->execute\s*\(|repository->save)'
+recommendation: >
+  Move all write operations out of Query resolvers into Mutation resolvers. GraphQL
+  Mutations are the correct place for state-changing operations:
+    - Create a new schema entry under type Mutation in your schema.graphqls
+    - Create a corresponding Mutation resolver class
+    - Move the save/delete logic into the mutation resolver's resolve() method
+  Query resolvers should only read data; never write.
+examples:
+  bad: |
+    class ProductViewResolver implements ResolverInterface
+    {
+        public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
+        {
+            $product = $this->productRepository->get($args['sku']);
+            $product->setViewCount($product->getViewCount() + 1);
+            $this->productRepository->save($product); // WRONG: write in query
+            return $this->productDataProvider->getData($product);
+        }
+    }
+  good: |
+    // Query resolver — read only
+    class ProductViewResolver implements ResolverInterface
+    {
+        public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
+        {
+            $product = $this->productRepository->get($args['sku']);
+            return $this->productDataProvider->getData($product);
+        }
+    }
+
+    // Mutation resolver — handles view count increment separately
+    class TrackProductViewMutation implements ResolverInterface
+    {
+        public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
+        {
+            $product = $this->productRepository->get($args['sku']);
+            $product->setViewCount($product->getViewCount() + 1);
+            $this->productRepository->save($product);
+            return ['success' => true];
+        }
+    }
+references:
+  - "https://developer.adobe.com/commerce/webapi/graphql/develop/resolvers/"
+  - "https://spec.graphql.org/October2021/#sec-Mutation"

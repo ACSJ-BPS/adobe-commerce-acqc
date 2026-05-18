@@ -1,0 +1,81 @@
+# ACQC Team Policy — Magento Standards
+# Place in .acqc/policies/ in your project root to auto-apply.
+# Run: acqc policy:check /path/to/project
+
+rules:
+
+  no-object-manager:
+    name: No direct ObjectManager usage
+    description: Direct ObjectManager usage bypasses Magento DI and is a code smell.
+    type: pattern
+    severity: error
+    category: magento
+    conditions:
+      pattern: 'ObjectManager::getInstance\(\)'
+      files: ['*.php']
+    message: "Direct ObjectManager::getInstance() usage found at line {line}. Use constructor injection instead."
+    fix: "Inject the dependency via constructor: __construct(MyClass $myClass)"
+    tags: [magento, di, architecture]
+
+  no-echo-in-phtml:
+    name: No raw echo in .phtml templates
+    description: Use $escaper->escapeHtml() or $block->escapeHtml() to prevent XSS.
+    type: pattern
+    severity: warning
+    category: security
+    conditions:
+      pattern: '^\s*echo\s+'
+      files: ['*.phtml']
+    message: "Raw echo at line {line} — use escapeHtml() to prevent XSS."
+    fix: "Replace echo $var with echo $escaper->escapeHtml($var)"
+    tags: [security, xss, frontend]
+
+  no-hardcoded-sql:
+    name: No hardcoded SQL strings
+    description: Use Magento DB adapter methods instead of raw SQL strings.
+    type: pattern
+    severity: error
+    category: security
+    conditions:
+      pattern: '(SELECT|INSERT|UPDATE|DELETE)\s+.*(FROM|INTO|SET)\s'
+      case_insensitive: false
+      files: ['*.php']
+    message: "Hardcoded SQL detected at line {line}. Use the DB adapter or ResourceModel methods."
+    tags: [security, database]
+
+  file-must-have-registration:
+    name: Module must have registration.php
+    description: Every Magento module requires a registration.php file.
+    type: file_exists
+    severity: critical
+    category: magento
+    conditions:
+      paths: ['registration.php']
+    message: "Module is missing registration.php"
+    tags: [magento, module-structure]
+
+  max-lines-per-file:
+    name: File too large
+    description: PHP files over 500 lines are hard to maintain and test.
+    type: metric
+    severity: warning
+    category: maintainability
+    conditions:
+      metric: lines_of_code
+      operator: gt
+      threshold: 500
+    message: "File exceeds 500 lines ({context}). Consider splitting into smaller classes."
+    tags: [maintainability, complexity]
+
+  max-methods-per-class:
+    name: Too many methods
+    description: Classes with more than 20 methods violate Single Responsibility Principle.
+    type: metric
+    severity: warning
+    category: maintainability
+    conditions:
+      metric: method_count
+      operator: gt
+      threshold: 20
+    message: "Class has too many methods ({context}). Consider splitting responsibilities."
+    tags: [maintainability, srp]

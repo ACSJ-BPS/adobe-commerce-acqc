@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
+    <!-- Good: jobs in a dedicated module cron group, not 'default' -->
+    <group id="vendor_module">
+        <use_separate_process>1</use_separate_process>
+        <job name="vendor_module_daily_sync"
+             instance="Vendor\Module\Cron\DailySync"
+             method="execute">
+            <schedule>0 3 * * *</schedule>
+        </job>
+    </group>
+</config>

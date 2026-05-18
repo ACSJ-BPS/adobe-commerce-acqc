@@ -1,0 +1,11 @@
+schema_version: '1'
+version: 2.4.3-p2
+release_date: '2022-03-18'
+release_type: unknown
+breaking_changes: {  }
+deprecated_symbols:
+  classes: {  }
+  methods: {  }
+  events: {  }
+db_schema_changes: {  }
+security_advisories: {  }

@@ -1,0 +1,727 @@
+# Frontend Quality Rules
+# Comprehensive rules for frontend development including JavaScript, CSS, accessibility, and performance
+
+name: "Frontend Rules"
+description: "Frontend development quality rules for modern web applications"
+version: "2.0.0"
+extends: []
+
+# Frontend Categories
+categories:
+  javascript: "JavaScript Quality"
+  css: "CSS/SCSS Quality"
+  html: "HTML Structure"
+  accessibility: "Web Accessibility (WCAG)"
+  performance: "Frontend Performance"
+  seo: "Search Engine Optimization"
+  pwa: "Progressive Web App"
+  responsive: "Responsive Design"
+  security: "Frontend Security"
+  testing: "Frontend Testing"
+
+# Severity Levels
+severity_levels:
+  critical: "Critical issue - breaks functionality"
+  high: "High priority - affects UX significantly"
+  medium: "Medium priority - should be fixed"
+  low: "Low priority - nice to have"
+  info: "Informational - best practice"
+
+rules:
+  # ================================
+  # JAVASCRIPT QUALITY RULES
+  # ================================
+
+  avoid_global_variables:
+    name: "Avoid Global Variables"
+    category: javascript
+    severity: high
+    description: "Minimize global variable usage to prevent naming conflicts"
+    rationale: "Global variables can cause naming conflicts and make code harder to maintain"
+    examples:
+      bad:
+        - |
+          var productData = {}; // Global variable
+          var currentUser = null; // Global variable
+          
+          function updateProduct() {
+              productData.name = "New Name";
+          }
+      good:
+        - |
+          (function() {
+              var productData = {}; // Scoped to IIFE
+              var currentUser = null;
+              
+              window.ProductManager = {
+                  updateProduct: function() {
+                      productData.name = "New Name";
+                  }
+              };
+          })();
+        - |
+          // ES6 Modules
+          const productData = {};
+          const currentUser = null;
+          
+          export function updateProduct() {
+              productData.name = "New Name";
+          }
+    fix_suggestion: "Use modules, namespaces, or IIFE to avoid global scope pollution"
+    best_practices:
+      - "Use ES6 modules when possible"
+      - "Create namespaces for related functionality"
+      - "Use IIFE to create private scope"
+      - "Use const/let instead of var"
+    tags: [javascript, globals, scope]
+
+  use_strict_mode:
+    name: "Use Strict Mode"
+    category: javascript
+    severity: medium
+    description: "Enable strict mode to catch common JavaScript errors"
+    rationale: "Strict mode helps catch silent errors and prevents use of problematic features"
+    examples:
+      bad:
+        - |
+          function processData() {
+              productId = 123; // Creates global variable accidentally
+              return productId;
+          }
+      good:
+        - |
+          'use strict';
+          function processData() {
+              var productId = 123; // Must declare variables
+              return productId;
+          }
+        - |
+          (function() {
+              'use strict';
+              // All code here runs in strict mode
+          })();
+    fix_suggestion: "Add 'use strict' at the beginning of scripts or functions"
+    tags: [javascript, strict_mode, error_prevention]
+
+  proper_error_handling:
+    name: "Implement Proper Error Handling"
+    category: javascript
+    severity: high
+    description: "Handle JavaScript errors gracefully"
+    rationale: "Unhandled errors can break user experience and provide poor feedback"
+    examples:
+      bad:
+        - |
+          function loadProductData(productId) {
+              var product = JSON.parse(response); // May throw
+              updateUI(product);
+          }
+        - |
+          fetch('/api/products')
+              .then(response => response.json())
+              .then(data => updateUI(data)); // No error handling
+      good:
+        - |
+          function loadProductData(productId) {
+              try {
+                  var product = JSON.parse(response);
+                  updateUI(product);
+              } catch (error) {
+                  console.error('Failed to parse product data:', error);
+                  showErrorMessage('Unable to load product information');
+              }
+          }
+        - |
+          fetch('/api/products')
+              .then(response => {
+                  if (!response.ok) throw new Error('Network response was not ok');
+                  return response.json();
+              })
+              .then(data => updateUI(data))
+              .catch(error => {
+                  console.error('Error:', error);
+                  showErrorMessage('Failed to load products');
+              });
+    fix_suggestion: "Use try-catch blocks and .catch() for promises"
+    tags: [javascript, error_handling, user_experience]
+
+  optimize_dom_manipulation:
+    name: "Optimize DOM Manipulation"
+    category: javascript
+    severity: medium
+    description: "Minimize and batch DOM operations for better performance"
+    rationale: "Frequent DOM changes cause expensive reflows and repaints"
+    examples:
+      bad:
+        - |
+          for (var i = 0; i < products.length; i++) {
+              var li = document.createElement('li');
+              li.textContent = products[i].name;
+              document.getElementById('product-list').appendChild(li); // DOM operation in loop
+          }
+        - |
+          element.style.width = '100px';   // Causes reflow
+          element.style.height = '200px';  // Causes reflow
+          element.style.padding = '10px';  // Causes reflow
+      good:
+        - |
+          var fragment = document.createDocumentFragment();
+          for (var i = 0; i < products.length; i++) {
+              var li = document.createElement('li');
+              li.textContent = products[i].name;
+              fragment.appendChild(li); // Add to fragment
+          }
+          document.getElementById('product-list').appendChild(fragment); // Single DOM operation
+        - |
+          element.style.cssText = 'width: 100px; height: 200px; padding: 10px;'; // Single reflow
+          // Or use CSS classes
+          element.className = 'product-item-large';
+    fix_suggestion: "Use DocumentFragment for multiple insertions and batch style changes"
+    performance_impact: "Can improve performance by 10-100x for large DOM updates"
+    tags: [javascript, dom, performance]
+
+  use_event_delegation:
+    name: "Use Event Delegation"
+    category: javascript
+    severity: medium
+    description: "Use event delegation for dynamic content and better performance"
+    rationale: "Event delegation reduces memory usage and handles dynamic content automatically"
+    examples:
+      bad:
+        - |
+          // Adding event listener to each button
+          var buttons = document.querySelectorAll('.product-button');
+          buttons.forEach(function(button) {
+              button.addEventListener('click', handleProductClick);
+          });
+      good:
+        - |
+          // Single event listener on container
+          document.getElementById('product-container').addEventListener('click', function(e) {
+              if (e.target.classList.contains('product-button')) {
+                  handleProductClick(e);
+              }
+          });
+    fix_suggestion: "Add event listeners to parent containers instead of individual elements"
+    benefits:
+      - "Handles dynamically added elements automatically"
+      - "Reduces memory usage"
+      - "Simplifies event management"
+    tags: [javascript, events, performance, memory]
+
+  # ================================
+  # CSS/SCSS QUALITY RULES
+  # ================================
+
+  use_efficient_selectors:
+    name: "Use Efficient CSS Selectors"
+    category: css
+    severity: medium
+    description: "Write efficient CSS selectors for better performance"
+    rationale: "Complex selectors can slow down page rendering"
+    examples:
+      bad:
+        - 'div > div > div > p.description { color: black; }'
+        - '* { margin: 0; padding: 0; } /* Universal selector */'
+        - 'div:nth-child(odd) div:nth-child(even) span { color: red; }'
+      good:
+        - '.product-description { color: black; }'
+        - 'body, h1, h2, h3, p { margin: 0; padding: 0; }'
+        - '.product-item:nth-child(odd) .highlight { color: red; }'
+    fix_suggestion: "Use simple class selectors and avoid deeply nested selectors"
+    performance_tips:
+      - "Avoid universal selectors (*)"
+      - "Limit selector nesting to 3 levels"
+      - "Use class selectors over complex attribute selectors"
+      - "Avoid unnecessary descendant selectors"
+    tags: [css, selectors, performance]
+
+  organize_css_properties:
+    name: "Organize CSS Properties"
+    category: css
+    severity: low
+    description: "Organize CSS properties in a logical order"
+    rationale: "Consistent property ordering improves maintainability"
+    examples:
+      bad:
+        - |
+          .product-card {
+              color: blue;
+              position: relative;
+              margin: 10px;
+              display: flex;
+              background: white;
+              padding: 15px;
+          }
+      good:
+        - |
+          .product-card {
+              /* Positioning */
+              position: relative;
+              
+              /* Box model */
+              display: flex;
+              margin: 10px;
+              padding: 15px;
+              
+              /* Visual */
+              background: white;
+              color: blue;
+          }
+    fix_suggestion: "Group properties by type: positioning, box model, typography, visual, misc"
+    property_order:
+      - "Positioning (position, top, right, bottom, left, z-index)"
+      - "Box model (display, flex, grid, width, height, margin, padding, border)"
+      - "Typography (font, line-height, text-align, text-decoration)"
+      - "Visual (background, color, opacity, box-shadow)"
+      - "Misc (cursor, transition, animation)"
+    tags: [css, organization, maintainability]
+
+  use_css_custom_properties:
+    name: "Use CSS Custom Properties"
+    category: css
+    severity: low
+    description: "Use CSS custom properties (variables) for maintainability"
+    rationale: "CSS variables improve maintainability and enable theming"
+    examples:
+      bad:
+        - |
+          .header { background-color: #007bff; }
+          .button-primary { background-color: #007bff; }
+          .link-primary { color: #007bff; }
+      good:
+        - |
+          :root {
+              --color-primary: #007bff;
+              --color-secondary: #6c757d;
+              --spacing-unit: 8px;
+          }
+          
+          .header { background-color: var(--color-primary); }
+          .button-primary { background-color: var(--color-primary); }
+          .link-primary { color: var(--color-primary); }
+    fix_suggestion: "Define common values as CSS custom properties"
+    benefits:
+      - "Centralized value management"
+      - "Easy theming and customization"
+      - "Runtime value changes possible"
+      - "Better maintainability"
+    tags: [css, variables, maintainability, theming]
+
+  responsive_design_patterns:
+    name: "Implement Responsive Design"
+    category: responsive
+    severity: high
+    description: "Ensure responsive design for all screen sizes"
+    rationale: "Mobile-first design is essential for modern web applications"
+    examples:
+      bad:
+        - |
+          .product-grid {
+              width: 1200px; /* Fixed width */
+              display: grid;
+              grid-template-columns: repeat(4, 300px); /* Fixed columns */
+          }
+      good:
+        - |
+          .product-grid {
+              max-width: 1200px;
+              width: 100%;
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+              gap: 1rem;
+          }
+          
+          @media (max-width: 768px) {
+              .product-grid {
+                  grid-template-columns: 1fr;
+              }
+          }
+    fix_suggestion: "Use flexible units, CSS Grid/Flexbox, and media queries"
+    responsive_techniques:
+      - "Use relative units (%, em, rem, vw, vh)"
+      - "Implement CSS Grid and Flexbox"
+      - "Design mobile-first"
+      - "Use appropriate breakpoints"
+      - "Test on multiple devices"
+    tags: [css, responsive, mobile, accessibility]
+
+  # ================================
+  # ACCESSIBILITY RULES
+  # ================================
+
+  provide_alt_text:
+    name: "Provide Alt Text for Images"
+    category: accessibility
+    severity: high
+    description: "All images must have appropriate alt text"
+    rationale: "Alt text is essential for screen readers and when images fail to load"
+    wcag_level: "A"
+    wcag_criterion: "1.1.1 Non-text Content"
+    examples:
+      bad:
+        - '<img src="product.jpg">'
+        - '<img src="product.jpg" alt="image">'
+        - '<img src="product.jpg" alt="product.jpg">'
+      good:
+        - '<img src="product.jpg" alt="MacBook Pro 13-inch laptop in space gray">'
+        - '<img src="decorative-border.png" alt="" role="presentation">'
+        - '<img src="chart.png" alt="Sales increased 25% from Q1 to Q2 2023">'
+    fix_suggestion: "Write descriptive alt text that conveys the image's purpose and content"
+    alt_text_guidelines:
+      - "Describe the image content and context"
+      - "Keep it concise (under 125 characters)"
+      - "Use empty alt=\"\" for decorative images"
+      - "Don't start with 'Image of' or 'Picture of'"
+      - "Include important text shown in the image"
+    tags: [accessibility, images, screen_readers, wcag]
+
+  proper_heading_structure:
+    name: "Use Proper Heading Hierarchy"
+    category: accessibility
+    severity: medium
+    description: "Maintain logical heading structure (h1, h2, h3, etc.)"
+    rationale: "Proper heading structure helps screen readers navigate page content"
+    wcag_level: "AA"
+    wcag_criterion: "1.3.1 Info and Relationships"
+    examples:
+      bad:
+        - |
+          <h1>Product Page</h1>
+          <h3>Product Details</h3> <!-- Skips h2 -->
+          <h2>Customer Reviews</h2> <!-- Lower level after h3 -->
+      good:
+        - |
+          <h1>Product Page</h1>
+          <h2>Product Details</h2>
+          <h3>Specifications</h3>
+          <h3>Features</h3>
+          <h2>Customer Reviews</h2>
+    fix_suggestion: "Use headings in sequential order without skipping levels"
+    heading_best_practices:
+      - "Use only one h1 per page"
+      - "Don't skip heading levels"
+      - "Use headings for structure, not styling"
+      - "Make headings descriptive"
+    tags: [accessibility, headings, structure, wcag]
+
+  sufficient_color_contrast:
+    name: "Ensure Sufficient Color Contrast"
+    category: accessibility
+    severity: high
+    description: "Maintain adequate color contrast ratios for text"
+    rationale: "Insufficient contrast makes text difficult to read for users with visual impairments"
+    wcag_level: "AA"
+    wcag_criterion: "1.4.3 Contrast (Minimum)"
+    examples:
+      bad:
+        - 'color: #999999; background: #ffffff; /* Contrast ratio: 2.85:1 */'
+        - 'color: #cccccc; background: #ffffff; /* Contrast ratio: 1.61:1 */'
+      good:
+        - 'color: #666666; background: #ffffff; /* Contrast ratio: 5.74:1 */'
+        - 'color: #333333; background: #ffffff; /* Contrast ratio: 12.63:1 */'
+    fix_suggestion: "Use colors with contrast ratio of at least 4.5:1 for normal text, 3:1 for large text"
+    contrast_requirements:
+      normal_text: "4.5:1 (AA) / 7:1 (AAA)"
+      large_text: "3:1 (AA) / 4.5:1 (AAA)"
+      ui_components: "3:1 (AA)"
+      graphics: "3:1 (AA)"
+    tags: [accessibility, color, contrast, wcag, visual]
+
+  keyboard_navigation:
+    name: "Ensure Keyboard Navigation"
+    category: accessibility
+    severity: high
+    description: "All interactive elements must be keyboard accessible"
+    rationale: "Many users rely on keyboard navigation due to motor disabilities"
+    wcag_level: "A"
+    wcag_criterion: "2.1.1 Keyboard"
+    examples:
+      bad:
+        - |
+          <div onclick="handleClick()">Click me</div> <!-- Not keyboard accessible -->
+          <button tabindex="-1">Submit</button> <!-- Removes from tab order -->
+      good:
+        - |
+          <button onclick="handleClick()">Click me</button> <!-- Keyboard accessible -->
+          <div role="button" tabindex="0" onclick="handleClick()" onkeydown="handleKeyDown(event)">
+              Click me
+          </div>
+    fix_suggestion: "Use semantic HTML elements or add proper ARIA roles and keyboard handlers"
+    keyboard_requirements:
+      - "All functionality available via keyboard"
+      - "Visible focus indicators"
+      - "Logical tab order"
+      - "No keyboard traps"
+      - "Skip navigation links"
+    tags: [accessibility, keyboard, navigation, wcag]
+
+  provide_form_labels:
+    name: "Provide Labels for Form Elements"
+    category: accessibility
+    severity: high
+    description: "All form controls must have associated labels"
+    rationale: "Labels help screen reader users understand form controls"
+    wcag_level: "A"
+    wcag_criterion: "1.3.1 Info and Relationships"
+    examples:
+      bad:
+        - '<input type="email" placeholder="Enter email">' # Placeholder is not a label
+        - '<input type="text" title="Full name">' # Title is not sufficient
+      good:
+        - |
+          <label for="email">Email Address</label>
+          <input type="email" id="email" placeholder="Enter email">
+        - |
+          <input type="text" aria-label="Full name">
+        - |
+          <fieldset>
+              <legend>Shipping Address</legend>
+              <label for="street">Street Address</label>
+              <input type="text" id="street">
+          </fieldset>
+    fix_suggestion: "Use <label> elements, aria-label, or aria-labelledby for all form controls"
+    labeling_methods:
+      - "Explicit labels with for/id association"
+      - "Implicit labels wrapping form controls"
+      - "aria-label for programmatic labels"
+      - "aria-labelledby for complex labeling"
+      - "fieldset/legend for grouped controls"
+    tags: [accessibility, forms, labels, wcag]
+
+  # ================================
+  # PERFORMANCE RULES
+  # ================================
+
+  optimize_images:
+    name: "Optimize Images for Performance"
+    category: performance
+    severity: medium
+    description: "Optimize images for web delivery"
+    rationale: "Large images significantly impact page load times"
+    examples:
+      bad:
+        - '<img src="product-photo-5mb.jpg" width="300">' # Large file, resized in HTML
+        - '<img src="product.bmp">' # Unoptimized format
+      good:
+        - |
+          <picture>
+              <source srcset="product-300w.webp" type="image/webp">
+              <source srcset="product-300w.jpg" type="image/jpeg">
+              <img src="product-300w.jpg" alt="Product name" width="300" height="200">
+          </picture>
+        - '<img src="product-optimized.jpg" alt="Product" loading="lazy">'
+    fix_suggestion: "Use appropriate formats, sizes, and compression levels"
+    optimization_techniques:
+      - "Choose optimal format (WebP, AVIF, JPEG, PNG)"
+      - "Compress images appropriately"
+      - "Use responsive images with srcset"
+      - "Implement lazy loading"
+      - "Serve images from CDN"
+    performance_impact: "Proper image optimization can reduce page size by 50-80%"
+    tags: [performance, images, optimization, loading]
+
+  minimize_css_javascript:
+    name: "Minimize and Compress CSS/JavaScript"
+    category: performance
+    severity: medium
+    description: "Minimize and compress CSS and JavaScript files"
+    rationale: "Smaller files load faster and reduce bandwidth usage"
+    examples:
+      bad:
+        - |
+          /* Unminified CSS with comments and extra whitespace */
+          .product-card {
+              /* This is a product card */
+              background-color: white;
+              border-radius: 8px;
+              padding: 16px;
+              margin: 8px;
+          }
+      good:
+        - |
+          /* Minified CSS */
+          .product-card{background-color:#fff;border-radius:8px;padding:16px;margin:8px}
+        - |
+          // Use build tools for automatic minification
+          // webpack, gulp, rollup, etc.
+    fix_suggestion: "Use build tools to automatically minify and compress assets"
+    optimization_benefits:
+      - "Reduced file sizes (30-60% smaller)"
+      - "Faster download times"
+      - "Lower bandwidth costs"
+      - "Better user experience"
+    tags: [performance, minification, compression, build_tools]
+
+  implement_lazy_loading:
+    name: "Implement Lazy Loading"
+    category: performance
+    severity: medium
+    description: "Implement lazy loading for images and content"
+    rationale: "Lazy loading improves initial page load time"
+    examples:
+      bad:
+        - |
+          <div class="product-grid">
+              <img src="product1.jpg" alt="Product 1">
+              <img src="product2.jpg" alt="Product 2">
+              <!-- All images load immediately -->
+          </div>
+      good:
+        - |
+          <div class="product-grid">
+              <img src="product1.jpg" alt="Product 1" loading="lazy">
+              <img src="product2.jpg" alt="Product 2" loading="lazy">
+              <!-- Images load when needed -->
+          </div>
+        - |
+          // JavaScript-based lazy loading with Intersection Observer
+          const images = document.querySelectorAll('img[data-src]');
+          const imageObserver = new IntersectionObserver((entries) => {
+              entries.forEach(entry => {
+                  if (entry.isIntersecting) {
+                      const img = entry.target;
+                      img.src = img.dataset.src;
+                      imageObserver.unobserve(img);
+                  }
+              });
+          });
+          images.forEach(img => imageObserver.observe(img));
+    fix_suggestion: "Use native loading='lazy' or Intersection Observer API"
+    lazy_loading_benefits:
+      - "Faster initial page load"
+      - "Reduced bandwidth usage"
+      - "Better user experience"
+      - "Improved Core Web Vitals"
+    tags: [performance, lazy_loading, images, intersection_observer]
+
+  # ================================
+  # SEO RULES
+  # ================================
+
+  semantic_html_structure:
+    name: "Use Semantic HTML Structure"
+    category: seo
+    severity: medium
+    description: "Use semantic HTML elements for better SEO and accessibility"
+    rationale: "Semantic HTML helps search engines understand content structure"
+    examples:
+      bad:
+        - |
+          <div class="header">
+              <div class="nav">
+                  <div class="nav-item">Home</div>
+              </div>
+          </div>
+          <div class="main-content">
+              <div class="article">Content</div>
+          </div>
+      good:
+        - |
+          <header>
+              <nav>
+                  <a href="/">Home</a>
+              </nav>
+          </header>
+          <main>
+              <article>Content</article>
+          </main>
+    fix_suggestion: "Replace generic div elements with semantic HTML5 elements"
+    semantic_elements:
+      - "header, nav, main, article, section, aside, footer"
+      - "h1-h6 for headings"
+      - "p for paragraphs"
+      - "ul/ol/li for lists"
+      - "button for interactive elements"
+    tags: [seo, semantic_html, structure, accessibility]
+
+  meta_tags_optimization:
+    name: "Optimize Meta Tags"
+    category: seo
+    severity: medium
+    description: "Include essential meta tags for SEO"
+    rationale: "Meta tags provide important information to search engines"
+    examples:
+      bad:
+        - |
+          <head>
+              <title>Page</title>
+          </head>
+      good:
+        - |
+          <head>
+              <title>Product Name - Category | Site Name</title>
+              <meta name="description" content="Detailed product description for SEO">
+              <meta name="keywords" content="product, category, brand">
+              <meta property="og:title" content="Product Name">
+              <meta property="og:description" content="Product description">
+              <meta property="og:image" content="product-image.jpg">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <link rel="canonical" href="https://example.com/product">
+          </head>
+    fix_suggestion: "Include title, description, Open Graph, and other essential meta tags"
+    essential_meta_tags:
+      - "title (unique, descriptive, under 60 chars)"
+      - "meta description (under 160 chars)"
+      - "meta viewport (for mobile)"
+      - "Open Graph tags (og:title, og:description, og:image)"
+      - "canonical link"
+    tags: [seo, meta_tags, social_media, mobile]
+
+# Frontend Testing Rules
+testing_rules:
+  unit_tests_coverage:
+    name: "JavaScript Unit Test Coverage"
+    category: testing
+    severity: medium
+    description: "Maintain adequate test coverage for JavaScript code"
+    target_coverage: 80
+    
+  e2e_tests:
+    name: "End-to-End Tests"
+    category: testing
+    severity: medium
+    description: "Implement E2E tests for critical user flows"
+    
+  accessibility_testing:
+    name: "Automated Accessibility Testing"
+    category: testing
+    severity: high
+    description: "Run automated accessibility tests"
+
+# Performance Budgets
+performance_budgets:
+  total_page_size_kb: 1000
+  javascript_size_kb: 200
+  css_size_kb: 100
+  images_size_kb: 500
+  first_contentful_paint_ms: 1500
+  largest_contentful_paint_ms: 2500
+  cumulative_layout_shift: 0.1
+
+# Browser Support
+browser_support:
+  minimum_versions:
+    chrome: 90
+    firefox: 88
+    safari: 14
+    edge: 90
+  graceful_degradation: true
+  progressive_enhancement: true
+
+# Build Tool Integration
+build_tools:
+  webpack:
+    optimization: true
+    code_splitting: true
+    tree_shaking: true
+    
+  eslint:
+    extends: ["eslint:recommended", "@magento/eslint-config"]
+    
+  stylelint:
+    extends: ["stylelint-config-standard"]
+    
+  prettier:
+    enabled: true
+    config: ".prettierrc" 

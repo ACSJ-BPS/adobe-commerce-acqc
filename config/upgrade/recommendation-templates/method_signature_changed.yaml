@@ -1,0 +1,17 @@
+root_cause: "A public or protected method's parameter list or return type was changed in the target version. Any class that overrides or calls this method directly must be updated to match the new signature."
+code_example: |
+  // Before (Commerce 2.4.x)
+  public function execute(array $data): void {}
+
+  // After (updated signature)
+  public function execute(DataObject $data, ?string $scope = null): ResultInterface {}
+step_by_step: |
+  1. Check the MFTF BIC report for the exact old and new signatures.
+  2. Update your override or call site to match the new parameter types and order.
+  3. If the method is overridden in a plugin: update the $proceed closure call accordingly.
+  4. Add PHP 8 union types or nullables where the new signature requires them.
+  5. Run: bin/magento setup:di:compile and vendor/bin/phpstan analyse to confirm compatibility.
+doc_links:
+  - "https://developer.adobe.com/commerce/php/development/backward-incompatible-changes/"
+  - "https://developer.adobe.com/commerce/php/best-practices/extensions/plugins/"
+confidence_score: 5

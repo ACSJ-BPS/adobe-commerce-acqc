@@ -1,0 +1,12 @@
+/* Good: styles concatenated into a single file — no @import needed */
+/* vendor-reset styles */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* vendor-typography styles */
+body { font-family: sans-serif; font-size: 16px; line-height: 1.5; }
+
+/* vendor-components styles */
+.vendor-block {
+    display: block;
+    margin: 0 auto;
+}

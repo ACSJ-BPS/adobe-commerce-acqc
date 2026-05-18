@@ -1,0 +1,53 @@
+schema_version: "1.0"
+id: "AC_SCHEMA_003"
+name: "ac-schema-003-fk-constraint-naming"
+title: "Foreign Key Constraint Name Does Not Follow Commerce Convention"
+description: >
+  Foreign key constraint referenceId values in db_schema.xml must follow the pattern
+  TABLE_COLUMN_REFTABLE_REFCOLUMN in UPPERCASE. Incorrect naming makes schema diffs
+  non-deterministic, triggers unnecessary ALTER TABLE statements on upgrade, and breaks
+  the setup:db:status validation. Names must also stay under 64 characters (MySQL limit).
+category: "schema"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "naming-conventions.md"
+tags:
+  - schema
+  - naming
+  - database
+  - foreign-key
+globs:
+  - "**/db_schema.xml"
+check:
+  type: xml_xpath
+  expression: "//constraint[@xsi:type='foreign'][@referenceId != translate(@referenceId,'abcdefghijklmnopqrstuvwxyz','ABCDEFGHIJKLMNOPQRSTUVWXYZ')]"
+  attribute: "referenceId"
+  message: "Foreign key constraint '{{value}}' should be UPPERCASE (e.g. TABLE_COL_REFTABLE_REFCOL)."
+recommendation: >
+  Rename the FK constraint referenceId to UPPERCASE following the pattern:
+  {TABLE}_{COLUMN}_{REFTABLE}_{REFCOLUMN}
+  Example: VENDOR_ORDER_ITEMS_ORDER_ID_SALES_ORDER_ENTITY_ID
+  Keep under 64 characters; abbreviate table names if necessary.
+examples:
+  bad: |
+    <constraint xsi:type="foreign"
+        referenceId="vendor_order_items_order_id_sales_order_entity_id"
+        table="vendor_order_items" column="order_id"
+        referenceTable="sales_order" referenceColumn="entity_id" onDelete="CASCADE"/>
+  good: |
+    <constraint xsi:type="foreign"
+        referenceId="VENDOR_ORDER_ITEMS_ORDER_ID_SALES_ORDER_ENTITY_ID"
+        table="vendor_order_items" column="order_id"
+        referenceTable="sales_order" referenceColumn="entity_id" onDelete="CASCADE"/>
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/declarative-schema/configuration/"

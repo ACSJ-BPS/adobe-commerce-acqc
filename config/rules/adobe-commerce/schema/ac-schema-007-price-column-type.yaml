@@ -1,0 +1,57 @@
+schema_version: "1.0"
+id: "AC_SCHEMA_007"
+name: "ac-schema-007-price-column-type"
+title: "Price/Amount Column Using Incorrect Decimal Precision"
+description: >
+  Monetary columns (price, amount, total, tax, discount, etc.) in db_schema.xml must
+  use xsi:type="decimal" with scale="4" and precision="12" to match Adobe Commerce's
+  currency precision standard. Using insufficient precision causes rounding errors in
+  multi-currency environments, tax calculations, and financial reporting. Using a
+  different type (float, int, varchar) causes data loss or comparison failures.
+category: "schema"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "schema-patterns.md"
+tags:
+  - schema
+  - database
+  - decimal
+  - price
+  - financial
+  - data-integrity
+globs:
+  - "**/db_schema.xml"
+check:
+  type: xml_xpath
+  expression: "//column[contains('price amount total tax discount fee cost base_price final_price', @name)][@xsi:type='decimal'][not(@scale='4' and @precision='12')]"
+  attribute: "name"
+  message: "Price/amount column '{{value}}' should use scale=\"4\" precision=\"12\" for Commerce currency compliance."
+recommendation: >
+  Declare monetary columns with the Commerce standard decimal type:
+    <column name="price" xsi:type="decimal" scale="4" precision="12"
+            unsigned="false" nullable="false" default="0.0000" comment="Price"/>
+  The scale="4" supports 4 decimal places (e.g. 0.0001 for micro-currencies).
+  precision="12" supports values up to 99,999,999.9999.
+examples:
+  bad: |
+    <column name="price" xsi:type="float" nullable="false" default="0"/>
+    <column name="discount" xsi:type="decimal" scale="2" precision="10"/>
+  good: |
+    <column name="price" xsi:type="decimal" scale="4" precision="12"
+            unsigned="false" nullable="false" default="0.0000" comment="Unit price"/>
+    <column name="discount" xsi:type="decimal" scale="4" precision="12"
+            unsigned="false" nullable="false" default="0.0000" comment="Discount amount"/>
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/declarative-schema/configuration/"
+  - "https://developer.adobe.com/commerce/php/development/components/price/"

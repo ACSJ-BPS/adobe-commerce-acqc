@@ -1,0 +1,63 @@
+schema_version: "1.0"
+id: "AC_CRON_002"
+name: "ac-cron-002-default-group"
+title: "Custom Cron Jobs Registered in Default Group"
+description: >
+  Registering custom cron jobs in the built-in 'default' cron group mixes third-party
+  jobs with core Magento processes. This can cause performance issues, interfere with
+  Magento's own scheduling, and makes it harder to tune or disable custom jobs
+  independently. Each module should define its own named cron group in crontab.xml.
+category: "cron"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-cron.mdc"
+tags:
+  - cron
+  - magento2
+  - scheduling
+  - best-practices
+globs:
+  - "**/crontab.xml"
+check:
+  type: xml_xpath
+  expression: "//group[@id='default'][job]"
+  attribute: null
+recommendation: >
+  Define a custom cron group for your module in crontab.xml:
+  <group id="vendor_module">
+    <schedule_generate_every>1</schedule_generate_every>
+    <schedule_ahead_for>4</schedule_ahead_for>
+    <schedule_lifetime>2</schedule_lifetime>
+    <history_cleanup_every>10</history_cleanup_every>
+    <history_success_lifetime>60</history_success_lifetime>
+    <history_failure_lifetime>600</history_failure_lifetime>
+    <use_separate_process>1</use_separate_process>
+  </group>
+examples:
+  bad: |
+    <group id="default">
+        <job name="vendor_module_cleanup"
+             instance="Vendor\Module\Cron\Cleanup"
+             method="execute">
+            <schedule>0 2 * * *</schedule>
+        </job>
+    </group>
+  good: |
+    <group id="vendor_module">
+        <use_separate_process>1</use_separate_process>
+        <job name="vendor_module_cleanup"
+             instance="Vendor\Module\Cron\Cleanup"
+             method="execute">
+            <schedule>0 2 * * *</schedule>
+        </job>
+    </group>
+references:
+  - "https://developer.adobe.com/commerce/php/development/cache/partial/database-caching/"
+  - "https://experienceleague.adobe.com/docs/commerce-operations/configuration-guide/crons/custom-cron-reference.html"

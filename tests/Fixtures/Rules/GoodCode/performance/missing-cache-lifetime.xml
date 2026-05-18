@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <!-- Good: blocks have explicit TTL or are marked as not cacheable -->
+        <referenceContainer name="content">
+            <block class="Vendor\Module\Block\ProductWidget"
+                   name="vendor_product_widget"
+                   template="Vendor_Module::product/widget.phtml"
+                   ttl="3600"/>
+            <block class="Vendor\Module\Block\CustomerData"
+                   name="vendor_customer_data"
+                   template="Vendor_Module::customer/data.phtml"
+                   cacheable="false"/>
+        </referenceContainer>
+    </body>
+</page>

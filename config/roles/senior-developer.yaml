@@ -1,0 +1,218 @@
+# Senior Developer Configuration
+# Balanced approach for code review and mentoring
+
+role:
+  name: senior-developer
+  level: 2
+  description: "Configuration for senior developers focusing on code review and team mentoring"
+
+# Balanced analyzer settings
+analyzers:
+  magento:
+    priority: high
+    strict_mode: false
+    detailed_analysis: true
+    rules:
+      deprecated_patterns:
+        severity: error
+      dependency_injection:
+        severity: warning  # Original severity
+      object_manager_usage:
+        severity: error
+
+  security:
+    priority: high
+    strict_mode: true
+    detailed_analysis: true
+    rules:
+      sql_injection:
+        severity: critical
+      xss_vulnerability:
+        severity: error
+      hardcoded_secrets:
+        severity: critical
+
+  performance:
+    priority: medium
+    strict_mode: false
+    detailed_analysis: true
+    rules:
+      n_plus_one_query:
+        severity: error
+      inefficient_loops:
+        severity: warning
+      memory_leaks:
+        severity: warning
+
+  quality:
+    priority: high
+    strict_mode: false
+    detailed_analysis: true
+    rules:
+      method_length:
+        severity: warning
+        threshold: 50  # Standard threshold
+      cyclomatic_complexity:
+        severity: warning
+        threshold: 10  # Standard threshold
+      documentation:
+        severity: info  # Less strict than junior
+        require_class_docs: true
+        require_method_docs: false
+      naming_conventions:
+        severity: info
+
+# Standard rule configuration
+rules:
+  magento_deprecated_patterns:
+    severity: error
+    complexity: basic
+    
+  magento_dependency_injection:
+    severity: warning
+    complexity: medium
+    
+  magento_object_manager:
+    severity: error
+    complexity: basic
+
+  sql_injection_detection:
+    severity: critical
+    complexity: medium
+    
+  n_plus_one_query_detection:
+    severity: error
+    complexity: advanced
+
+  method_too_long:
+    severity: warning
+    threshold: 50
+    
+  high_complexity:
+    severity: warning
+    threshold: 10
+
+# Output preferences for code review
+output:
+  format: console
+  severity_filter:
+    - critical
+    - error
+    - warning
+    - info
+  show_recommendations: true
+  show_examples: false  # Less verbose than junior
+  detailed_explanations: false
+  group_by_type: true
+  group_by_file: true
+  max_issues_per_file: 50
+  show_progress: true
+  include_metrics: true
+  show_file_summary: true
+
+# Code review features
+code_review:
+  enabled: true
+  focus_on_changes: true
+  compare_with_baseline: true
+  highlight_regressions: true
+  team_metrics: true
+
+# Standard thresholds
+thresholds:
+  method_length: 50
+  complexity: 10
+  duplicate_lines: 5
+  file_size: 500
+
+# Performance settings
+performance:
+  timeout: 300  # 5 minutes
+  memory_limit: 512M
+  parallel_processing: true
+  max_workers: 4
+
+# Cache enabled for efficiency
+cache:
+  enabled: true
+  ttl: 3600
+
+# Help and guidance for senior developers
+help:
+  focus: "Code review and mentoring others"
+  recommendations:
+    - "Review all severity levels including warnings and info"
+    - "Focus on Magento-specific best practices"
+    - "Use analysis results for code review feedback"
+    - "Monitor team code quality trends"
+    - "Mentor junior developers on complex issues"
+  
+  available_tools:
+    - "Full code analysis with customizable rules"
+    - "Team metrics and trend analysis"
+    - "Custom rule configuration"
+    - "Batch analysis for code reviews"
+    - "Integration with development workflow"
+  
+  responsibilities:
+    - "Code review leadership"
+    - "Architecture decision support"
+    - "Team mentoring and guidance"
+    - "Quality standard enforcement"
+
+# Available features
+features:
+  advanced_metrics: false  # Reserved for architects
+  custom_rules: true
+  performance_profiling: false  # Reserved for architects
+  team_overview: true
+  batch_analysis: true
+  trend_analysis: true
+
+# Auto-fix settings
+auto_fix:
+  enabled: true
+  safe_fixes_only: false  # Can handle more complex fixes
+  interactive_mode: false
+  backup_files: true
+
+# Integration settings
+integrations:
+  git:
+    enabled: true
+    check_staged_files: false
+    exclude_vendor: true
+  
+  phpstan:
+    enabled: true
+    level: 5
+  
+  psalm:
+    enabled: false  # Optional
+  
+  phpcs:
+    enabled: true
+    standard: PSR12
+
+# Team management features
+team:
+  enable_metrics: true
+  track_improvements: true
+  generate_reports: true
+  mentor_assignments: true
+
+# Customization options
+customization:
+  rule_modification: true
+  severity_adjustment: true
+  threshold_tuning: true
+  analyzer_selection: true
+
+# Reporting preferences
+reporting:
+  auto_generate: true
+  formats:
+    - html
+    - json
+  include_trends: true
+  team_summary: true 

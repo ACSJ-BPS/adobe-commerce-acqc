@@ -1,0 +1,14 @@
+name: tech-lead
+description: "Tech lead profile — all tiers, SARIF secondary output for code-review tooling"
+tiers: [1, 2, 3]
+min_severity: warning
+categories: []
+format: console
+fail_on: [error, critical, blocker]
+personal_rules: true
+hide_file_paths: false
+hide_line_numbers: false
+hide_rule_ids: false
+tier2_as_warnings: false
+secondary_format: sarif
+severity_labels: {}

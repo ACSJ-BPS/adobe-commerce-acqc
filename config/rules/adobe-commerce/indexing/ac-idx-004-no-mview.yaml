@@ -1,0 +1,57 @@
+schema_version: "1.0"
+id: "AC_IDX_004"
+name: "ac-idx-004-no-mview"
+title: "Custom Indexer Without Incremental mview Configuration"
+description: >
+  Custom indexers without a corresponding mview.xml configuration cannot participate
+  in incremental indexing. When indexers run on schedule (recommended for production),
+  the mview changelog mechanism tracks which rows changed since the last reindex.
+  Without mview.xml, every scheduled run performs a full reindex, defeating the
+  purpose of scheduled indexing and increasing database load unnecessarily.
+category: "indexing"
+severity: "warning"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-indexing.mdc"
+tags:
+  - indexing
+  - mview
+  - performance
+  - magento2
+globs:
+  - "**/Indexer/**/*.php"
+check:
+  type: structural
+  strategy: mview_config_check
+recommendation: >
+  Create a mview.xml file in your module's etc/ directory that maps the indexer
+  to the database tables it should watch for changes:
+  <view id="vendor_module_product" class="Vendor\Module\Model\Indexer\ProductIndexer" group="indexer">
+    <subscriptions>
+      <table name="catalog_product_entity" entity_column="entity_id"/>
+    </subscriptions>
+  </view>
+examples:
+  bad: |
+    // Custom indexer class with no mview.xml — always full reindex
+    class ProductCustomIndexer implements IndexerInterface { ... }
+  good: |
+    // mview.xml configured to track catalog_product_entity changes
+    // indexer executes incrementally based on changelog entries
+    class ProductCustomIndexer implements IndexerInterface {
+        public function executeList(array $ids): void
+        {
+            // Process only changed IDs from mview changelog
+            foreach ($ids as $id) { $this->processProduct($id); }
+        }
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/indexing/"
+  - "https://developer.adobe.com/commerce/php/development/components/indexing/custom-indexer/"

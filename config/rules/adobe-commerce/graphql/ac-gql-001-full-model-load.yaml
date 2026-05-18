@@ -1,0 +1,60 @@
+schema_version: "1.0"
+id: "AC_GQL_001"
+name: "ac-gql-001-full-model-load"
+title: "GraphQL Resolver Loading Full Model Instead of Projection"
+description: >
+  GraphQL resolvers that load full ORM models for every field request force the database
+  to return all columns even when the query only needs a few fields. This creates
+  unnecessary data transfer and memory allocation. GraphQL's field selection semantics
+  should be honoured by fetching only the requested fields using search criteria
+  projection or a custom search results interface.
+category: "graphql"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-graphql.mdc"
+tags:
+  - graphql
+  - performance
+  - database
+  - resolvers
+globs:
+  - "**/Resolver/**/*.php"
+  - "**/Resolvers/**/*.php"
+check:
+  type: regex
+  pattern: '->load\s*\(\s*\$'
+recommendation: >
+  Use repository getList() with search criteria that specify only the needed fields,
+  or use a lightweight data provider service that builds projections from the requested
+  fields array available in the $info argument.
+  Avoid loading entire models when only 2-3 fields are needed for the GraphQL response.
+examples:
+  bad: |
+    public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null): array
+    {
+        $product = $this->productFactory->create();
+        $product->load($args['id']); // loads ALL 200+ product attributes
+        return ['name' => $product->getName(), 'price' => $product->getPrice()];
+    }
+  good: |
+    public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null): array
+    {
+        $searchCriteria = $this->searchCriteriaBuilder
+            ->addFilter('entity_id', $args['id'])
+            ->create();
+        $product = $this->productRepository->getList($searchCriteria)->getItems()[0];
+        return ['name' => $product->getName(), 'price' => $product->getPrice()];
+    }
+references:
+  - "https://developer.adobe.com/commerce/webapi/graphql/develop/resolvers/"
+  - "https://experienceleague.adobe.com/docs/commerce-operations/performance-best-practices/"

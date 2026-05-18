@@ -1,0 +1,59 @@
+schema_version: "1.0"
+id: "AC_ASYNC_003"
+name: "ac-async-003-blocking-queue-consumer"
+title: "Blocking Operation in Message Queue Consumer"
+description: >
+  Message queue consumers that perform blocking operations (sleep, long database
+  locks, nested synchronous HTTP calls) reduce throughput and can cause the consumer
+  process to miss heartbeats in RabbitMQ, leading to connection drops and message
+  requeue loops. Consumers should process messages quickly and delegate any
+  long-running work to further queue stages or batch processing.
+category: "async"
+severity: "warning"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-async.mdc"
+tags:
+  - async
+  - message-queue
+  - performance
+globs:
+  - "**/Consumer/**/*.php"
+  - "**/MessageQueue/**/*.php"
+check:
+  type: structural
+  strategy: blocking_consumer_check
+recommendation: >
+  Keep consumer processing fast (under 2 seconds per message). For operations
+  that require more time, break the work into smaller units and publish to
+  additional queue topics. Avoid sleep() calls and long-held database locks
+  within consumer process() methods. Use batch processing patterns with configurable
+  batch sizes to bound execution time.
+examples:
+  bad: |
+    public function process(SyncDataInterface $data): void
+    {
+        foreach ($data->getProductIds() as $id) {
+            sleep(1); // rate limiting — blocks consumer
+            $this->apiClient->syncProduct($id);
+        }
+    }
+  good: |
+    public function process(SyncDataInterface $data): void
+    {
+        $productIds = array_slice($data->getProductIds(), 0, $this->batchSize);
+        $this->apiClient->syncProductBatch($productIds);
+        if (count($data->getProductIds()) > $this->batchSize) {
+            $this->publisher->publish('vendor.module.product.sync', $remainingData);
+        }
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/message-queues/"
+  - "https://experienceleague.adobe.com/docs/commerce-operations/configuration-guide/message-queues/manage-message-queues.html"

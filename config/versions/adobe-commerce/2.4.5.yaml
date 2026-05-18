@@ -1,0 +1,196 @@
+schema_version: "1"
+version: "2.4.5"
+release_date: "2022-08-09"
+eol_date: "2024-08-09"
+release_type: "minor"
+
+patch_releases:
+  - "2.4.5-p1"
+  - "2.4.5-p2"
+  - "2.4.5-p3"
+
+php_support:
+  minimum: "8.1"
+  maximum: "8.1"
+  recommended: "8.1"
+  dropped: ["7.4"]
+
+search_engine_support:
+  elasticsearch: ["7.9", "7.10", "7.11"]
+  opensearch: ["1.2"]
+
+composer_requirements:
+  magento/framework: "102.0.7"
+  php: ">=8.1 <8.2"
+  platform_extensions:
+    required: ["ext-bcmath", "ext-ctype", "ext-curl", "ext-dom", "ext-gd",
+                "ext-hash", "ext-iconv", "ext-intl", "ext-mbstring",
+                "ext-openssl", "ext-pdo_mysql", "ext-simplexml", "ext-soap",
+                "ext-xsl", "ext-zip"]
+    removed: []
+
+upgrade_notes:
+  minimum_source_version: "2.4.3"
+  recommended_intermediate_versions: []
+  breaking_change_count: 9
+  deprecation_count: 18
+  db_schema_change_count: 5
+
+breaking_changes:
+  - id: "BC-2.4.5-001"
+    type: class_removed
+    symbol: "Magento\\Framework\\Search\\Adapter\\Mysql\\Adapter"
+    replacement: "Magento\\ElasticSearch\\SearchAdapter\\Adapter"
+    severity: error
+    affected_files_pattern: "*.php"
+    remediation_summary: "Replace direct MySQL search adapter usage with Elasticsearch adapter or DI abstraction"
+    doc_url: "https://developer.adobe.com/commerce/php/development/search/"
+
+  - id: "BC-2.4.5-002"
+    type: method_removed
+    class: "Magento\\Catalog\\Model\\Product\\Type\\AbstractType"
+    method: "getAttributeById"
+    severity: error
+    affected_files_pattern: "*.php"
+    remediation_summary: "Use Magento\\Catalog\\Model\\ResourceModel\\Product\\Attribute\\CollectionFactory instead"
+    doc_url: ""
+
+  - id: "BC-2.4.5-003"
+    type: config_key_removed
+    symbol: "catalog/search/engine"
+    severity: warning
+    affected_files_pattern: "config.php"
+    remediation_summary: "Elasticsearch 6.x engine key removed; migrate to elasticsearch7 or opensearch engine key"
+    doc_url: "https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/prerequisites/search-engine/overview.html"
+
+  - id: "BC-2.4.5-004"
+    type: class_removed
+    symbol: "Magento\\Framework\\DB\\Adapter\\Pdo\\Mysql"
+    replacement: "Magento\\Framework\\DB\\Adapter\\AdapterInterface"
+    severity: warning
+    affected_files_pattern: "*.php"
+    remediation_summary: "Inject AdapterInterface instead of concrete Mysql adapter for forward compatibility"
+    doc_url: ""
+
+  - id: "BC-2.4.5-005"
+    type: method_signature_changed
+    class: "Magento\\Quote\\Model\\Quote\\Item\\ToOrderItem"
+    method: "convert"
+    change_description: "Third parameter added; callers with two arguments still work but type declarations changed"
+    severity: warning
+    remediation_summary: "Review all call sites and update type hints to match new signature"
+    doc_url: ""
+
+  - id: "BC-2.4.5-006"
+    type: event_removed
+    symbol: "catalog_product_flat_rebuild_before"
+    severity: notice
+    affected_files_pattern: "events.xml"
+    remediation_summary: "Observer no longer invoked; migrate logic to catalog_product_save_after"
+    doc_url: ""
+
+  - id: "BC-2.4.5-007"
+    type: class_removed
+    symbol: "Magento\\Search\\Model\\Adapter\\Mysql\\Aggregation\\DataProvider"
+    replacement: "Magento\\ElasticSearch\\Model\\Adapter\\BatchDataMapper\\DataMapperInterface"
+    severity: error
+    affected_files_pattern: "*.php"
+    remediation_summary: "Declarative schema required for new modules from 2.4.4+; legacy InstallSchema blocks must be converted"
+    doc_url: ""
+
+  - id: "BC-2.4.5-008"
+    type: method_removed
+    class: "Magento\\Framework\\Module\\Setup\\Migration"
+    method: "appendClassAliasReplace"
+    severity: warning
+    affected_files_pattern: "*.php"
+    remediation_summary: "Class alias replacement mechanism removed; use direct class references"
+    doc_url: ""
+
+  - id: "BC-2.4.5-009"
+    type: graphql_field_changed
+    symbol: "products.items.media_gallery"
+    change_description: "Field type changed from MediaGalleryEntry to MediaGalleryInterface union"
+    severity: warning
+    affected_files_pattern: "*.graphql"
+    remediation_summary: "Update GraphQL queries to use inline fragments for MediaImage and Video types"
+    doc_url: ""
+
+deprecated_symbols:
+  classes:
+    - symbol: "Magento\\Framework\\Search\\Adapter\\Mysql\\Adapter"
+      since: "2.4.5"
+      replacement: "Use Elasticsearch or OpenSearch adapter"
+    - symbol: "Magento\\Catalog\\Model\\Indexer\\Product\\Flat\\State"
+      since: "2.4.5"
+      replacement: "Flat catalog will be fully removed in a future version; use Elasticsearch"
+    - symbol: "Magento\\Framework\\Module\\Setup\\Migration"
+      since: "2.4.5"
+      replacement: "Use DataPatch and SchemaPatch instead"
+    - symbol: "Magento\\Indexer\\Model\\Indexer\\DependencyDecorator"
+      since: "2.4.5"
+      replacement: "Magento\\Indexer\\Model\\Indexer"
+    - symbol: "Magento\\Framework\\DB\\Select\\QueryModifier"
+      since: "2.4.5"
+      replacement: "Use repository-based queries"
+  methods:
+    - class: "Magento\\Catalog\\Model\\ResourceModel\\Product"
+      method: "getProductIdsByAttributeId"
+      since: "2.4.5"
+      replacement: "Use SearchCriteria-based repository methods"
+    - class: "Magento\\Customer\\Model\\ResourceModel\\Customer"
+      method: "loadByEmail"
+      since: "2.4.5"
+      replacement: "CustomerRepositoryInterface::get()"
+    - class: "Magento\\Framework\\App\\Cache\\StateInterface"
+      method: "isEnabled"
+      since: "2.4.5"
+      replacement: "Inject specific cache type instead"
+  events:
+    - event: "catalog_product_flat_rebuild_before"
+      since: "2.4.5"
+      reason: "Flat catalog index deprecated; Elasticsearch recommended"
+    - event: "catalog_product_flat_rebuild_after"
+      since: "2.4.5"
+      reason: "Flat catalog index deprecated"
+
+db_schema_changes:
+  - table: "catalog_product_flat_1"
+    change_type: table_dropped
+    migration_risk: medium
+    data_migration_required: false
+    estimated_duration_minutes: 10
+  - table: "search_query"
+    column: "redirect"
+    change_type: column_dropped
+    migration_risk: low
+    data_migration_required: false
+    estimated_duration_minutes: 2
+  - table: "catalog_product_entity"
+    change_type: index_added
+    index_name: "IDX_CATALOG_PRODUCT_ENTITY_CREATED_AT"
+    index_type: index
+    migration_risk: medium
+    estimated_duration_minutes: 30
+  - table: "quote"
+    column: "customer_note_notify"
+    change_type: column_dropped
+    migration_risk: low
+    data_migration_required: false
+    estimated_duration_minutes: 2
+  - table: "sales_order"
+    column: "protect_code"
+    change_type: column_added
+    migration_risk: low
+    data_migration_required: false
+    estimated_duration_minutes: 1
+
+security_advisories:
+  - id: "APSB22-048"
+    cve: "CVE-2022-35692"
+    severity: critical
+    description: "Stored XSS via crafted order note in admin panel"
+    affected_versions: ["2.4.3", "2.4.4"]
+    fixed_in: "2.4.5"
+    patch_available: true
+    patch_url: "https://experienceleague.adobe.com/docs/commerce-operations/release/notes/security-patches/2-4-5-patches.html"

@@ -1,0 +1,68 @@
+schema_version: "1.0"
+id: "AC_PERF_009"
+name: "ac-perf-009-add-attribute-select-all"
+title: "Collection: addAttributeToSelect('*') Loads All EAV Attributes"
+description: >
+  Calling addAttributeToSelect('*') on a product or customer collection triggers a
+  JOIN or subquery for every EAV attribute defined in the system — often 300-500+
+  attributes in a standard Commerce installation. This generates enormous SQL queries
+  and transfers far more data than any single page request needs. Even with opcode
+  caching, processing 500 attribute rows per product row creates significant PHP
+  memory overhead. The method is a legitimate tool during prototyping but must never
+  appear in production controller, block, or observer code.
+category: "performance"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.1.0"
+tags:
+  - performance
+  - collection
+  - eav
+  - database
+  - memory
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: 'addAttributeToSelect\s*\(\s*[''"]?\*[''"]?\s*\)'
+recommendation: >
+  Replace addAttributeToSelect('*') with an explicit list of only the attributes
+  your code actually uses:
+
+    // Bad — loads all 400+ attributes
+    $collection->addAttributeToSelect('*');
+
+    // Good — loads only what is needed
+    $collection->addAttributeToSelect(['name', 'price', 'sku', 'status', 'thumbnail']);
+
+  If you genuinely need many attributes (e.g., for product export), batch the collection
+  using page size limits and process in chunks to avoid memory exhaustion:
+
+    $collection->setPageSize(500);
+    for ($page = 1; $page <= $collection->getLastPageNumber(); $page++) {
+        $collection->setCurPage($page)->clear();
+        foreach ($collection as $item) { /* process */ }
+    }
+examples:
+  bad: |
+    $collection = $this->productCollectionFactory->create();
+    $collection->addAttributeToSelect('*') // loads 400+ attributes
+               ->addFieldToFilter('status', Status::STATUS_ENABLED)
+               ->setPageSize(20);
+  good: |
+    $collection = $this->productCollectionFactory->create();
+    $collection->addAttributeToSelect(['name', 'price', 'sku', 'status', 'url_key'])
+               ->addFieldToFilter('status', Status::STATUS_ENABLED)
+               ->setPageSize(20);
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/collection-builder/"
+  - "https://developer.adobe.com/commerce/php/best-practices/catalog/"

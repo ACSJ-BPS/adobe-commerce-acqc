@@ -1,0 +1,53 @@
+schema_version: "1.0"
+id: "AC_HTTP_006"
+name: "ac-http-006-file-get-contents-http"
+title: "file_get_contents Used for HTTP Requests"
+description: >
+  Using file_get_contents() for HTTP requests relies on the allow_url_fopen PHP
+  directive which is disabled on many shared hosting and hardened cloud environments.
+  It provides no timeout control, no error detail beyond a boolean false, no
+  connection pooling, and no way to set custom headers or handle redirects properly.
+  All HTTP requests should use Magento's built-in HTTP client or Guzzle.
+category: "http"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-http.mdc"
+tags:
+  - http
+  - file-get-contents
+  - best-practices
+  - reliability
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: regex
+  pattern: '\bfile_get_contents\s*\(\s*[''"]https?://'
+recommendation: >
+  Use Magento\Framework\HTTP\Client\Curl or inject Magento\Framework\HTTP\ZendClient
+  for HTTP requests. These respect store configuration for timeouts and proxies.
+  For complex integrations, inject GuzzleHttp\Client via di.xml virtual type.
+examples:
+  bad: |
+    $response = file_get_contents('https://api.example.com/products');
+    $data     = json_decode($response, true);
+  good: |
+    public function __construct(
+        private readonly \Magento\Framework\HTTP\Client\Curl $httpClient
+    ) {}
+
+    public function fetchProducts(): array
+    {
+        $this->httpClient->get('https://api.example.com/products');
+        return json_decode($this->httpClient->getBody(), true) ?? [];
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/cache/partial/database-caching/"
+  - "https://www.php.net/manual/en/function.file-get-contents.php"

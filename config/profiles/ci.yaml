@@ -1,0 +1,14 @@
+name: ci
+description: "CI pipeline profile — tiers 1-2, strict fail on error+, no personal rules"
+tiers: [1, 2]
+min_severity: error
+categories: []
+format: json
+fail_on: [error, critical, blocker]
+personal_rules: false
+hide_file_paths: false
+hide_line_numbers: false
+hide_rule_ids: false
+tier2_as_warnings: false
+secondary_format: sarif
+severity_labels: {}

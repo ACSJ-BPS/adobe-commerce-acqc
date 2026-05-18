@@ -1,0 +1,35 @@
+schema_version: "1"
+version: "2.4.5-p3"
+release_date: "2023-08-08"
+eol_date: "2024-08-09"
+release_type: "security"
+parent_version: "2.4.5"
+
+php_support:
+  minimum: "8.1"
+  maximum: "8.1"
+  recommended: "8.1"
+  dropped: []
+
+search_engine_support:
+  elasticsearch: ["7.9", "7.10", "7.11"]
+  opensearch: ["1.2"]
+
+breaking_changes: []
+
+deprecated_symbols:
+  classes: []
+  methods: []
+  events: []
+
+db_schema_changes: []
+
+security_advisories:
+  - id: "APSB23-042"
+    cve: "CVE-2023-38218"
+    severity: critical
+    description: "Stored XSS via crafted custom attribute value in customer account"
+    affected_versions: ["2.4.5", "2.4.5-p1", "2.4.5-p2"]
+    fixed_in: "2.4.5-p3"
+    patch_available: true
+    patch_url: "https://experienceleague.adobe.com/docs/commerce-operations/release/notes/security-patches/2-4-5-patches.html"

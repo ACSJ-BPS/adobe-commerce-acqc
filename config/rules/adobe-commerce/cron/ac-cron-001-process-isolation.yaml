@@ -1,0 +1,51 @@
+schema_version: "1.0"
+id: "AC_CRON_001"
+name: "ac-cron-001-process-isolation"
+title: "Cron Group Missing use_separate_process"
+description: >
+  Cron group configurations should declare use_separate_process to prevent memory leaks
+  and ensure proper process isolation between cron runs. Without separate process execution,
+  long-running jobs accumulate memory and may interfere with subsequent jobs in the same group.
+category: "cron"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "1.0.0"
+tags:
+  - cron
+  - magento2
+  - performance
+  - memory
+globs:
+  - "**/crontab.xml"
+check:
+  type: xml_xpath
+  expression: "//group[not(use_separate_process)]"
+  attribute: null
+recommendation: >
+  Add <use_separate_process>1</use_separate_process> inside every <group> element in crontab.xml.
+examples:
+  bad: |
+    <group id="default">
+        <job name="my_cron" instance="Vendor\Module\Cron\MyJob" method="execute">
+            <schedule>0 * * * *</schedule>
+        </job>
+    </group>
+  good: |
+    <group id="default">
+        <use_separate_process>1</use_separate_process>
+        <job name="my_cron" instance="Vendor\Module\Cron\MyJob" method="execute">
+            <schedule>0 * * * *</schedule>
+        </job>
+    </group>
+references:
+  - "https://developer.adobe.com/commerce/php/development/cache/partial/database-caching/"
+  - "https://experienceleague.adobe.com/docs/commerce-operations/configuration-guide/crons/custom-cron-reference.html"

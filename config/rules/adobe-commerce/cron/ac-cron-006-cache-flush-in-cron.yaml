@@ -1,0 +1,74 @@
+schema_version: "1.0"
+id: "AC_CRON_006"
+name: "ac-cron-006-cache-flush-in-cron"
+title: "Cron: Full Cache Flush Inside Cron Job Degrades Storefront Performance"
+description: >
+  Calling $this->cacheManager->flush() or Mage::app()->cleanCache() inside a cron
+  job flushes the entire Magento cache, forcing every subsequent request to rebuild
+  full-page cache, block cache, and config cache from scratch. On a busy storefront,
+  a cron job that runs every 5-15 minutes and flushes the entire cache creates
+  periodic performance spikes visible as latency bursts to customers. The correct
+  approach is targeted cache invalidation using cache tags specific to the changed entities.
+category: "cron"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.1.0"
+tags:
+  - cron
+  - cache
+  - performance
+  - storefront
+globs:
+  - "**/Cron/**/*.php"
+check:
+  type: regex
+  pattern: '(->flush\s*\(\s*\)|cleanCache\s*\(\s*\)|flushAll\s*\(\s*\))'
+recommendation: >
+  Replace full cache flushes with targeted cache tag invalidation:
+
+    // Bad — flushes everything
+    $this->cacheManager->flush();
+
+    // Good — invalidate only the product cache tags for changed SKUs
+    $this->eventManager->dispatch('clean_cache_by_tags', [
+        'object' => $product  // dispatches invalidation for product's cache tags
+    ]);
+
+    // Or directly via cache tags
+    $this->cache->clean(\Zend_Cache::CLEANING_MODE_MATCHING_TAG, [
+        \Magento\Catalog\Model\Product::CACHE_TAG . '_' . $productId
+    ]);
+
+  For config-related changes, invalidate config cache only:
+    $this->cacheManager->invalidateType('config');
+    $this->cacheManager->invalidateType('layout');
+examples:
+  bad: |
+    public function execute(): void
+    {
+        $this->importProducts();
+        $this->cacheManager->flush(); // destroys all cache including FPC
+    }
+  good: |
+    public function execute(): void
+    {
+        $updatedIds = $this->importProducts();
+        // Invalidate only the affected product pages
+        $this->cache->clean(
+            \Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG,
+            array_map(fn($id) => 'catalog_product_' . $id, $updatedIds)
+        );
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/cache/partial/"
+  - "https://developer.adobe.com/commerce/php/development/cache/page/public-content/"

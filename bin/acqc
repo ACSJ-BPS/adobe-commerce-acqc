@@ -1,0 +1,28 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+// Set unlimited memory limit to prevent memory exhaustion
+ini_set('memory_limit', '-1');
+
+use ACQC\Core\Application;
+
+// Check if running via Composer autoloader
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+} elseif (file_exists(__DIR__ . '/../../../autoload.php')) {
+    // If installed as a Composer dependency
+    require_once __DIR__ . '/../../../autoload.php';
+} else {
+    echo "Error: Composer autoloader not found. Please run 'composer install' first.\n";
+    exit(1);
+}
+
+try {
+    $application = new Application();
+    $application->run();
+} catch (\Throwable $e) {
+    echo "Error: " . $e->getMessage() . "\n";
+    exit(1);
+} 

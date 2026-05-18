@@ -1,0 +1,35 @@
+schema_version: "1"
+version: "2.4.6-p2"
+release_date: "2023-10-10"
+eol_date: "2025-03-14"
+release_type: "security"
+parent_version: "2.4.6"
+
+php_support:
+  minimum: "8.1"
+  maximum: "8.2"
+  recommended: "8.2"
+  dropped: []
+
+search_engine_support:
+  elasticsearch: ["7.16", "7.17"]
+  opensearch: ["2.5", "2.8"]
+
+breaking_changes: []
+
+deprecated_symbols:
+  classes: []
+  methods: []
+  events: []
+
+db_schema_changes: []
+
+security_advisories:
+  - id: "APSB23-050"
+    cve: "CVE-2023-45152"
+    severity: high
+    description: "Improper access control in CMS block save endpoint allows unauthorized content modification"
+    affected_versions: ["2.4.6", "2.4.6-p1"]
+    fixed_in: "2.4.6-p2"
+    patch_available: true
+    patch_url: "https://experienceleague.adobe.com/docs/commerce-operations/release/notes/security-patches/2-4-6-patches.html"

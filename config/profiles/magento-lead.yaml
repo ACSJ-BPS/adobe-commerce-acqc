@@ -1,0 +1,248 @@
+# Magento Tech Lead Configuration Profile
+# Comprehensive analysis for technical leadership and code review
+
+profile:
+  name: "Magento Tech Lead"
+  description: "Comprehensive configuration for Magento technical leads and senior developers"
+  role: "lead"
+  focus: ["architecture", "performance", "security", "maintainability", "team-standards"]
+
+analyzers:
+  # Complete Magento backend analysis
+  magento:
+    structure:
+      enabled: true
+      severity_missing_required: "error"
+      severity_wrong_placement: "error"
+      severity_naming_convention: "warning"
+      severity_deprecated: "error"
+      check_composer_structure: true
+      check_module_xml: true
+      check_acl_structure: true
+      check_webapi_structure: true
+      check_di_structure: true
+      enforce_psr4_structure: true
+    
+    dependency_injection:
+      enabled: true
+      severity_objectmanager_usage: "error"
+      severity_concrete_injection: "error"  # Strict for leads
+      allow_objectmanager_in_factories: false  # Enforce best practices
+      allow_objectmanager_in_tests: true
+      check_constructor_arguments: true
+      check_circular_dependencies: true
+    
+    plugins:
+      enabled: true
+      severity_method_signature: "error"
+      severity_performance_sensitive: "error"
+      severity_sort_order: "warning"
+      check_around_plugins: true
+      check_method_naming: true
+      check_plugin_conflicts: true
+      validate_interceptor_logic: true
+    
+    observers:
+      enabled: true
+      severity_interface_implementation: "error"
+      severity_performance_impact: "warning"
+      check_event_names: true
+      validate_observer_priority: true
+      check_event_dispatching: true
+    
+    database:
+      enabled: true
+      severity_schema_issues: "error"
+      severity_query_performance: "error"
+      check_db_schema_xml: true
+      check_install_upgrade_scripts: true
+      validate_indexes: true
+      check_foreign_keys: true
+    
+    performance:
+      enabled: true
+      severity_n_plus_one: "error"
+      severity_inefficient_loops: "error"
+      severity_memory_issues: "warning"
+      check_collection_loading: true
+      check_model_loading: true
+      check_caching_patterns: true
+      validate_varnish_compatibility: true
+    
+    security:
+      enabled: true
+      severity_sql_injection: "critical"
+      severity_xss_vulnerabilities: "critical"
+      severity_hardcoded_secrets: "critical"
+      severity_unsafe_file_operations: "error"
+      check_input_validation: true
+      check_output_encoding: true
+      check_authorization_patterns: true
+      validate_acl_implementation: true
+    
+    upgrade:
+      enabled: true
+      severity_deprecated_usage: "error"
+      severity_removed_apis: "critical"
+      target_version: "2.4.7"
+      check_deprecated_classes: true
+      check_backward_compatibility: true
+      validate_version_constraints: true
+
+  # Complete frontend analysis
+  frontend:
+    react:
+      enabled: true
+      severity_naming_issues: "error"
+      severity_hook_issues: "error"
+      severity_performance_issues: "error"
+      severity_security_issues: "critical"
+      check_pwa_studio_patterns: true
+      validate_component_architecture: true
+    
+    pwa:
+      enabled: true
+      severity_manifest_issues: "error"
+      severity_service_worker_issues: "error"
+      check_pwa_studio_compliance: true
+      validate_offline_capability: true
+      check_app_shell_architecture: true
+    
+    seo:
+      enabled: true
+      severity_critical_seo: "error"
+      severity_important_seo: "warning"
+      check_structured_data: true
+      validate_meta_tags: true
+    
+    accessibility:
+      enabled: true
+      severity_critical_a11y: "error"
+      severity_important_a11y: "warning"
+      wcag_level: "AA"
+      check_aria_patterns: true
+    
+    performance:
+      enabled: true
+      severity_critical_performance: "error"
+      severity_performance_warning: "warning"
+      check_bundle_size: true
+      check_core_web_vitals: true
+      validate_lighthouse_score: true
+    
+    security:
+      enabled: true
+      severity_critical_security: "critical"
+      severity_high_security: "error"
+      check_csp_implementation: true
+      validate_security_headers: true
+
+  # All PHP quality tools enabled
+  php:
+    phpcs:
+      enabled: true
+      standard: "Magento2"
+      severity: "error"
+      warning_severity: 5
+      error_severity: 5
+    
+    phpstan:
+      enabled: true
+      level: "max"  # Strictest analysis
+      severity: "error"
+      magento_compatibility: true
+      treat_php_doc_types_as_native: true
+    
+    phpmd:
+      enabled: true
+      rulesets: ["cleancode", "codesize", "controversial", "design", "naming", "unusedcode"]
+      minimum_priority: 1
+      severity: "warning"
+    
+    phpcpd:
+      enabled: true
+      min_lines: 5
+      min_tokens: 70
+      severity: "warning"
+    
+    sonar:
+      enabled: false  # Enable if SonarQube is available
+
+# Strict rule settings for leadership
+rules:
+  max_violations_per_file: 10  # Lower tolerance
+  exclude_test_files: false    # Analyze everything
+  exclude_generated_files: true
+  
+  # Strict severity settings
+  severity_overrides:
+    "magento-objectmanager-usage": "critical"
+    "frontend-security-xss": "critical"
+    "magento-deprecated-*": "error"
+    "performance-*": "warning"
+
+# Comprehensive file analysis
+files:
+  include_patterns:
+    - "app/code/**/*.php"
+    - "app/code/**/*.phtml"
+    - "app/code/**/*.xml"
+    - "app/code/**/*.json"
+    - "app/code/**/*.js"
+    - "pwa-studio/**/*.js"
+    - "pwa-studio/**/*.jsx"
+    - "pwa-studio/**/*.ts"
+    - "pwa-studio/**/*.tsx"
+    - "pwa-studio/**/*.css"
+    - "pwa-studio/**/*.scss"
+    - "pwa-studio/**/*.html"
+    - "*.json"  # Package.json, composer.json
+    - "*.yml"   # Configuration files
+    - "*.yaml"
+  
+  exclude_patterns:
+    - "*/vendor/*"
+    - "*/node_modules/*"
+    - "*/var/cache/*"
+    - "*/generated/*"
+    - "*/pub/static/*"
+
+# Detailed output for review
+output:
+  format: "json"  # Structured data for reporting
+  show_context: true
+  group_by_severity: true
+  max_violations_shown: 100
+  show_fix_suggestions: true
+  include_metrics: true
+  generate_reports: true
+
+# Optimized performance for comprehensive analysis
+performance:
+  parallel_processing: true
+  max_workers: 8
+  cache_enabled: true
+  incremental_mode: false  # Full analysis for reviews
+
+# Integration for team leadership
+integration:
+  git_hooks: true
+  ci_mode: true
+  generate_badges: true
+  slack_notifications: true
+  email_reports: true
+
+# Team standards enforcement
+team_standards:
+  enforce_coding_standards: true
+  require_documentation: true
+  validate_test_coverage: true
+  check_commit_messages: true
+  enforce_branching_strategy: true
+
+# Quality gates for releases
+quality_gates:
+  max_critical_violations: 0
+  max_error_violations: 5
+  min_test_coverage: 80
+  max_technical_debt_ratio: 10 

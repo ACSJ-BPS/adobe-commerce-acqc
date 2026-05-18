@@ -1,0 +1,43 @@
+schema_version: "1"
+version: "2.4.6-p1"
+release_date: "2023-08-08"
+eol_date: "2025-03-14"
+release_type: "security"
+parent_version: "2.4.6"
+
+php_support:
+  minimum: "8.1"
+  maximum: "8.2"
+  recommended: "8.2"
+  dropped: []
+
+search_engine_support:
+  elasticsearch: ["7.16", "7.17"]
+  opensearch: ["2.5", "2.8"]
+
+breaking_changes: []
+
+deprecated_symbols:
+  classes: []
+  methods: []
+  events: []
+
+db_schema_changes: []
+
+security_advisories:
+  - id: "APSB23-042"
+    cve: "CVE-2023-38218"
+    severity: critical
+    description: "Stored XSS via crafted custom attribute value in customer account"
+    affected_versions: ["2.4.5", "2.4.5-p1", "2.4.5-p2", "2.4.6"]
+    fixed_in: "2.4.6-p1"
+    patch_available: true
+    patch_url: "https://experienceleague.adobe.com/docs/commerce-operations/release/notes/security-patches/2-4-6-patches.html"
+  - id: "APSB23-043"
+    cve: "CVE-2023-38219"
+    severity: high
+    description: "Open redirect in customer account login flow"
+    affected_versions: ["2.4.6"]
+    fixed_in: "2.4.6-p1"
+    patch_available: true
+    patch_url: "https://experienceleague.adobe.com/docs/commerce-operations/release/notes/security-patches/2-4-6-patches.html"

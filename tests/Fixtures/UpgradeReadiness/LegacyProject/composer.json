@@ -1,0 +1,11 @@
+{
+    "name": "vendor/legacy-project",
+    "description": "Legacy Adobe Commerce project fixture for ACQC upgrade readiness tests",
+    "require": {
+        "magento/product-community-edition": "2.4.5",
+        "magento/framework": "103.0.5"
+    },
+    "extra": {
+        "magento-force": "override"
+    }
+}

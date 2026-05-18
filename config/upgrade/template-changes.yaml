@@ -1,0 +1,6 @@
+schema_version: "1"
+# Changed or removed core .phtml templates per Adobe Commerce version.
+# Format: version -> list of {template_path, action: changed|removed, change_summary}
+# Used by TemplateOverrideDetector to flag stale theme overrides.
+
+version_changes: {}

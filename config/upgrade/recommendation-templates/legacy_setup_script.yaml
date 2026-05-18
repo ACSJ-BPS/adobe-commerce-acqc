@@ -1,0 +1,41 @@
+root_cause: "The module uses legacy InstallSchema.php, UpgradeSchema.php, InstallData.php, or UpgradeData.php setup scripts. These are deprecated since Commerce 2.3 and must be migrated to db_schema.xml (declarative schema) and DataPatch classes before upgrading to Commerce 2.4.x."
+code_example: |
+  // Before — legacy InstallSchema.php
+  public function install(SchemaSetupInterface $setup, ModuleContextInterface $context): void
+  {
+      $table = $setup->getConnection()->newTable('vendor_table')
+          ->addColumn('id', Table::TYPE_INTEGER, null, ['identity' => true, 'primary' => true]);
+      $setup->getConnection()->createTable($table);
+  }
+
+  // After — db_schema.xml (place in Module/etc/)
+  <?xml version="1.0"?>
+  <schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+      <table name="vendor_table" resource="default" engine="innodb" comment="Vendor Table">
+          <column xsi:type="int" name="id" unsigned="true" nullable="false" identity="true" comment="ID"/>
+          <constraint xsi:type="primary" referenceId="PRIMARY">
+              <column name="id"/>
+          </constraint>
+      </table>
+  </schema>
+
+  // After — DataPatch (replaces InstallData.php)
+  class AddDefaultData implements DataPatchInterface
+  {
+      public function apply(): void { /* insert default rows here */ }
+      public function getAliases(): array { return []; }
+      public static function getDependencies(): array { return []; }
+  }
+step_by_step: |
+  1. Run bin/magento setup:db-declaration:generate-whitelist --module-name=Vendor_Module to generate db_schema_whitelist.json for existing tables.
+  2. Create Module/etc/db_schema.xml declaring all tables currently created by InstallSchema/UpgradeSchema.
+  3. Convert each InstallData/UpgradeData block into a separate DataPatch class under Module/Setup/Patch/Data/.
+  4. Ensure each DataPatch implements getAliases() returning the old setup_module version string so Commerce does not re-run it.
+  5. Remove the legacy setup classes once all patches are verified in a staging environment.
+  6. Run bin/magento setup:upgrade --dry-run to confirm no schema drift.
+doc_links:
+  - "https://developer.adobe.com/commerce/php/development/components/declarative-schema/"
+  - "https://developer.adobe.com/commerce/php/development/components/declarative-schema/migration/"
+  - "https://developer.adobe.com/commerce/php/development/components/patch/data/"
+confidence_score: 5

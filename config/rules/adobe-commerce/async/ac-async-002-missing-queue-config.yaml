@@ -1,0 +1,56 @@
+schema_version: "1.0"
+id: "AC_ASYNC_002"
+name: "ac-async-002-missing-queue-config"
+title: "Message Queue Consumer Without Proper Queue Configuration"
+description: >
+  A message queue consumer class that implements ConsumerInterface or MessageQueueConsumerInterface
+  without a corresponding queue.xml and communication.xml configuration will fail
+  at runtime. The queue topology (topic, exchange, binding, consumer) must be
+  fully declared in configuration files for the consumer to receive messages and
+  for the queue infrastructure to route them correctly.
+category: "async"
+severity: "error"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-async.mdc"
+tags:
+  - async
+  - message-queue
+  - configuration
+globs:
+  - "**/Consumer/**/*.php"
+  - "**/MessageQueue/**/*.php"
+check:
+  type: structural
+  strategy: queue_config_check
+recommendation: >
+  For every consumer class, ensure your module contains:
+  1. etc/communication.xml — declares the topic with its data type
+  2. etc/queue.xml — declares the consumer binding the topic to the consumer class
+  3. etc/queue_topology.xml — declares the exchange and bindings (for RabbitMQ)
+  4. etc/queue_publisher.xml — declares the publisher connection
+examples:
+  bad: |
+    // Consumer class exists but no communication.xml or queue.xml
+    class OrderSyncConsumer implements \Magento\Framework\MessageQueue\ConsumerInterface
+    {
+        public function process(\Magento\Framework\Amqp\Config $config): void { ... }
+    }
+  good: |
+    // communication.xml
+    // <topic name="vendor.module.order.sync" request="Vendor\Module\Api\Data\OrderSyncInterface"/>
+    // queue.xml
+    // <consumer name="vendor_module_order_sync"
+    //           queue="vendor.module.order.sync"
+    //           connection="amqp"
+    //           handler="Vendor\Module\Model\Queue\Consumer\OrderSyncConsumer::process"/>
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/message-queues/configuration/"
+  - "https://developer.adobe.com/commerce/php/development/components/message-queues/"

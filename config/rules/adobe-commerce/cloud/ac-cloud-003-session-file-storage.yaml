@@ -1,0 +1,57 @@
+schema_version: "1.0"
+id: "AC_CLOUD_003"
+name: "ac-cloud-003-session-file-storage"
+title: "File-Based Session Storage in Cloud Environment"
+description: >
+  Configuring PHP sessions to use the local filesystem (session.save_handler = files)
+  is incompatible with Adobe Commerce Cloud's multi-node deployment. Each web node
+  has its own local filesystem, so sessions created on one node are not available
+  on another, causing customers to be logged out between requests. Cloud deployments
+  must use Redis for session storage to share session state across all nodes.
+category: "cloud"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-cloud.mdc"
+tags:
+  - cloud
+  - sessions
+  - redis
+  - performance
+globs:
+  - "**/*.php"
+  - "**/*.xml"
+check:
+  type: regex
+  pattern: 'session\.save_handler\s*[=,]\s*[''"]files[''"]'
+recommendation: >
+  Configure Redis as the session storage backend. In .magento.env.yaml set
+  SESSION_CONFIGURATION with save: redis and the appropriate Redis connection
+  details. Alternatively configure via bin/magento setup:config:set
+  --session-save=redis --session-save-redis-host=redis.internal
+examples:
+  bad: |
+    ini_set('session.save_handler', 'files');
+    ini_set('session.save_path', '/tmp/sessions');
+  good: |
+    // In .magento.env.yaml:
+    // stage:
+    //   deploy:
+    //     SESSION_CONFIGURATION:
+    //       save: redis
+    //       redis:
+    //         host: redis.internal
+    //         port: 6379
+    //         database: 0
+references:
+  - "https://experienceleague.adobe.com/docs/commerce-cloud-service/user-guide/configure/env/variables-deploy.html"
+  - "https://experienceleague.adobe.com/docs/commerce-operations/configuration-guide/cache/redis/redis-session.html"

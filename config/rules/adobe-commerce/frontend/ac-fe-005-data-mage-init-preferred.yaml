@@ -1,0 +1,68 @@
+schema_version: "1.0"
+id: "AC_FE_005"
+name: "ac-fe-005-data-mage-init-preferred"
+title: "Template: Inline jQuery Widget Init Should Use data-mage-init"
+description: >
+  Inline <script> tags in .phtml templates that call jQuery widget initialization
+  directly (e.g., $('.selector').widgetName({...})) execute before Magento's
+  JavaScript component system has finished loading. This causes intermittent
+  initialization failures and prevents the widget from being overridden via
+  requirejs-config.js. The Commerce-standard approach is data-mage-init or
+  x-magento-init attributes, which defer execution until the page's JS is fully loaded
+  and allow theme/extension overrides.
+category: "frontend"
+severity: "warning"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.1.0"
+tags:
+  - frontend
+  - javascript
+  - jquery
+  - widget
+  - initialization
+globs:
+  - "**/*.phtml"
+check:
+  type: regex
+  pattern: '<script[^>]*>[\s\S]{0,200}\$\s*\([''"][^)]+[''"]\)\s*\.\w+\s*\({'
+recommendation: >
+  Replace inline jQuery widget initialization with data-mage-init:
+
+    <!-- Instead of <script>$('.selector').myWidget({option: val});</script> -->
+    <div data-mage-init='{"Vendor_Module/js/my-widget": {"option": "val"}}'></div>
+
+  For widgets that need to initialize on a different element or require complex
+  configuration, use x-magento-init:
+
+    <script type="text/x-magento-init">
+    {
+        ".selector": {
+            "Vendor_Module/js/my-widget": {"option": "val"}
+        }
+    }
+    </script>
+
+  Both approaches integrate with Magento's JS component system and allow requirejs-config.js
+  path mappings and mixins to apply correctly.
+examples:
+  bad: |
+    <div id="my-slider"><!-- content --></div>
+    <script>
+    require(['jquery', 'jquery/ui'], function ($) {
+        $('#my-slider').slick({autoplay: true});
+    });
+    </script>
+  good: |
+    <div id="my-slider"
+         data-mage-init='{"slick": {"autoplay": true}}'>
+        <!-- content -->
+    </div>
+references:
+  - "https://developer.adobe.com/commerce/frontend-core/javascript/init/"
+  - "https://developer.adobe.com/commerce/frontend-core/javascript/custom-checkout-widget/"

@@ -1,0 +1,48 @@
+schema_version: "1.0"
+id: "AC_PERF_003"
+name: "ac-perf-003-sql-count"
+title: "SQL COUNT(*) Without Index Consideration"
+description: >
+  Using SELECT COUNT(*) on large tables without proper index conditions causes full
+  table scans which are extremely slow. For tables like catalog_product_entity or
+  sales_order with millions of rows, unfiltered COUNT queries can take seconds and
+  block the MySQL query cache. Use collection->getSize() with proper filters, or
+  maintain separate counters for frequently-needed totals.
+category: "performance"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-performance.mdc"
+tags:
+  - performance
+  - database
+  - sql
+  - index
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: regex
+  pattern: 'SELECT\s+COUNT\s*\(\s*\*\s*\)'
+recommendation: >
+  Use Magento's collection getSize() method which generates an optimized COUNT query
+  with proper joins and filters: $collection->addFieldToFilter(...)->getSize()
+  For reporting totals, consider using an aggregation table maintained by an indexer
+  rather than counting rows on every request.
+examples:
+  bad: |
+    $sql   = "SELECT COUNT(*) FROM catalog_product_entity WHERE status = 1";
+    $count = $this->connection->fetchOne($sql);
+  good: |
+    $count = $this->productCollectionFactory->create()
+        ->addAttributeToFilter('status', \Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_ENABLED)
+        ->getSize();
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/service-contracts/"
+  - "https://experienceleague.adobe.com/docs/commerce-operations/performance-best-practices/"

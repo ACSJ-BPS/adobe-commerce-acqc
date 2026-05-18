@@ -1,0 +1,507 @@
+# Performance-Focused Quality Rules
+# Rules specifically designed to identify and prevent performance issues
+
+name: "Performance Rules"
+description: "Performance optimization rules for high-performance applications"
+version: "2.0.0"
+extends: []
+
+# Performance Categories
+categories:
+  database: "Database Performance"
+  caching: "Caching Strategy"
+  memory: "Memory Usage"
+  algorithms: "Algorithm Efficiency"
+  io_operations: "I/O Operations"
+  frontend: "Frontend Performance"
+  collections: "Collection Optimization"
+  loops: "Loop Optimization"
+  resource_usage: "Resource Management"
+
+# Performance Severity Levels
+severity_levels:
+  critical: "Critical performance impact - fix immediately"
+  high: "High performance impact - fix before release"
+  medium: "Medium performance impact - fix when possible"
+  low: "Low performance impact - consider optimization"
+
+rules:
+  # ================================
+  # DATABASE PERFORMANCE RULES
+  # ================================
+
+  avoid_n_plus_one_queries:
+    name: "Avoid N+1 Query Problems"
+    category: database
+    severity: critical
+    description: "Prevent N+1 query patterns that cause excessive database calls"
+    rationale: "N+1 queries can cause severe performance degradation with large datasets"
+    performance_impact: "Can slow page load by 100-1000x with large collections"
+    examples:
+      bad:
+        - |
+          foreach ($products as $product) {
+              $category = $categoryRepository->getById($product->getCategoryId());
+              $reviews = $reviewCollection->addFieldToFilter('product_id', $product->getId());
+          }
+      good:
+        - |
+          $categoryIds = array_unique(array_column($products, 'category_id'));
+          $categories = $categoryRepository->getByIds($categoryIds);
+          
+          $productIds = array_column($products, 'entity_id');
+          $reviews = $reviewCollection->addFieldToFilter('product_id', ['in' => $productIds]);
+    fix_suggestion: "Batch database queries using IN clauses or joins"
+    benchmark:
+      before: "1000 products = 1001 queries (1 + 1000)"
+      after: "1000 products = 2 queries (1 + 1)"
+    tags: [database, queries, collections]
+
+  optimize_collection_loading:
+    name: "Optimize Collection Loading"
+    category: database
+    severity: high
+    description: "Load only required data in collections"
+    rationale: "Loading unnecessary data wastes memory and database resources"
+    examples:
+      bad:
+        - '$products = $productCollection->load(); // loads all fields'
+        - '$customers = $customerCollection->addAttributeToSelect("*");'
+      good:
+        - '$products = $productCollection->addAttributeToSelect(["name", "price", "sku"]);'
+        - '$customers = $customerCollection->addAttributeToSelect(["firstname", "lastname", "email"]);'
+    fix_suggestion: "Use addAttributeToSelect() to load only needed fields"
+    performance_impact: "Can reduce memory usage by 50-80%"
+    tags: [database, collections, memory]
+
+  use_indexes_effectively:
+    name: "Use Database Indexes Effectively"
+    category: database
+    severity: high
+    description: "Ensure queries use appropriate database indexes"
+    rationale: "Proper index usage dramatically improves query performance"
+    examples:
+      bad:
+        - 'WHERE UPPER(sku) = "ABC123"  -- prevents index usage'
+        - 'WHERE price * 1.2 > 100     -- function on column prevents index'
+      good:
+        - 'WHERE sku = "ABC123"        -- uses index on sku'
+        - 'WHERE price > 83.33         -- uses index on price'
+    fix_suggestion: "Avoid functions on indexed columns, use appropriate WHERE clauses"
+    benchmark:
+      indexed_query: "0.001s"
+      full_table_scan: "2.5s (2500x slower)"
+    tags: [database, indexes, queries]
+
+  limit_collection_size:
+    name: "Limit Collection Size"
+    category: database
+    severity: medium
+    description: "Always set page size limits on collections"
+    rationale: "Unlimited collections can cause memory exhaustion"
+    examples:
+      bad:
+        - '$products = $productCollection->load(); // no limit'
+      good:
+        - '$products = $productCollection->setPageSize(20)->setCurPage(1);'
+        - '$products = $productCollection->getSelect()->limit(100);'
+    fix_suggestion: "Use setPageSize() or LIMIT in queries"
+    performance_impact: "Prevents out-of-memory errors on large datasets"
+    tags: [database, collections, memory]
+
+  # ================================
+  # CACHING RULES
+  # ================================
+
+  implement_result_caching:
+    name: "Implement Result Caching"
+    category: caching
+    severity: medium
+    description: "Cache expensive computation results"
+    rationale: "Caching reduces redundant calculations and database queries"
+    examples:
+      bad:
+        - |
+          public function getComplexCalculation($productId) {
+              // Expensive calculation every time
+              return $this->performComplexMath($productId);
+          }
+      good:
+        - |
+          public function getComplexCalculation($productId) {
+              $cacheKey = 'complex_calc_' . $productId;
+              if (!$result = $this->cache->load($cacheKey)) {
+                  $result = $this->performComplexMath($productId);
+                  $this->cache->save($result, $cacheKey, [], 3600);
+              }
+              return $result;
+          }
+    fix_suggestion: "Implement caching for expensive operations"
+    performance_impact: "Can improve response time by 90%+ for cached operations"
+    tags: [caching, performance]
+
+  cache_invalidation_strategy:
+    name: "Proper Cache Invalidation"
+    category: caching
+    severity: medium
+    description: "Implement proper cache invalidation strategies"
+    rationale: "Stale cache data can cause incorrect application behavior"
+    examples:
+      bad:
+        - '// No cache invalidation when data changes'
+        - '$this->cache->clean(); // clears all cache unnecessarily'
+      good:
+        - '$this->cache->clean(Zend_Cache::CLEANING_MODE_MATCHING_TAG, ["product_$productId"]);'
+        - '$this->cache->remove("product_details_$productId");'
+    fix_suggestion: "Use cache tags and targeted invalidation"
+    tags: [caching, data_consistency]
+
+  avoid_cache_stampede:
+    name: "Avoid Cache Stampede"
+    category: caching
+    severity: medium
+    description: "Prevent multiple processes from regenerating same cache simultaneously"
+    rationale: "Cache stampede can cause server overload during high traffic"
+    examples:
+      bad:
+        - |
+          if (!$cache->load($key)) {
+              $data = expensiveOperation(); // Multiple processes might run this
+              $cache->save($data, $key);
+          }
+      good:
+        - |
+          if (!$cache->load($key)) {
+              if ($cache->load($key . '_lock')) {
+                  sleep(0.1); // Wait briefly and retry
+                  return $cache->load($key) ?: $defaultValue;
+              }
+              $cache->save(1, $key . '_lock', [], 10); // 10 second lock
+              $data = expensiveOperation();
+              $cache->save($data, $key);
+              $cache->remove($key . '_lock');
+          }
+    fix_suggestion: "Implement cache locking mechanism"
+    tags: [caching, concurrency]
+
+  # ================================
+  # MEMORY USAGE RULES
+  # ================================
+
+  avoid_memory_leaks:
+    name: "Avoid Memory Leaks"
+    category: memory
+    severity: high
+    description: "Prevent memory leaks in long-running processes"
+    rationale: "Memory leaks can cause application crashes and server instability"
+    examples:
+      bad:
+        - |
+          class DataProcessor {
+              private $cache = [];
+              public function process($data) {
+                  $this->cache[] = $data; // Memory leak - never cleared
+              }
+          }
+      good:
+        - |
+          class DataProcessor {
+              private $cache = [];
+              public function process($data) {
+                  if (count($this->cache) > 1000) {
+                      $this->cache = array_slice($this->cache, -500); // Keep only recent items
+                  }
+                  $this->cache[] = $data;
+              }
+          }
+    fix_suggestion: "Implement cache size limits and cleanup mechanisms"
+    tags: [memory, resource_management]
+
+  optimize_object_creation:
+    name: "Optimize Object Creation"
+    category: memory
+    severity: medium
+    description: "Minimize unnecessary object creation in loops"
+    rationale: "Excessive object creation increases memory usage and garbage collection overhead"
+    examples:
+      bad:
+        - |
+          foreach ($products as $product) {
+              $formatter = new PriceFormatter(); // Created every iteration
+              $price = $formatter->format($product->getPrice());
+          }
+      good:
+        - |
+          $formatter = new PriceFormatter(); // Created once
+          foreach ($products as $product) {
+              $price = $formatter->format($product->getPrice());
+          }
+    fix_suggestion: "Move object creation outside loops when possible"
+    performance_impact: "Reduces memory allocation by orders of magnitude"
+    tags: [memory, loops, objects]
+
+  use_generators_for_large_datasets:
+    name: "Use Generators for Large Datasets"
+    category: memory
+    severity: medium
+    description: "Use generators instead of loading entire datasets into memory"
+    rationale: "Generators allow processing large datasets with minimal memory usage"
+    examples:
+      bad:
+        - |
+          public function getAllProducts() {
+              $products = $this->productCollection->load();
+              return $products->getItems(); // Loads all into memory
+          }
+      good:
+        - |
+          public function getAllProducts() {
+              $collection = $this->productCollection;
+              $collection->setPageSize(100);
+              
+              for ($page = 1; $page <= $collection->getLastPageNumber(); $page++) {
+                  $collection->setCurPage($page)->load();
+                  foreach ($collection->getItems() as $product) {
+                      yield $product;
+                  }
+                  $collection->clear();
+              }
+          }
+    fix_suggestion: "Implement generator pattern for large dataset iteration"
+    memory_impact: "Constant memory usage regardless of dataset size"
+    tags: [memory, generators, collections]
+
+  # ================================
+  # ALGORITHM EFFICIENCY RULES
+  # ================================
+
+  avoid_inefficient_algorithms:
+    name: "Avoid Inefficient Algorithms"
+    category: algorithms
+    severity: high
+    description: "Replace inefficient algorithms with optimized alternatives"
+    rationale: "Algorithm choice dramatically affects performance with large datasets"
+    examples:
+      bad:
+        - |
+          // O(n²) algorithm
+          foreach ($products as $product) {
+              foreach ($categories as $category) {
+                  if ($product->getCategoryId() == $category->getId()) {
+                      $product->setCategory($category);
+                  }
+              }
+          }
+      good:
+        - |
+          // O(n) algorithm
+          $categoriesById = [];
+          foreach ($categories as $category) {
+              $categoriesById[$category->getId()] = $category;
+          }
+          foreach ($products as $product) {
+              if (isset($categoriesById[$product->getCategoryId()])) {
+                  $product->setCategory($categoriesById[$product->getCategoryId()]);
+              }
+          }
+    fix_suggestion: "Use hash maps for lookups instead of nested loops"
+    complexity:
+      bad: "O(n²) - quadratic time"
+      good: "O(n) - linear time"
+    tags: [algorithms, complexity, loops]
+
+  optimize_string_operations:
+    name: "Optimize String Operations"
+    category: algorithms
+    severity: medium
+    description: "Use efficient string operations for better performance"
+    rationale: "String operations can be expensive, especially when done repeatedly"
+    examples:
+      bad:
+        - |
+          $result = "";
+          foreach ($items as $item) {
+              $result .= $item . ","; // String concatenation in loop
+          }
+      good:
+        - |
+          $items = array_map(function($item) { return (string)$item; }, $items);
+          $result = implode(",", $items); // Much faster
+    fix_suggestion: "Use implode() instead of string concatenation in loops"
+    performance_impact: "10-100x faster for large arrays"
+    tags: [algorithms, strings]
+
+  # ================================
+  # I/O OPERATIONS RULES
+  # ================================
+
+  batch_file_operations:
+    name: "Batch File Operations"
+    category: io_operations
+    severity: medium
+    description: "Batch file operations to reduce I/O overhead"
+    rationale: "Multiple small I/O operations are much slower than fewer large operations"
+    examples:
+      bad:
+        - |
+          foreach ($logEntries as $entry) {
+              file_put_contents('log.txt', $entry . "\n", FILE_APPEND); // Multiple writes
+          }
+      good:
+        - |
+          $logData = implode("\n", $logEntries) . "\n";
+          file_put_contents('log.txt', $logData, FILE_APPEND); // Single write
+    fix_suggestion: "Accumulate data and perform single I/O operation"
+    tags: [io_operations, files]
+
+  optimize_image_processing:
+    name: "Optimize Image Processing"
+    category: io_operations
+    severity: medium
+    description: "Optimize image processing operations"
+    rationale: "Image processing is CPU and memory intensive"
+    examples:
+      bad:
+        - |
+          foreach ($products as $product) {
+              $image = $this->resizeImage($product->getImage(), 800, 600); // Process each image
+              $this->saveImage($image, $product->getId());
+          }
+      good:
+        - |
+          $imageBatch = [];
+          foreach ($products as $product) {
+              $imageBatch[] = ['id' => $product->getId(), 'image' => $product->getImage()];
+          }
+          $this->batchProcessImages($imageBatch, 800, 600); // Batch processing
+    fix_suggestion: "Batch image processing operations and use async processing"
+    tags: [io_operations, images, batching]
+
+  # ================================
+  # FRONTEND PERFORMANCE RULES
+  # ================================
+
+  minimize_dom_manipulations:
+    name: "Minimize DOM Manipulations"
+    category: frontend
+    severity: medium
+    description: "Batch DOM updates to avoid layout thrashing"
+    rationale: "Frequent DOM manipulations cause expensive reflows and repaints"
+    examples:
+      bad:
+        - |
+          for (let i = 0; i < items.length; i++) {
+              document.getElementById('list').innerHTML += '<li>' + items[i] + '</li>';
+          }
+      good:
+        - |
+          let html = '';
+          for (let i = 0; i < items.length; i++) {
+              html += '<li>' + items[i] + '</li>';
+          }
+          document.getElementById('list').innerHTML = html;
+    fix_suggestion: "Batch DOM updates and use DocumentFragment when possible"
+    tags: [frontend, dom, javascript]
+
+  optimize_css_selectors:
+    name: "Optimize CSS Selectors"
+    category: frontend
+    severity: low
+    description: "Use efficient CSS selectors"
+    rationale: "Complex CSS selectors can slow down page rendering"
+    examples:
+      bad:
+        - 'div > div > div > p.text { color: red; } /* Overly specific */'
+        - '.content * { margin: 0; } /* Universal selector */'
+      good:
+        - '.article-text { color: red; } /* Simple class selector */'
+        - '.content > p { margin: 0; } /* Direct child selector */'
+    fix_suggestion: "Use simple, specific class selectors"
+    tags: [frontend, css, selectors]
+
+  # ================================
+  # LOOP OPTIMIZATION RULES
+  # ================================
+
+  optimize_loop_conditions:
+    name: "Optimize Loop Conditions"
+    category: loops
+    severity: medium
+    description: "Optimize loop conditions to avoid repeated calculations"
+    rationale: "Loop conditions are evaluated every iteration"
+    examples:
+      bad:
+        - |
+          for ($i = 0; $i < count($products); $i++) { // count() called every iteration
+              processProduct($products[$i]);
+          }
+      good:
+        - |
+          $productCount = count($products); // Calculated once
+          for ($i = 0; $i < $productCount; $i++) {
+              processProduct($products[$i]);
+          }
+    fix_suggestion: "Cache loop limits and avoid function calls in conditions"
+    tags: [loops, optimization]
+
+  prefer_foreach_over_for:
+    name: "Prefer foreach Over for Loops"
+    category: loops
+    severity: low
+    description: "Use foreach for array iteration when possible"
+    rationale: "foreach is generally faster and more readable for array iteration"
+    examples:
+      bad:
+        - |
+          for ($i = 0; $i < count($products); $i++) {
+              processProduct($products[$i]);
+          }
+      good:
+        - |
+          foreach ($products as $product) {
+              processProduct($product);
+          }
+    fix_suggestion: "Replace for loops with foreach for array iteration"
+    tags: [loops, arrays]
+
+# Performance Budgets
+performance_budgets:
+  database_queries_per_request: 20
+  memory_limit_mb: 256
+  execution_time_seconds: 2.0
+  cache_hit_ratio_percentage: 80
+  
+# Performance Testing Integration
+performance_tests:
+  enable_profiling: true
+  enable_memory_tracking: true
+  enable_query_logging: true
+  benchmark_thresholds:
+    slow_query_ms: 100
+    slow_operation_ms: 500
+    high_memory_usage_mb: 50
+
+# Performance Monitoring
+monitoring:
+  track_query_count: true
+  track_execution_time: true
+  track_memory_usage: true
+  track_cache_performance: true
+  alert_thresholds:
+    query_count: 50
+    execution_time_ms: 1000
+    memory_usage_mb: 128
+
+# Integration with Performance Tools
+integrations:
+  xdebug:
+    enable_profiling: true
+    output_dir: "var/profiler"
+    
+  blackfire:
+    enable_recommendations: true
+    performance_budget_checks: true
+    
+  new_relic:
+    enable_apm: true
+    custom_metrics: true 

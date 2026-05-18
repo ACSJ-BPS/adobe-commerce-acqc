@@ -1,0 +1,52 @@
+schema_version: "1.0"
+id: "AC_PERF_002"
+name: "ac-perf-002-full-collection-load"
+title: "Full Collection Load Without Filter"
+description: >
+  Calling ->load() on a collection that has no addFieldToFilter() constraints
+  fetches the entire database table into memory. For tables like catalog_product_entity
+  (millions of rows on large catalogs) or sales_order, this will exhaust PHP memory
+  and produce a fatal error. Collections must always be filtered to the minimum
+  required dataset before loading.
+category: "performance"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-performance.mdc"
+tags:
+  - performance
+  - database
+  - collections
+  - memory
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: regex
+  pattern: '->load\s*\(\s*\)'
+recommendation: >
+  Always apply at least one filter before loading a collection:
+  $collection->addFieldToFilter('status', 'pending');
+  $collection->setPageSize(100)->setCurPage($page);
+  For large datasets, use iterators or chunk processing with setPageSize() to
+  avoid loading all records at once.
+examples:
+  bad: |
+    $collection = $this->orderCollectionFactory->create();
+    $collection->load(); // Loads ALL orders — fatal on large stores
+    foreach ($collection as $order) { ... }
+  good: |
+    $collection = $this->orderCollectionFactory->create();
+    $collection->addFieldToFilter('status', 'pending')
+               ->addFieldToFilter('created_at', ['gteq' => $cutoff])
+               ->setPageSize(100);
+    foreach ($collection as $order) { ... }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/service-contracts/"
+  - "https://experienceleague.adobe.com/docs/commerce-operations/performance-best-practices/"

@@ -1,0 +1,245 @@
+# Magento Code Review Profile
+# Optimized for code review processes and pull request analysis
+
+profile:
+  name: "Magento Code Review"
+  description: "Code review focused analysis for Magento 2 pull requests"
+  role: "code-reviewer"
+  focus: ["code-quality", "maintainability", "best-practices", "patterns"]
+
+analyzers:
+  # Magento analyzers focused on code quality
+  magento:
+    structure:
+      enabled: true
+      severity_missing_required: "warning"
+      severity_wrong_placement: "error"
+      severity_naming_convention: "warning"
+      check_composer_structure: true
+      check_module_xml: true
+      check_directory_structure: true
+    
+    dependency_injection:
+      enabled: true
+      severity_objectmanager_usage: "error"
+      severity_concrete_injection: "warning"
+      allow_objectmanager_in_factories: true
+      allow_objectmanager_in_tests: true
+      check_constructor_arguments: true
+      check_interface_usage: true
+    
+    plugins:
+      enabled: true
+      severity_method_signature: "error"
+      severity_performance_sensitive: "warning"
+      severity_sort_order: "warning"
+      check_around_plugins: true
+      check_method_naming: true
+      check_plugin_documentation: true
+    
+    observers:
+      enabled: true
+      severity_interface_implementation: "warning"
+      severity_performance_impact: "warning"
+      check_event_names: true
+      check_observer_documentation: true
+    
+    database:
+      enabled: true
+      severity_schema_issues: "error"
+      severity_query_performance: "warning"
+      check_db_schema_xml: true
+      check_resource_model_patterns: true
+      check_collection_usage: true
+    
+    performance:
+      enabled: true
+      severity_n_plus_one: "error"
+      severity_inefficient_loops: "warning"
+      severity_memory_issues: "warning"
+      check_collection_loading: true
+      check_model_loading: true
+      check_caching_patterns: true
+    
+    security:
+      enabled: true
+      severity_sql_injection: "error"
+      severity_xss_vulnerabilities: "error"
+      severity_hardcoded_secrets: "error"
+      check_input_validation: true
+      check_output_encoding: true
+    
+    upgrade:
+      enabled: true
+      severity_deprecated_usage: "warning"
+      severity_removed_apis: "error"
+      target_version: "2.4.7"
+      check_deprecated_classes: true
+      check_api_changes: true
+
+  # Frontend code quality
+  frontend:
+    react:
+      enabled: true
+      severity_naming_issues: "warning"
+      severity_hook_issues: "error"
+      severity_performance_issues: "warning"
+      severity_component_structure: "warning"
+      check_pwa_studio_patterns: true
+      check_component_documentation: true
+    
+    pwa:
+      enabled: true
+      severity_manifest_issues: "warning"
+      severity_service_worker_issues: "warning"
+      check_pwa_studio_compliance: true
+    
+    seo:
+      enabled: true
+      severity_meta_issues: "info"
+      severity_structured_data: "info"
+      check_basic_seo: true
+    
+    accessibility:
+      enabled: true
+      severity_a11y_errors: "warning"
+      severity_a11y_warnings: "info"
+      check_basic_accessibility: true
+    
+    performance:
+      enabled: true
+      severity_performance_warning: "warning"
+      check_bundle_size: true
+      check_lazy_loading: true
+      check_image_optimization: true
+    
+    security:
+      enabled: true
+      severity_high_security: "error"
+      severity_medium_security: "warning"
+      check_xss_vulnerabilities: true
+
+  # PHP quality tools for code review
+  php:
+    phpcs:
+      enabled: true
+      standard: "Magento2"
+      severity: "warning"
+      exclude_patterns:
+        - "*/Test/*"
+        - "*/generated/*"
+      check_formatting: true
+      check_naming_conventions: true
+    
+    phpstan:
+      enabled: true
+      level: "6"  # Balanced for code review
+      severity: "warning"
+      magento_compatibility: true
+      check_type_safety: true
+    
+    phpmd:
+      enabled: true
+      rules: "codesize,design,naming,unusedcode"
+      severity: "warning"
+      exclude_test_files: true
+    
+    phpcpd:
+      enabled: true
+      severity: "warning"
+      min_lines: "10"
+      min_tokens: "50"
+
+# Code review specific rule customizations
+rules:
+  # Focus on maintainability and readability
+  severity_overrides:
+    "method-too-long": "warning"
+    "class-too-large": "warning"
+    "cyclomatic-complexity": "warning"
+    "npath-complexity": "warning"
+    "missing-documentation": "info"
+    "inconsistent-naming": "warning"
+    "duplicate-code": "warning"
+    "unused-imports": "info"
+    "unused-variables": "info"
+    "magic-numbers": "info"
+    "long-parameter-list": "warning"
+    "coupling-between-objects": "warning"
+  
+  # Code review thresholds
+  max_violations_per_file: 15
+  exclude_test_files: true
+  exclude_generated_files: true
+  focus_on_changed_files: true  # Only analyze changed files in PR
+
+# File patterns for code review
+files:
+  include_patterns:
+    - "app/code/**/*.php"
+    - "app/code/**/*.phtml"
+    - "app/code/**/*.xml"
+    - "app/code/**/*.json"
+    - "pwa-studio/**/*.js"
+    - "pwa-studio/**/*.jsx"
+    - "pwa-studio/**/*.ts"
+    - "pwa-studio/**/*.tsx"
+    - "app/design/**/*.phtml"
+    - "app/design/**/*.js"
+    - "app/design/**/*.xml"
+  
+  exclude_patterns:
+    - "*/vendor/*"
+    - "*/node_modules/*"
+    - "*/var/*"
+    - "*/generated/*"
+    - "*/pub/static/*"
+    - "*/Test/*"
+    - "*/tests/*"
+    - "*.min.js"
+    - "*.min.css"
+
+# Code review output preferences
+output:
+  format: "table"
+  show_context: true
+  group_by_file: true
+  group_by_severity: false
+  max_violations_shown: 25
+  show_fix_suggestions: true
+  show_code_metrics: true
+  include_complexity_metrics: true
+  include_maintainability_index: true
+
+# Performance settings for code review
+performance:
+  parallel_processing: true
+  max_workers: 4
+  cache_enabled: true
+  incremental_mode: true  # Analyze only changed files
+  baseline_mode: true     # Compare against baseline
+
+# Integration settings for code review
+integration:
+  git_hooks: true
+  git_diff_analysis: true  # Analyze only changed lines
+  pull_request_mode: true
+  ide_integration: true
+  ci_mode: true
+  comment_on_pr: true      # Add review comments
+  
+# Baseline configuration for code review
+baseline:
+  enabled: true
+  file: ".acqc-baseline.json"
+  update_on_clean_run: true
+  ignore_existing_violations: true
+
+# Quality gates for code review
+quality_gates:
+  max_critical_violations: 0
+  max_error_violations: 5
+  max_warning_violations: 15
+  max_complexity_score: 10
+  min_test_coverage: 80
+  max_code_duplication: 5  # percentage 

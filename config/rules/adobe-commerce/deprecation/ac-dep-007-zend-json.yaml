@@ -1,0 +1,59 @@
+schema_version: "1.0"
+id: "AC_DEP_007"
+name: "ac-dep-007-zend-json"
+title: "Zend JSON — Use Magento Serializer Instead"
+description: >
+  Zend\Json\Json and the ZF1-style Zend_Json class have been removed from the Magento
+  platform in favour of Magento\Framework\Serialize\Serializer\Json. Using Zend JSON
+  directly prevents DI injection of alternative serializers, makes the code harder to
+  mock in tests, and will fail when the Zend shim is fully removed.
+category: "deprecation"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "zend-laminas-deprecations.md"
+tags:
+  - deprecation
+  - zend
+  - json
+  - serialization
+  - upgrade-risk
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: '(use\s+Zend\\Json|Zend_Json\b|\\Zend\\Json)'
+recommendation: >
+  Replace Zend\Json\Json::encode()/decode() with Magento\Framework\Serialize\Serializer\Json
+  injected via constructor DI. For simple cases where DI is not available, use
+  json_encode() / json_decode() with JSON_THROW_ON_ERROR for proper error handling.
+examples:
+  bad: |
+    use Zend\Json\Json;
+
+    $data = Json::decode($response, Json::TYPE_ARRAY);
+    $output = Json::encode($array);
+  good: |
+    use Magento\Framework\Serialize\Serializer\Json;
+
+    class MyService
+    {
+        public function __construct(private readonly Json $serializer) {}
+
+        public function process(string $response): array
+        {
+            return $this->serializer->unserialize($response);
+        }
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/serialize/"
+  - "https://developer.adobe.com/commerce/php/development/backward-incompatible-changes/highlights/"

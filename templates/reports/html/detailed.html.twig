@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ report.title|default('Detailed Analysis') }} - ACQC</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; margin: 0; background: #f5f5f5; color: #2c3e50; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; margin-top: 0; }
+        h2 { color: #34495e; margin-top: 30px; }
+        .report-info p { margin: 4px 0; font-size: 13px; color: #555; }
+
+        /* ── Metric cards ── */
+        .metrics { display: flex; flex-wrap: wrap; gap: 14px; margin: 16px 0; }
+        .metric { flex: 1 1 130px; padding: 14px 18px; background: #ecf0f1; border-radius: 6px; text-align: center; }
+        .metric-label { font-size: 11px; color: #7f8c8d; text-transform: uppercase; }
+        .metric-value { font-size: 26px; font-weight: bold; color: #2c3e50; margin-top: 4px; }
+        .metric-value.good   { color: #27ae60; }
+        .metric-value.warn   { color: #e67e22; }
+        .metric-value.bad    { color: #e74c3c; }
+        .severity-critical { color: #e74c3c; }
+        .severity-error    { color: #e67e22; }
+        .severity-warning  { color: #f39c12; }
+        .severity-info     { color: #3498db; }
+
+        /* ── Category summary table ── */
+        table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+        th { background: #34495e; color: white; padding: 10px 12px; text-align: left; font-size: 13px; cursor: pointer; user-select: none; }
+        th:hover { background: #2c3e50; }
+        th.sorted-asc::after  { content: ' ▲'; font-size:10px; }
+        th.sorted-desc::after { content: ' ▼'; font-size:10px; }
+        td { padding: 9px 12px; border-bottom: 1px solid #ecf0f1; font-size: 13px; vertical-align: top; }
+        tr:hover > td { background: #f8f9fa; }
+
+        /* ── File accordion ── */
+        .file-group { border: 1px solid #e0e0e0; border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+        .file-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 16px; background: #f4f6f7; cursor: pointer;
+            font-size: 13px; font-weight: 600; user-select: none;
+        }
+        .file-header:hover { background: #e8ecee; }
+        .file-header .file-path { font-family: monospace; font-size: 12px; flex: 1; word-break: break-all; }
+        .file-header .file-meta { white-space: nowrap; margin-left: 12px; color: #7f8c8d; font-weight: normal; font-size: 12px; }
+        .file-header .arrow { margin-left: 10px; transition: transform .2s; font-size: 10px; }
+        .file-group.open .file-header .arrow { transform: rotate(180deg); }
+        .file-violations { display: none; padding: 0; }
+        .file-group.open .file-violations { display: block; }
+
+        /* ── Per-violation rows inside file accordion ── */
+        .viol-row { display: flex; padding: 8px 16px; border-top: 1px solid #ecf0f1; cursor: pointer; }
+        .viol-row:hover { background: #f0f8ff; }
+        .viol-row.expanded { background: #e8f4fd; }
+        .viol-badge { flex: 0 0 80px; padding-top: 2px; }
+        .viol-meta  { flex: 0 0 60px; font-size: 12px; color: #7f8c8d; padding-top: 2px; }
+        .viol-rule  { flex: 0 0 140px; font-family: monospace; font-size: 11px; color: #2471a3; padding-top: 3px; }
+        .viol-msg   { flex: 1; font-size: 13px; }
+        .viol-expand { flex: 0 0 20px; text-align: right; font-size: 10px; color: #95a5a6; padding-top: 3px; }
+        .viol-detail { display: none; padding: 10px 16px 14px 96px; background: #f7fbff; border-top: 1px dashed #aed6f1; }
+        .viol-detail.visible { display: block; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .detail-grid h4 { margin: 0 0 4px 0; font-size: 11px; text-transform: uppercase; color: #7f8c8d; }
+        .detail-grid p  { margin: 0; font-size: 13px; line-height: 1.5; }
+        .rec-block { grid-column: 1/-1; background: #e7f3ff; border-left: 3px solid #3498db; padding: 10px 14px; border-radius: 0 4px 4px 0; }
+
+        /* ── Severity badges ── */
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; white-space: nowrap; }
+        .badge-blocker  { background: #2c3e50; color: #fff; }
+        .badge-critical { background: #fdecea; color: #e74c3c; }
+        .badge-error    { background: #fef3e2; color: #e67e22; }
+        .badge-warning  { background: #fef9e7; color: #f39c12; }
+        .badge-info     { background: #eaf4fb; color: #3498db; }
+
+        /* ── Filter bar ── */
+        .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+        .filter-bar input, .filter-bar select { padding: 6px 10px; border: 1px solid #bdc3c7; border-radius: 4px; font-size: 13px; }
+        .filter-bar input { flex: 1; min-width: 200px; }
+        .btn-clear { padding: 6px 14px; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .btn-clear:hover { background: #d5dbdb; }
+        #file-count { font-size: 13px; color: #7f8c8d; margin-left: auto; }
+
+        .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ecf0f1; text-align: center; color: #7f8c8d; font-size: 13px; }
+        .no-issues { padding: 30px; text-align: center; color: #27ae60; font-size: 18px; }
+        .empty-msg { padding: 20px; text-align: center; color: #95a5a6; font-style: italic; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>{{ report.title|default('Detailed Analysis Report') }}</h1>
+
+    <div class="report-info">
+        <p><strong>Project:</strong> {{ report.project_name|default('N/A') }}</p>
+        <p><strong>Generated:</strong> {{ report.generated_at|default('N/A') }}</p>
+        <p><strong>Role:</strong> {{ report.user_role|default('N/A') }}</p>
+    </div>
+
+    {% set violations = data.violations|default({}) %}
+    {% set total_count = violations.total_count|default(0) %}
+    {% set by_severity = violations.by_severity|default({}) %}
+    {% set all_violations = violations.all|default(violations.top_violations|default([])) %}
+    {% set score = data.metrics.quality_score|default(data.score|default(0)) %}
+
+    {# ── Summary metrics ── #}
+    <h2>Summary Metrics</h2>
+    <div class="metrics">
+        <div class="metric">
+            <div class="metric-label">Score</div>
+            <div class="metric-value {% if score >= 80 %}good{% elseif score >= 60 %}warn{% else %}bad{% endif %}">{{ score|number_format(0) }}/100</div>
+        </div>
+        {% if total_count > 0 %}
+        <div class="metric">
+            <div class="metric-label">Total</div>
+            <div class="metric-value {% if total_count < 50 %}warn{% else %}bad{% endif %}">{{ total_count }}</div>
+        </div>
+        {% if by_severity.blocker|default(0) > 0 %}
+        <div class="metric">
+            <div class="metric-label">Blockers</div>
+            <div class="metric-value bad">{{ by_severity.blocker }}</div>
+        </div>
+        {% endif %}
+        {% if by_severity.critical|default(0) > 0 %}
+        <div class="metric">
+            <div class="metric-label">Critical</div>
+            <div class="metric-value bad">{{ by_severity.critical }}</div>
+        </div>
+        {% endif %}
+        {% if by_severity.error|default(0) > 0 %}
+        <div class="metric">
+            <div class="metric-label">Errors</div>
+            <div class="metric-value warn">{{ by_severity.error }}</div>
+        </div>
+        {% endif %}
+        {% if by_severity.warning|default(0) > 0 %}
+        <div class="metric">
+            <div class="metric-label">Warnings</div>
+            <div class="metric-value">{{ by_severity.warning }}</div>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="metric">
+            <div class="metric-label">Status</div>
+            <div class="metric-value good">✓ Clean</div>
+        </div>
+        {% endif %}
+    </div>
+
+    {# ── Category breakdown ── #}
+    {% set by_category = violations.by_category|default({}) %}
+    {% if by_category|length > 0 %}
+    <h2>Violations by Category</h2>
+    <table id="cat-table">
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th data-type="numeric">Count</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for category, count in by_category %}
+        <tr>
+            <td>{{ category|capitalize }}</td>
+            <td class="severity-{{ category }}">{{ count }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {# ── Per-file accordion ── #}
+    {% if all_violations|length > 0 %}
+    <h2>Issues by File
+        <small style="font-size:13px;font-weight:normal;color:#7f8c8d"> — click file to expand, click issue to see details</small>
+    </h2>
+
+    <div class="filter-bar">
+        <input type="text"   id="file-search" placeholder="Filter by file path, rule, or message…">
+        <select id="sev-filter">
+            <option value="">All severities</option>
+            <option value="blocker">Blocker</option>
+            <option value="critical">Critical</option>
+            <option value="error">Error</option>
+            <option value="warning">Warning</option>
+            <option value="info">Info</option>
+        </select>
+        <button class="btn-clear" onclick="clearDetailFilters()">Clear</button>
+        <span id="file-count"></span>
+    </div>
+
+    <div id="file-groups">
+    {% set file_violations = {} %}
+    {% for v in all_violations %}
+        {% set fp = v.file|default(v.file_path|default('unknown')) %}
+        {% if file_violations[fp] is not defined %}
+            {% set file_violations = file_violations|merge({(fp): []}) %}
+        {% endif %}
+        {% set file_violations = file_violations|merge({(fp): file_violations[fp]|merge([v])}) %}
+    {% endfor %}
+
+    {% for fp, viols in file_violations %}
+    {% set worst = 'info' %}
+    {% for v in viols %}
+        {% if v.severity == 'blocker'  %}{% set worst = 'blocker'  %}{% endif %}
+        {% if v.severity == 'critical' and worst != 'blocker' %}{% set worst = 'critical' %}{% endif %}
+        {% if v.severity == 'error'    and worst not in ['blocker','critical'] %}{% set worst = 'error' %}{% endif %}
+        {% if v.severity == 'warning'  and worst not in ['blocker','critical','error'] %}{% set worst = 'warning' %}{% endif %}
+    {% endfor %}
+    <div class="file-group"
+         data-file="{{ fp|lower }}"
+         data-worst="{{ worst }}">
+        <div class="file-header" onclick="toggleFile(this)">
+            <span class="file-path">{{ fp|split('/')|last }}</span>
+            <span class="file-meta" title="{{ fp }}">
+                <span class="badge badge-{{ worst }}">{{ worst|upper }}</span>
+                &nbsp;{{ viols|length }} issue{{ viols|length != 1 ? 's' : '' }}
+            </span>
+            <span class="arrow">▼</span>
+        </div>
+        <div class="file-violations">
+            {% for v in viols %}
+            {% set vid = 'dv' ~ loop.parent.loop.index ~ '_' ~ loop.index %}
+            <div class="viol-row"
+                 data-sev="{{ v.severity|default('warning') }}"
+                 data-text="{{ (v.message|default('') ~ ' ' ~ v.rule_id|default(''))|lower }}"
+                 onclick="toggleViolDetail('{{ vid }}', this)">
+                <div class="viol-badge"><span class="badge badge-{{ v.severity|default('warning') }}">{{ v.severity|upper|default('WARN') }}</span></div>
+                <div class="viol-meta">L{{ v.line|default('?') }}</div>
+                <div class="viol-rule">{{ v.rule_id|default('—') }}</div>
+                <div class="viol-msg">{{ v.message|default('')|slice(0, 120) }}{% if v.message|default('')|length > 120 %}…{% endif %}</div>
+                <div class="viol-expand">▼</div>
+            </div>
+            <div class="viol-detail" id="detail-{{ vid }}">
+                <div class="detail-grid">
+                    <div>
+                        <h4>Full Message</h4>
+                        <p>{{ v.message|default('—') }}</p>
+                    </div>
+                    <div>
+                        <h4>Location</h4>
+                        <p style="font-family:monospace;font-size:12px">{{ fp }}{% if v.line is defined and v.line %} : line {{ v.line }}{% endif %}</p>
+                    </div>
+                    {% if v.recommendation is defined and v.recommendation %}
+                    <div class="rec-block">
+                        <h4>Recommendation</h4>
+                        <p>{{ v.recommendation }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-msg">No violations to display.</div>
+    {% endfor %}
+    </div>
+    {% else %}
+    <div class="no-issues">✓ No issues found — clean codebase!</div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Generated by ACQC v{{ report.version|default('1.0.0') }}</p>
+        <p>Adobe Commerce Quality Control</p>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    // ── File accordion ─────────────────────────────────────────────────────────
+    window.toggleFile = function (header) {
+        header.parentElement.classList.toggle('open');
+    };
+
+    // Open first group by default
+    document.addEventListener('DOMContentLoaded', function () {
+        var first = document.querySelector('.file-group');
+        if (first) first.classList.add('open');
+        setupDetailFilters();
+        setupCatSort();
+        updateFileCount();
+    });
+
+    // ── Violation detail expand ────────────────────────────────────────────────
+    window.toggleViolDetail = function (id, row) {
+        var detail = document.getElementById('detail-' + id);
+        if (!detail) return;
+        var open = detail.classList.contains('visible');
+        // Collapse all
+        document.querySelectorAll('.viol-detail.visible').forEach(function (d) { d.classList.remove('visible'); });
+        document.querySelectorAll('.viol-row.expanded').forEach(function (r) { r.classList.remove('expanded'); });
+        if (!open) {
+            detail.classList.add('visible');
+            row.classList.add('expanded');
+        }
+    };
+
+    // ── Filter file groups ─────────────────────────────────────────────────────
+    function setupDetailFilters() {
+        document.getElementById('file-search').addEventListener('input', applyDetailFilters);
+        document.getElementById('sev-filter').addEventListener('change', applyDetailFilters);
+    }
+
+    window.clearDetailFilters = function () {
+        document.getElementById('file-search').value = '';
+        document.getElementById('sev-filter').value  = '';
+        applyDetailFilters();
+    };
+
+    function applyDetailFilters() {
+        var searchVal = (document.getElementById('file-search').value || '').toLowerCase();
+        var sevVal    = (document.getElementById('sev-filter').value || '').toLowerCase();
+        var groups    = document.querySelectorAll('.file-group');
+        var visible   = 0;
+
+        groups.forEach(function (group) {
+            var fileMatch  = !searchVal || group.dataset.file.includes(searchVal);
+            var sevMatch   = !sevVal    || group.dataset.worst === sevVal;
+
+            // Also filter inner violation rows
+            var violRows = group.querySelectorAll('.viol-row');
+            var anyViolMatch = false;
+            violRows.forEach(function (vrow) {
+                var rowSevOk   = !sevVal    || vrow.dataset.sev === sevVal;
+                var rowTextOk  = !searchVal || vrow.dataset.text.includes(searchVal) || group.dataset.file.includes(searchVal);
+                var show = rowSevOk && rowTextOk;
+                vrow.style.display = show ? '' : 'none';
+                if (show) anyViolMatch = true;
+            });
+
+            var show = (fileMatch || anyViolMatch) && (!sevVal || anyViolMatch || sevMatch);
+            group.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+
+        updateFileCount(visible);
+    }
+
+    function updateFileCount(count) {
+        var el = document.getElementById('file-count');
+        if (!el) return;
+        var total = document.querySelectorAll('.file-group').length;
+        el.textContent = (count !== undefined ? count : total) + ' of ' + total + ' file group' + (total === 1 ? '' : 's');
+    }
+
+    // ── Sortable category table ────────────────────────────────────────────────
+    function setupCatSort() {
+        var table = document.getElementById('cat-table');
+        if (!table) return;
+        table.querySelectorAll('th').forEach(function (th, idx) {
+            th.addEventListener('click', function () {
+                var asc = !this.classList.contains('sorted-asc');
+                table.querySelectorAll('th').forEach(function (h) { h.classList.remove('sorted-asc', 'sorted-desc'); });
+                this.classList.add(asc ? 'sorted-asc' : 'sorted-desc');
+                var tbody = table.querySelector('tbody');
+                var rows = Array.from(tbody.querySelectorAll('tr'));
+                rows.sort(function (a, b) {
+                    var av = a.children[idx].textContent.trim();
+                    var bv = b.children[idx].textContent.trim();
+                    var num = this.dataset && this.dataset.type === 'numeric';
+                    if (!isNaN(parseFloat(av)) && !isNaN(parseFloat(bv))) {
+                        return asc ? parseFloat(av) - parseFloat(bv) : parseFloat(bv) - parseFloat(av);
+                    }
+                    return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+                }.bind(this));
+                rows.forEach(function (r) { tbody.appendChild(r); });
+            });
+        });
+    }
+})();
+</script>
+</body>
+</html>

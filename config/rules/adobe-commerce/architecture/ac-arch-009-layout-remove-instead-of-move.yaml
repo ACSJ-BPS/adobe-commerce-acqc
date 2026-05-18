@@ -1,0 +1,57 @@
+schema_version: "1.0"
+id: "AC_ARCH_009"
+name: "ac-arch-009-layout-remove-instead-of-move"
+title: "Layout Uses <remove> Instead of <move> for Block Repositioning"
+description: >
+  Using <referenceBlock name="..." remove="true"/> in layout XML removes a block
+  entirely from the rendering tree. If another module or theme adds child blocks to
+  the removed block, those children are also silently lost, causing layout conflicts
+  that are hard to trace. Prefer <move> to reposition blocks while keeping them
+  available as parents, or use <referenceBlock> to adjust rather than remove.
+category: "architecture"
+severity: "warning"
+tier: 2
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "conflict-types.md"
+tags:
+  - architecture
+  - layout
+  - conflict
+  - blocks
+  - theme
+globs:
+  - "**/*.xml"
+check:
+  type: xml_xpath
+  expression: "//referenceBlock[@remove='true']"
+  attribute: "name"
+  message: "Block '{{value}}' is removed via layout XML. If other modules add children to this block, they will be silently lost."
+recommendation: >
+  Prefer <move element="block.name" destination="new.container"/> to reposition
+  a block rather than removing it. If you must suppress a block's output, consider:
+    - Setting template to empty.phtml
+    - Using <referenceBlock name="..."><arguments><argument name="display">false</argument></arguments></referenceBlock>
+  Only use remove="true" when you are certain no other module depends on the block.
+examples:
+  bad: |
+    <!-- Removes the block entirely — breaks other modules that add children to it -->
+    <referenceBlock name="catalog.topnav" remove="true"/>
+  good: |
+    <!-- Move the block to a different position instead -->
+    <move element="catalog.topnav" destination="footer-container" before="-"/>
+
+    <!-- Or make it invisible without removing from the tree -->
+    <referenceBlock name="catalog.topnav">
+        <arguments>
+            <argument name="display" xsi:type="boolean">false</argument>
+        </arguments>
+    </referenceBlock>
+references:
+  - "https://developer.adobe.com/commerce/frontend-core/guide/layouts/xml-instructions/"
+  - "https://developer.adobe.com/commerce/frontend-core/guide/layouts/types/"

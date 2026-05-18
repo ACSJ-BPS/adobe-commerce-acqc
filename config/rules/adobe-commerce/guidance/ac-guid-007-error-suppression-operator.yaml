@@ -1,0 +1,72 @@
+schema_version: "1.0"
+id: "AC_GUID_007"
+name: "ac-guid-007-error-suppression-operator"
+title: "PHP: @ Error Suppression Operator Hides Bugs and Slows Execution"
+description: >
+  The @ error suppression operator silently discards PHP errors and warnings, masking
+  underlying bugs that would otherwise surface in logs or during development. In Adobe
+  Commerce, suppressed errors hide file permission problems, missing configuration,
+  third-party service failures, and type mismatches. Additionally, @ has measurable
+  performance overhead because PHP still internally raises and handles the error before
+  discarding it — it does not prevent the error, it only hides it.
+  All error conditions should be handled explicitly with try/catch or pre-condition checks.
+category: "guidance"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+introduced_in: "3.1.0"
+tags:
+  - php
+  - anti-pattern
+  - error-handling
+  - quality
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: '(?<!\$)@(?!\[)[a-zA-Z_\$]'
+recommendation: >
+  Replace @ suppression with explicit error handling:
+
+    // Bad — silently fails if file doesn't exist or is unreadable
+    $content = @file_get_contents($path);
+
+    // Good — explicit check before reading
+    if (!is_readable($path)) {
+        throw new \Magento\Framework\Exception\FileSystemException(
+            __('File not readable: %1', $path)
+        );
+    }
+    $content = file_get_contents($path);
+
+    // Bad — suppresses socket/network errors
+    $socket = @fsockopen($host, $port);
+
+    // Good — use try/catch or check return value explicitly
+    try {
+        $response = $this->httpClient->get($url);
+    } catch (\Exception $e) {
+        $this->logger->error('HTTP request failed', ['url' => $url, 'error' => $e->getMessage()]);
+        throw new \Magento\Framework\Exception\RemoteServiceUnavailableException($e->getMessage());
+    }
+examples:
+  bad: |
+    $xml = @simplexml_load_string($response);
+    $value = @$_SERVER['HTTP_X_FORWARDED_FOR'];
+  good: |
+    try {
+        $xml = new \SimpleXMLElement($response);
+    } catch (\Exception $e) {
+        throw new \Magento\Framework\Exception\RuntimeException(__('Invalid XML response'));
+    }
+    $value = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
+references:
+  - "https://www.php.net/manual/en/language.operators.errorcontrol.php"
+  - "https://developer.adobe.com/commerce/php/development/components/exception-handling/"

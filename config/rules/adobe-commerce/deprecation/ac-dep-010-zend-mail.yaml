@@ -1,0 +1,73 @@
+schema_version: "1.0"
+id: "AC_DEP_010"
+name: "ac-dep-010-zend-mail"
+title: "Zend Mail — Use Magento TransportBuilder Instead"
+description: >
+  Direct use of Zend\Mail in custom modules bypasses Magento's email templating system,
+  store-specific SMTP configuration, and email logging. Magento\Framework\Mail\Template\TransportBuilder
+  integrates with the store's email settings, applies transactional email templates, and
+  honours the "Disable Email Communications" developer setting. The Zend Mail shim is
+  removed in some Commerce cloud environments.
+category: "deprecation"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "zend-laminas-deprecations.md"
+tags:
+  - deprecation
+  - zend
+  - mail
+  - email
+  - upgrade-risk
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: 'use\s+Zend\\Mail'
+recommendation: >
+  Replace Zend\Mail with Magento\Framework\Mail\Template\TransportBuilderInterface
+  for transactional emails (recommended). For low-level mail where templates are not
+  needed, Laminas\Mail\Message with Laminas\Mail\Transport\Sendmail is the direct
+  successor and is safe in Adobe Commerce 2.4.x.
+examples:
+  bad: |
+    use Zend\Mail\Message;
+    use Zend\Mail\Transport\Sendmail;
+
+    $message = new Message();
+    $message->setSubject('Order Confirmation');
+    $message->setTo($customerEmail);
+    (new Sendmail())->send($message);
+  good: |
+    use Magento\Framework\Mail\Template\TransportBuilderInterface;
+
+    class OrderEmailSender
+    {
+        public function __construct(
+            private readonly TransportBuilderInterface $transportBuilder
+        ) {}
+
+        public function send(int $storeId, string $email, array $vars): void
+        {
+            $transport = $this->transportBuilder
+                ->setTemplateIdentifier('order_confirmation')
+                ->setTemplateOptions(['area' => 'frontend', 'store' => $storeId])
+                ->setTemplateVars($vars)
+                ->setFrom(['email' => 'noreply@example.com', 'name' => 'Store'])
+                ->addTo($email)
+                ->getTransport();
+            $transport->sendMessage();
+        }
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/email/"
+  - "https://docs.laminas.dev/laminas-mail/"

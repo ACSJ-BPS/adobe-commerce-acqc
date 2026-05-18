@@ -1,0 +1,257 @@
+# Architect Configuration
+# Focus on system design and performance optimization
+
+role:
+  name: architect
+  level: 3
+  description: "Configuration for architects focusing on system design and performance optimization"
+
+# Performance-focused analyzer settings
+analyzers:
+  magento:
+    priority: high
+    strict_mode: false
+    detailed_analysis: true
+    rules:
+      deprecated_patterns:
+        severity: warning  # Less strict than others
+      dependency_injection:
+        severity: warning
+      object_manager_usage:
+        severity: warning  # More lenient for architectural decisions
+
+  security:
+    priority: high
+    strict_mode: true
+    detailed_analysis: true
+    rules:
+      sql_injection:
+        severity: critical
+      xss_vulnerability:
+        severity: error
+      hardcoded_secrets:
+        severity: critical
+
+  performance:
+    priority: high  # Key focus for architects
+    strict_mode: true
+    detailed_analysis: true
+    rules:
+      n_plus_one_query:
+        severity: error
+      inefficient_loops:
+        severity: error  # Upgrade severity
+      memory_leaks:
+        severity: error  # Upgrade severity
+      expensive_operations:
+        severity: warning
+
+  quality:
+    priority: medium  # Less focus on micro-quality
+    strict_mode: false
+    detailed_analysis: false
+    quick_scan: true
+    rules:
+      method_length:
+        severity: info  # Downgrade severity
+        threshold: 60  # More lenient
+      cyclomatic_complexity:
+        severity: warning
+        threshold: 12  # More lenient
+      documentation:
+        severity: info
+        require_class_docs: false
+        require_method_docs: false
+
+# Architect-focused rules with adjusted severities
+rules:
+  magento_deprecated_patterns:
+    severity: warning  # More lenient
+    complexity: basic
+    
+  magento_dependency_injection:
+    severity: warning
+    complexity: medium
+    
+  sql_injection_detection:
+    severity: critical
+    complexity: medium
+    
+  n_plus_one_query_detection:
+    severity: error
+    complexity: advanced
+    
+  inefficient_loop_detection:
+    severity: error  # Higher priority
+    complexity: medium
+
+  method_too_long:
+    severity: info  # Less strict
+    threshold: 60
+    
+  high_complexity:
+    severity: warning
+    threshold: 12
+
+# Output preferences for architectural overview
+output:
+  format: console
+  severity_filter:
+    - critical
+    - error
+    - warning
+    - info
+  show_recommendations: false  # Focus on metrics
+  show_examples: false
+  detailed_explanations: false
+  show_metrics: true
+  show_trends: true
+  summary_only: false
+  group_by_type: true
+  max_issues_per_file: 100
+  include_architecture_insights: true
+
+# Architecture-specific features
+architecture:
+  system_analysis: true
+  dependency_mapping: true
+  performance_profiling: true
+  scalability_assessment: true
+  technical_debt_analysis: true
+
+# More lenient thresholds
+thresholds:
+  method_length: 60
+  complexity: 12
+  duplicate_lines: 8
+  file_size: 1000
+  class_coupling: 15
+
+# High-performance settings
+performance:
+  timeout: 600  # 10 minutes for complex analysis
+  memory_limit: 1024M
+  parallel_processing: true
+  max_workers: 8
+
+# Enhanced cache for complex analysis
+cache:
+  enabled: true
+  ttl: 7200  # 2 hours
+  advanced_caching: true
+
+# Architect guidance
+help:
+  focus: "System design and performance optimization"
+  recommendations:
+    - "Focus on performance and architectural issues"
+    - "Use metrics to guide architectural decisions"
+    - "Configure rules for your specific context"
+    - "Monitor long-term quality trends"
+    - "Balance technical debt with delivery speed"
+  
+  available_tools:
+    - "Advanced metrics and KPIs"
+    - "Performance profiling and analysis"
+    - "Custom rule configuration"
+    - "Trend analysis and forecasting"
+    - "System architecture insights"
+    - "Technical debt assessment"
+  
+  responsibilities:
+    - "System architecture decisions"
+    - "Performance optimization strategies"
+    - "Technical debt management"
+    - "Scalability planning"
+    - "Technology stack evaluation"
+
+# Full feature access
+features:
+  advanced_metrics: true
+  custom_rules: true
+  performance_profiling: true
+  team_overview: true
+  batch_analysis: true
+  trend_analysis: true
+  architecture_insights: true
+  technical_debt_tracking: true
+
+# Advanced auto-fix
+auto_fix:
+  enabled: true
+  safe_fixes_only: false
+  advanced_fixes: true
+  interactive_mode: false
+  backup_files: true
+
+# Full integration suite
+integrations:
+  git:
+    enabled: true
+    check_staged_files: false
+    exclude_vendor: true
+    branch_analysis: true
+  
+  phpstan:
+    enabled: true
+    level: 7  # Higher level
+  
+  psalm:
+    enabled: true
+    config_file: psalm.xml
+  
+  phpcs:
+    enabled: true
+    standard: PSR12
+  
+  sonarqube:
+    enabled: true
+    quality_gates: true
+
+# Advanced analytics
+analytics:
+  code_complexity_trends: true
+  performance_regression_detection: true
+  architecture_drift_monitoring: true
+  dependency_analysis: true
+  hotspot_identification: true
+
+# Advanced customization
+customization:
+  rule_modification: true
+  severity_adjustment: true
+  threshold_tuning: true
+  analyzer_selection: true
+  custom_analyzer_development: true
+
+# Comprehensive reporting
+reporting:
+  auto_generate: true
+  formats:
+    - html
+    - json
+    - pdf
+    - markdown
+  include_trends: true
+  team_summary: true
+  executive_summary: true
+  architecture_overview: true
+  performance_analysis: true
+
+# Metrics and KPIs
+metrics:
+  technical_debt_ratio: true
+  code_coverage_impact: true
+  performance_benchmarks: true
+  maintainability_index: true
+  cyclomatic_complexity_distribution: true
+  coupling_metrics: true
+  cohesion_metrics: true
+
+# Advanced analysis modes
+analysis_modes:
+  deep_analysis: true
+  cross_module_analysis: true
+  dependency_impact_analysis: true
+  performance_bottleneck_detection: true
+  security_vulnerability_assessment: true 

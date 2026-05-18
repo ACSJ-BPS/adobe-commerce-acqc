@@ -1,0 +1,6 @@
+schema_version: "1"
+# LESS variable removals and renames per Adobe Commerce version.
+# Format: version -> list of {variable, action: removed|renamed, replacement}
+# Used by LESSVariableAnalyzer to detect broken theme variable references.
+
+version_changes: {}

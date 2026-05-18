@@ -1,0 +1,57 @@
+schema_version: "1.0"
+id: "AC_SEC_003"
+name: "ac-sec-003-direct-superglobal"
+title: "Direct Superglobal Access Without Sanitization"
+description: >
+  Accessing $_GET, $_POST, or $_REQUEST superglobals directly bypasses Magento's request
+  abstraction layer, which provides input sanitization, CSRF validation, and type coercion.
+  Direct superglobal access also makes unit testing impossible since the values cannot
+  be injected. All request input must go through Magento\Framework\App\RequestInterface.
+category: "security"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-security.mdc"
+tags:
+  - security
+  - input-validation
+  - owasp-a03
+  - request
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: regex
+  pattern: '\$_(GET|POST|REQUEST)\s*\['
+recommendation: >
+  Inject Magento\Framework\App\RequestInterface and use getParam(), getPost(), or
+  getQuery() methods. These methods apply input filters and respect the request context:
+  $this->request->getParam('id', 0);
+  $this->request->getPost('email', '');
+examples:
+  bad: |
+    $id    = $_GET['id'];
+    $email = $_POST['email'];
+    $data  = $_REQUEST['data'];
+  good: |
+    public function __construct(
+        private readonly \Magento\Framework\App\RequestInterface $request
+    ) {}
+
+    public function execute(): void
+    {
+        $id    = (int) $this->request->getParam('id', 0);
+        $email = $this->request->getPost('email', '');
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/controllers/"
+  - "https://owasp.org/www-project-top-ten/2017/A1_2017-Injection"

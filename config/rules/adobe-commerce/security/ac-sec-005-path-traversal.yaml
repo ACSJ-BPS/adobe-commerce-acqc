@@ -1,0 +1,59 @@
+schema_version: "1.0"
+id: "AC_SEC_005"
+name: "ac-sec-005-path-traversal"
+title: "Path Traversal via User-Controlled File Operations"
+description: >
+  Using user-supplied input directly in file operation functions enables attackers to
+  read, write, or execute arbitrary files outside the web root via path traversal sequences
+  (../). This vulnerability can expose configuration files, private keys, or allow remote
+  code execution. File paths must always be validated and canonicalized before use.
+category: "security"
+severity: "critical"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-security.mdc"
+tags:
+  - security
+  - path-traversal
+  - owasp-a01
+  - file-operations
+globs:
+  - "**/*.php"
+  - "app/code/**/*.php"
+check:
+  type: regex
+  pattern: '(?:file_get_contents|fopen|file_put_contents|readfile)\s*\(\s*\$'
+recommendation: >
+  Validate file paths using realpath() and confirm the result stays within an allowed
+  base directory. Never pass user input directly to file functions:
+  $safePath = realpath($basePath . '/' . $filename);
+  if (strpos($safePath, $basePath) !== 0) { throw new \InvalidArgumentException(); }
+examples:
+  bad: |
+    $filename = $this->request->getParam('file');
+    $content  = file_get_contents($filename);
+
+    $output   = $this->request->getPost('path');
+    file_put_contents($output, $data);
+  good: |
+    $basePath = BP . '/var/export/';
+    $filename = basename($this->request->getParam('file'));
+    $safePath = realpath($basePath . $filename);
+
+    if ($safePath === false || strpos($safePath, $basePath) !== 0) {
+        throw new \Magento\Framework\Exception\LocalizedException(__('Invalid file path.'));
+    }
+    $content = file_get_contents($safePath);
+references:
+  - "https://owasp.org/www-community/attacks/Path_Traversal"
+  - "https://developer.adobe.com/commerce/php/development/security/"

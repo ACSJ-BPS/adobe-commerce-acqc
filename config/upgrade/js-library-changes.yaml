@@ -1,0 +1,6 @@
+schema_version: "1"
+# RequireJS library path changes per Adobe Commerce version.
+# Format: version -> list of {from, to, reason}
+# Used by RequireJSMapAnalyzer to detect broken module mappings.
+
+version_changes: {}

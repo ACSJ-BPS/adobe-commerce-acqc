@@ -1,0 +1,24 @@
+root_cause: "A core PHTML template that your theme overrides was modified in the target version. Your override may now be missing new functionality, security fixes, or accessibility improvements shipped in the core update."
+code_example: |
+  <!-- Recommended: narrow the override to only the block you changed -->
+  <!-- app/design/frontend/Vendor/Theme/Magento_Catalog/templates/product/view/type/simple.phtml -->
+  <?php
+  // Merge only your custom additions on top of the updated parent template.
+  // Avoid copy-pasting the entire core template — use layout handles instead:
+  ?>
+  <!-- layout XML alternative -->
+  <referenceBlock name="product.info.form.content">
+      <action method="setTemplate">
+          <argument name="template" xsi:type="string">Vendor_Module::product/custom-wrapper.phtml</argument>
+      </action>
+  </referenceBlock>
+step_by_step: |
+  1. Run the ACQC frontend scan (--frontend-scan) to get a list of all affected overrides.
+  2. For each flagged template: diff your override against the updated core file (git diff).
+  3. Merge any new core markup, data-role attributes, or x-magento-init blocks into your version.
+  4. Refactor the override to the smallest possible change — prefer layout XML and child blocks over full template copies.
+  5. Verify rendering in all affected page types (PDP, cart, checkout) with both Luma and your theme active.
+doc_links:
+  - "https://developer.adobe.com/commerce/frontend-core/guide/templates/override/"
+  - "https://developer.adobe.com/commerce/frontend-core/guide/layouts/"
+confidence_score: 5

@@ -1,0 +1,73 @@
+schema_version: "1.0"
+id: "AC_GQL_008"
+name: "ac-gql-008-batch-loader-guidance"
+title: "GraphQL Resolver: Recommend Batch Loading for Related Entity Lookups"
+description: >
+  GraphQL resolvers that iterate over parent items and call repository->get() or
+  getById() for each child entity create N+1 query problems. For N parent items,
+  this generates N+1 database queries. The solution is a batch loader that collects
+  all child IDs from the parent items and fetches them in a single query using
+  SearchCriteria with an 'in' filter, then maps results back by ID.
+category: "graphql"
+severity: "warning"
+tier: 3
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "data-loaders.md"
+tags:
+  - graphql
+  - performance
+  - n+1
+  - batch-loader
+  - guidance
+globs:
+  - "**/GraphQl/Resolver/**/*.php"
+  - "**/Model/Resolver/**/*.php"
+check:
+  type: guidance
+  message: >
+    Review GraphQL resolvers for N+1 patterns. Resolvers that call repository methods
+    inside foreach loops over parent data should implement a BatchServiceContractRequestInterface
+    batch loader. See docs/references/data-loaders.md for the implementation pattern.
+recommendation: >
+  Implement a batch loader class following the BatchServiceContractRequestInterface pattern:
+    1. Create a loader class with load(array $ids): array returning results keyed by ID.
+    2. In load(), use SearchCriteriaBuilder->addFilter('entity_id', $ids, 'in') + getList().
+    3. In the resolver, collect all child IDs from parent items, call batchLoader->load($ids),
+       and map results back using array_map.
+  Register the batch loader as a singleton in di.xml.
+  See docs/references/data-loaders.md for full implementation details and common mistakes.
+examples:
+  bad: |
+    public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
+    {
+        $products = $value['items'];
+        foreach ($products as &$product) {
+            // N+1: one query per product
+            $product['category'] = $this->categoryRepository->get($product['category_id']);
+        }
+        return $products;
+    }
+  good: |
+    public function resolve(Field $field, $context, ResolveInfo $info, array $value = null, array $args = null)
+    {
+        $products = $value['items'];
+        $categoryIds = array_unique(array_column($products, 'category_id'));
+
+        // Single query for all categories
+        $categories = $this->categoryBatchLoader->load($categoryIds); // keyed by ID
+
+        foreach ($products as &$product) {
+            $product['category'] = $categories[$product['category_id']] ?? null;
+        }
+        return $products;
+    }
+references:
+  - "https://developer.adobe.com/commerce/webapi/graphql/develop/resolvers/"
+  - "https://developer.adobe.com/commerce/php/development/components/service-contracts/"

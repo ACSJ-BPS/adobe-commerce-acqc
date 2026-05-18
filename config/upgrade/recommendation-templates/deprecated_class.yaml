@@ -1,0 +1,24 @@
+root_cause: "The class is marked @deprecated in the target version and is scheduled for removal in a future release. Continued use creates a forward-compatibility risk and may trigger runtime deprecation notices."
+code_example: |
+  // Before — using deprecated class
+  use Magento\Framework\View\Element\Template;
+  // ... some deprecated subclass or helper
+
+  // After — use the non-deprecated replacement
+  // Check the @deprecated docblock for the @see tag pointing to the replacement.
+  use Magento\Framework\View\Element\Template; // or replacement namespace
+
+  // Example pattern: inject the service interface rather than the concrete class
+  public function __construct(
+      private \Magento\Framework\SomeInterface $service
+  ) {}
+step_by_step: |
+  1. Read the @deprecated and @see annotations on the class to find the official replacement.
+  2. Replace usages with the suggested class or interface.
+  3. If no replacement is documented: open a support ticket with Adobe Commerce to clarify the migration path before the next major release.
+  4. Add a PHPStan/PHPMD rule to flag any re-introduction of the deprecated class in CI.
+  5. Run bin/magento setup:di:compile to verify DI still resolves correctly.
+doc_links:
+  - "https://developer.adobe.com/commerce/php/development/backward-incompatible-changes/"
+  - "https://developer.adobe.com/commerce/php/best-practices/extensions/"
+confidence_score: 5

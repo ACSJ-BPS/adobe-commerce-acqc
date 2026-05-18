@@ -1,0 +1,11 @@
+schema_version: '1'
+version: 2.4.7-p8
+release_date: '2025-10-10'
+release_type: unknown
+breaking_changes: {  }
+deprecated_symbols:
+  classes: {  }
+  methods: {  }
+  events: {  }
+db_schema_changes: {  }
+security_advisories: {  }

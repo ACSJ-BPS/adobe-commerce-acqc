@@ -1,0 +1,54 @@
+schema_version: "1.0"
+id: "AC_PERF_004"
+name: "ac-perf-004-missing-cache-lifetime"
+title: "Layout Block Missing Cache Lifetime (ttl)"
+description: >
+  Layout blocks that should be cached for performance are missing the `ttl` attribute
+  in their layout XML declaration. Without an explicit TTL, blocks are not eligible
+  for full-page cache (FPC) and must be regenerated on every request. Setting an
+  appropriate `ttl` on non-personalized blocks dramatically reduces TTFB and allows
+  Varnish or the built-in FPC to serve the block from cache.
+category: "performance"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-performance.mdc"
+tags:
+  - performance
+  - cache
+  - layout
+  - fpc
+  - varnish
+globs:
+  - "**/layout/**/*.xml"
+  - "**/view/**/layout/**/*.xml"
+check:
+  type: xml_xpath
+  expression: "//block[not(@ttl) and not(@cacheable='false')]"
+  attribute: "name"
+recommendation: >
+  Add a `ttl` attribute to cacheable blocks:
+  <block class="..." name="..." ttl="3600" />
+  Use ttl="0" for blocks that should never expire (static blocks).
+  For personalized blocks (cart, account), set cacheable="false" explicitly.
+  Match the TTL to how frequently the underlying data changes.
+examples:
+  bad: |
+    <block class="Vendor\Module\Block\BannerBlock"
+           name="vendor_module_banner"
+           template="Vendor_Module::banner.phtml"/>
+  good: |
+    <block class="Vendor\Module\Block\BannerBlock"
+           name="vendor_module_banner"
+           template="Vendor_Module::banner.phtml"
+           ttl="3600"/>
+references:
+  - "https://developer.adobe.com/commerce/php/development/cache/full-page/"
+  - "https://experienceleague.adobe.com/docs/commerce-operations/performance-best-practices/"

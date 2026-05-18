@@ -1,0 +1,64 @@
+schema_version: "1.0"
+id: "AC_IDX_003"
+name: "ac-idx-003-observer-full-reindex"
+title: "Full Reindex Triggered in Event Observer"
+description: >
+  Triggering a full reindex inside an event observer means every time that event
+  fires, all indexed data is regenerated. If the event fires frequently (e.g.,
+  catalog_product_save_after), this causes constant full reindexes, blocking
+  the storefront and consuming excessive database resources. Observers should only
+  mark specific entities as dirty for incremental reindexing.
+category: "indexing"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "adobe-commerce-indexing.mdc"
+tags:
+  - indexing
+  - observers
+  - performance
+  - events
+globs:
+  - "**/Observer/**/*.php"
+check:
+  type: regex
+  pattern: '->reindex\s*\('
+recommendation: >
+  In observers, only invalidate the affected indexer rather than triggering a full reindex:
+  $indexer = $this->indexerRegistry->get($indexerId);
+  if (!$indexer->isScheduled()) {
+      $indexer->invalidate(); // marks for next scheduled reindex
+  }
+  For immediate row-level updates: $indexer->executeRow($entityId);
+examples:
+  bad: |
+    class ProductSaveObserver implements ObserverInterface
+    {
+        public function execute(Observer $observer): void
+        {
+            $indexer = $this->indexerRegistry->get('catalog_product_price');
+            $indexer->reindex(); // full reindex on every product save!
+        }
+    }
+  good: |
+    class ProductSaveObserver implements ObserverInterface
+    {
+        public function execute(Observer $observer): void
+        {
+            $product = $observer->getEvent()->getProduct();
+            $indexer = $this->indexerRegistry->get('catalog_product_price');
+            $indexer->executeRow($product->getId()); // only reindex this product
+        }
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/indexing/"
+  - "https://developer.adobe.com/commerce/php/development/components/events-and-observers/"

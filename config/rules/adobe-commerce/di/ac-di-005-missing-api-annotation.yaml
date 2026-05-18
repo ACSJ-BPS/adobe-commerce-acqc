@@ -1,0 +1,60 @@
+schema_version: "1.0"
+id: "AC_DI_005"
+name: "ac-di-005-missing-api-annotation"
+title: "Service Interface Missing @api Annotation"
+description: >
+  Public service interfaces in Adobe Commerce must be annotated with @api in their
+  docblock to declare them as stable public contracts. Without @api, the interface
+  is considered an internal implementation detail that can change between minor versions.
+  Third-party modules depending on unannotated interfaces may break on upgrades.
+category: "dependency_injection"
+severity: "info"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-di.mdc"
+tags:
+  - di
+  - api
+  - stability
+  - interfaces
+globs:
+  - "**/Api/**/*.php"
+  - "**/Api/Data/**/*.php"
+check:
+  type: regex
+  pattern: '\binterface\s+[A-Z]'
+recommendation: >
+  Add the @api docblock annotation to all public service interfaces in the Api directory:
+  /**
+   * @api
+   */
+  interface MyServiceInterface
+  This declares the interface as a stable public contract across minor releases.
+examples:
+  bad: |
+    namespace Vendor\Module\Api;
+
+    interface OrderServiceInterface
+    {
+        public function placeOrder(int $cartId): int;
+    }
+  good: |
+    namespace Vendor\Module\Api;
+
+    /**
+     * @api
+     */
+    interface OrderServiceInterface
+    {
+        public function placeOrder(int $cartId): int;
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/service-contracts/"
+  - "https://developer.adobe.com/commerce/php/development/backward-incompatible-changes/"

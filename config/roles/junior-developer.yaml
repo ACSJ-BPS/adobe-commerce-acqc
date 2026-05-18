@@ -1,0 +1,171 @@
+# Junior Developer Configuration
+# Focus on learning best practices and avoiding common mistakes
+
+role:
+  name: junior-developer
+  level: 1
+  description: "Configuration for junior developers focusing on learning and basic quality"
+
+# Override analyzer settings for learning
+analyzers:
+  magento:
+    priority: medium
+    strict_mode: true  # More strict for learning
+    detailed_analysis: true
+    rules:
+      deprecated_patterns:
+        severity: error  # Critical for learning proper patterns
+      dependency_injection:
+        severity: error  # Upgrade from warning to error
+      object_manager_usage:
+        severity: error
+
+  security:
+    priority: high
+    strict_mode: true
+    detailed_analysis: true
+    rules:
+      sql_injection:
+        severity: critical
+      xss_vulnerability:
+        severity: error
+      hardcoded_secrets:
+        severity: critical
+
+  performance:
+    priority: low  # Lower priority for beginners
+    strict_mode: false
+    detailed_analysis: false
+    quick_scan: true
+    rules:
+      n_plus_one_query:
+        severity: warning  # Downgrade from error
+      inefficient_loops:
+        severity: info  # Downgrade from warning
+
+  quality:
+    priority: high
+    strict_mode: true
+    detailed_analysis: true
+    rules:
+      method_length:
+        severity: error  # Strict for learning
+        threshold: 30  # Stricter threshold
+      cyclomatic_complexity:
+        severity: error
+        threshold: 8  # Stricter threshold
+      documentation:
+        severity: warning  # Encourage documentation
+        require_class_docs: true
+        require_method_docs: true
+
+# Rule overrides for junior developers
+rules:
+  # Make basic rules more strict
+  magento_deprecated_patterns:
+    severity: error
+    complexity: basic
+    
+  magento_dependency_injection:
+    severity: error  # Upgrade severity
+    complexity: basic
+    
+  missing_documentation:
+    severity: warning  # Upgrade severity
+    complexity: basic
+
+  # Keep advanced rules but make them informational
+  n_plus_one_query_detection:
+    severity: info
+    complexity: advanced
+
+# Output preferences for learning
+output:
+  format: console
+  severity_filter:
+    - critical
+    - error
+    - warning
+  show_recommendations: true
+  show_examples: true
+  detailed_explanations: true
+  group_by_severity: true
+  group_by_file: false
+  max_issues_per_file: 20  # Limit to avoid overwhelming
+  show_progress: true
+  include_metrics: true
+  show_learning_tips: true
+
+# Learning-focused features
+learning:
+  show_best_practices: true
+  provide_examples: true
+  explain_complexity: true
+  suggest_reading: true
+  highlight_patterns: true
+
+# Stricter thresholds for learning
+thresholds:
+  method_length: 30
+  complexity: 8
+  duplicate_lines: 3
+  file_size: 200
+
+# Performance settings optimized for learning
+performance:
+  timeout: 180  # 3 minutes - shorter for quick feedback
+  memory_limit: 256M
+  parallel_processing: false  # Simpler for beginners
+
+# Cache settings
+cache:
+  enabled: false  # Disabled for immediate feedback during learning
+
+# Help and guidance
+help:
+  focus: "Learning best practices and avoiding common mistakes"
+  recommendations:
+    - "Pay attention to error and critical severity issues first"
+    - "Read the detailed explanations for each issue"
+    - "Use the examples provided to understand proper patterns"
+    - "Focus on code quality and security fundamentals"
+    - "Don't worry about advanced performance optimizations yet"
+  
+  available_tools:
+    - "Basic code analysis with detailed explanations"
+    - "Auto-fix for simple formatting issues"
+    - "Interactive learning examples"
+    - "Best practice recommendations"
+  
+  next_steps:
+    - "Master basic Magento patterns before moving to advanced topics"
+    - "Focus on security awareness from the beginning"
+    - "Learn proper documentation habits early"
+    - "Practice dependency injection patterns"
+
+# Restricted features (not available at this level)
+restrictions:
+  advanced_metrics: false
+  custom_rules: false
+  performance_profiling: false
+  team_overview: false
+  batch_analysis: false
+
+# Auto-fix settings
+auto_fix:
+  enabled: true
+  safe_fixes_only: true
+  interactive_mode: true  # Ask before applying fixes
+  backup_files: true
+
+# Integration settings
+integrations:
+  git:
+    enabled: true
+    check_staged_files: true  # Encourage checking before commit
+  
+  phpstan:
+    enabled: false  # Too advanced for beginners
+  
+  psalm:
+    enabled: false  # Too advanced for beginners 

@@ -1,0 +1,49 @@
+schema_version: "1.0"
+id: "AC_PERF_005"
+name: "ac-perf-005-images-no-lazy-loading"
+title: "Images Without Lazy Loading Attribute"
+description: >
+  Images without `loading="lazy"` are eagerly loaded by the browser, even those below
+  the fold that the user may never scroll to. On product listing pages with many images,
+  this wastes bandwidth, delays the Largest Contentful Paint (LCP), and hurts Core Web
+  Vitals scores. All non-critical images should use native browser lazy loading.
+category: "performance"
+severity: "info"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+platforms:
+  - cli
+  - sarif
+introduced_in: "3.0.0"
+source: "adobe-commerce-performance.mdc"
+tags:
+  - performance
+  - images
+  - core-web-vitals
+  - lazy-loading
+globs:
+  - "**/*.phtml"
+  - "**/*.html"
+check:
+  type: regex
+  pattern: '<img\b(?![^>]*\bloading\s*=)'
+recommendation: >
+  Add loading="lazy" to all non-critical images (those not in the initial viewport):
+  <img src="..." alt="..." loading="lazy" width="800" height="600">
+  Keep loading="eager" or omit the attribute only for the primary LCP image (hero image).
+  Also add explicit width and height to prevent Cumulative Layout Shift (CLS).
+examples:
+  bad: |
+    <img src="<?= $block->escapeUrl($imageUrl) ?>"
+         alt="<?= $block->escapeHtmlAttr($product->getName()) ?>">
+  good: |
+    <img src="<?= $block->escapeUrl($imageUrl) ?>"
+         alt="<?= $block->escapeHtmlAttr($product->getName()) ?>"
+         loading="lazy"
+         width="300"
+         height="300">
+references:
+  - "https://developer.mozilla.org/en-US/docs/Web/Performance/Lazy_loading"
+  - "https://experienceleague.adobe.com/docs/commerce-operations/performance-best-practices/"

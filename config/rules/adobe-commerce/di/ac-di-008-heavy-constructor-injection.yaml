@@ -1,0 +1,71 @@
+schema_version: "1.0"
+id: "AC_DI_008"
+name: "ac-di-008-heavy-constructor-injection"
+title: "Heavy Object Injected Directly Into Constructor"
+description: >
+  Injecting heavy-weight objects such as Collection classes or the ObjectManager
+  directly into a class constructor causes them to be instantiated on every object
+  creation, even when they are only needed conditionally. This increases memory usage
+  and startup time. Collections are particularly expensive because they may load
+  database connection state at construction time. Use Proxy classes or factories
+  for lazy instantiation of heavy dependencies.
+category: "di"
+severity: "error"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "di-patterns.md"
+tags:
+  - di
+  - performance
+  - memory
+  - proxy
+  - collection
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: '__construct\s*\([^)]*\\\\(Collection|CollectionFactory(?!.*Factory)|ResourceModel\\\\[A-Z]\w+\\\\Collection)\b'
+recommendation: >
+  Inject a CollectionFactory instead of a Collection, or use a Proxy class for
+  expensive singletons. The factory pattern defers instantiation until the collection
+  is actually needed:
+    // Instead of: private Collection $collection
+    private CollectionFactory $collectionFactory;
+    // Then use: $this->collectionFactory->create()->addFilter(...)
+  For services that are rarely used, declare a Proxy in di.xml:
+    <type name="Vendor\Module\MyService">
+        <arguments>
+            <argument name="heavyService" xsi:type="object">Vendor\Module\HeavyService\Proxy</argument>
+        </arguments>
+    </type>
+examples:
+  bad: |
+    public function __construct(
+        \Magento\Catalog\Model\ResourceModel\Product\Collection $collection,
+        \Magento\Framework\App\ObjectManager $objectManager
+    ) {
+        $this->collection = $collection; // Loaded on every instantiation
+    }
+  good: |
+    public function __construct(
+        \Magento\Catalog\Model\ResourceModel\Product\CollectionFactory $collectionFactory
+    ) {
+        $this->collectionFactory = $collectionFactory;
+    }
+
+    public function getProducts(): Collection
+    {
+        return $this->collectionFactory->create()->addAttributeToSelect('*');
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/object-manager/proxies/"
+  - "https://developer.adobe.com/commerce/php/development/components/factories/"

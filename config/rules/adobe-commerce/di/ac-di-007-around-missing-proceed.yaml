@@ -1,0 +1,73 @@
+schema_version: "1.0"
+id: "AC_DI_007"
+name: "ac-di-007-around-missing-proceed"
+title: "Around Plugin Does Not Call $proceed"
+description: >
+  An aroundXxx plugin method that never calls $proceed() silently replaces the original
+  method without chaining to subsequent plugins or the original implementation. This
+  breaks all other plugins and the core method on the same type, causing features that
+  depend on the original behaviour to stop working. The only legitimate reason to
+  skip $proceed is when you explicitly intend to replace the method entirely — which
+  should be done via a preference, not a plugin.
+category: "di"
+severity: "critical"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - architect
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+  - junit
+introduced_in: "3.0.0"
+source: "di-patterns.md"
+tags:
+  - di
+  - plugin
+  - around
+  - ocp
+  - architecture
+globs:
+  - "**/*.php"
+check:
+  type: regex
+  pattern: 'function\s+around[A-Z]\w+\s*\([^)]*callable\s+\$proceed[^)]*\)[^{]*\{(?:(?!(?:\$proceed|->proceed|\bproceed\b))[\s\S]){0,2000}\}'
+recommendation: >
+  Always call $proceed() inside an aroundXxx plugin to preserve the original method
+  and chain other plugins:
+    public function aroundSave($subject, callable $proceed, ...$args) {
+        // before logic
+        $result = $proceed(...$args);
+        // after logic
+        return $result;
+    }
+  If you intentionally want to short-circuit the call, switch to a preference class
+  instead of a plugin, and document the decision clearly.
+examples:
+  bad: |
+    public function aroundAddProduct(
+        \Magento\Checkout\Model\Cart $subject,
+        callable $proceed,
+        $productInfo,
+        $requestInfo = null
+    ) {
+        // $proceed is never called — original and all other plugins are bypassed!
+        return $subject;
+    }
+  good: |
+    public function aroundAddProduct(
+        \Magento\Checkout\Model\Cart $subject,
+        callable $proceed,
+        $productInfo,
+        $requestInfo = null
+    ) {
+        // Custom pre-processing
+        $result = $proceed($productInfo, $requestInfo); // Must call $proceed
+        // Custom post-processing
+        return $result;
+    }
+references:
+  - "https://developer.adobe.com/commerce/php/development/components/plugins/#around-methods"

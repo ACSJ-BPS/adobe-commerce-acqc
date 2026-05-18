@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ report.title }} - {{ report.project_name|default('M2-Quality Analysis') }}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: {{ theme.primary_color|default('#007bff') }};
+            --secondary-color: {{ theme.secondary_color|default('#6c757d') }};
+            --success-color: {{ theme.success_color|default('#28a745') }};
+            --warning-color: {{ theme.warning_color|default('#ffc107') }};
+            --danger-color: {{ theme.danger_color|default('#dc3545') }};
+            --font-family: {{ theme.font_family|default("'Segoe UI', Tahoma, Geneva, Verdana, sans-serif") }};
+        }
+        
+        body {
+            font-family: var(--font-family);
+            background-color: #f8f9fa;
+        }
+        
+        .report-header {
+            background: linear-gradient(135deg, var(--primary-color), #0056b3);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .report-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .report-subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .metric-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: 1px solid #dee2e6;
+            transition: transform 0.2s ease-in-out;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .metric-label {
+            color: var(--secondary-color);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .severity-critical { background-color: #f8d7da; border-left: 4px solid var(--danger-color); }
+        .severity-error { background-color: #fff3cd; border-left: 4px solid var(--warning-color); }
+        .severity-warning { background-color: #fff3cd; border-left: 4px solid var(--warning-color); }
+        .severity-info { background-color: #d1ecf1; border-left: 4px solid #17a2b8; }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 1rem 0;
+        }
+        
+        .progress-ring {
+            display: inline-block;
+            width: 80px;
+            height: 80px;
+        }
+        
+        .section-header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            margin: 2rem 0 1rem 0;
+            border-radius: 5px;
+            font-weight: 600;
+        }
+        
+        .data-table {
+            font-size: 0.875rem;
+        }
+        
+        .data-table th {
+            background-color: #f8f9fa;
+            border-top: none;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-severity-critical { background-color: var(--danger-color); }
+        .badge-severity-error { background-color: #fd7e14; }
+        .badge-severity-warning { background-color: var(--warning-color); color: #212529; }
+        .badge-severity-info { background-color: #17a2b8; }
+        
+        .recommendation {
+            background-color: #e7f3ff;
+            border-left: 4px solid var(--primary-color);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .recommendation-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .footer {
+            background-color: #343a40;
+            color: white;
+            padding: 2rem 0;
+            margin-top: 3rem;
+        }
+        
+        @media print {
+            .report-header { background: var(--primary-color) !important; }
+            .metric-card { break-inside: avoid; }
+            .chart-container { height: 200px; }
+        }
+        
+        {% if theme.name == 'dark' %}
+        body { background-color: #1a1a1a; color: #ffffff; }
+        .metric-card { background-color: #2d2d2d; border-color: #444; }
+        .data-table { color: #ffffff; }
+        .data-table th { background-color: #333; }
+        {% endif %}
+    </style>
+</head>
+<body>
+    <!-- Report Header -->
+    <div class="report-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="report-title">{{ report.title }}</h1>
+                    <p class="report-subtitle">
+                        {{ report.project_name|default('M2-Quality Analysis') }} | 
+                        Generated {{ report.generated_at }} | 
+                        Role: {{ report.user_role|title }}
+                    </p>
+                </div>
+                <div class="col-md-4 text-end">
+                    {% if data.quality_score is defined %}
+                    <div class="text-center">
+                        <div class="display-4 fw-bold">{{ data.quality_score|number_format(1) }}</div>
+                        <small>Overall Quality Score</small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container">
+        {% block content %}
+        <!-- Content will be inserted here by child templates -->
+        {% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>M2-Quality Report</h5>
+                    <p class="mb-0">Comprehensive code quality analysis for Magento 2 projects.</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <p class="mb-0">
+                        Generated by <strong>M2-Quality v{{ report.version|default('1.0.0') }}</strong><br>
+                        <small class="text-muted">{{ report.generated_at }}</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {% if interactive %}
+    <!-- Interactive Features -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Table sorting
+            addTableSorting();
+            
+            // Chart interactions
+            addChartInteractions();
+            
+            // Filter functionality
+            addFilterFunctionality();
+        });
+        
+        function addTableSorting() {
+            document.querySelectorAll('.sortable th').forEach(function(th) {
+                th.style.cursor = 'pointer';
+                th.addEventListener('click', function() {
+                    var table = this.closest('table');
+                    var tbody = table.querySelector('tbody');
+                    var rows = Array.from(tbody.querySelectorAll('tr'));
+                    var index = Array.from(this.parentNode.children).indexOf(this);
+                    var isNumeric = this.dataset.type === 'numeric';
+                    var ascending = !this.classList.contains('asc');
+                    
+                    // Clear other sorting indicators
+                    table.querySelectorAll('th').forEach(function(header) {
+                        header.classList.remove('asc', 'desc');
+                    });
+                    
+                    // Add sorting indicator
+                    this.classList.add(ascending ? 'asc' : 'desc');
+                    
+                    rows.sort(function(a, b) {
+                        var aVal = a.children[index].textContent.trim();
+                        var bVal = b.children[index].textContent.trim();
+                        
+                        if (isNumeric) {
+                            aVal = parseFloat(aVal) || 0;
+                            bVal = parseFloat(bVal) || 0;
+                            return ascending ? aVal - bVal : bVal - aVal;
+                        } else {
+                            return ascending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+                        }
+                    });
+                    
+                    rows.forEach(function(row) {
+                        tbody.appendChild(row);
+                    });
+                });
+            });
+        }
+        
+        function addChartInteractions() {
+            // Add click handlers for chart drill-down
+            document.querySelectorAll('.chart-container').forEach(function(container) {
+                container.addEventListener('click', function(e) {
+                    if (this.dataset.drilldown) {
+                        var drilldownUrl = this.dataset.drilldown;
+                        if (confirm('View detailed analysis for this metric?')) {
+                            window.open(drilldownUrl, '_blank');
+                        }
+                    }
+                });
+            });
+        }
+        
+        function addFilterFunctionality() {
+            // Add filter inputs for tables
+            document.querySelectorAll('.filterable').forEach(function(table) {
+                var filterRow = document.createElement('tr');
+                var headers = table.querySelectorAll('thead th');
+                
+                headers.forEach(function(header, index) {
+                    var filterCell = document.createElement('th');
+                    var filterInput = document.createElement('input');
+                    filterInput.type = 'text';
+                    filterInput.className = 'form-control form-control-sm';
+                    filterInput.placeholder = 'Filter...';
+                    filterInput.addEventListener('input', function() {
+                        filterTable(table, index, this.value);
+                    });
+                    filterCell.appendChild(filterInput);
+                    filterRow.appendChild(filterCell);
+                });
+                
+                table.querySelector('thead').appendChild(filterRow);
+            });
+        }
+        
+        function filterTable(table, columnIndex, filterValue) {
+            var rows = table.querySelectorAll('tbody tr');
+            filterValue = filterValue.toLowerCase();
+            
+            rows.forEach(function(row) {
+                var cellValue = row.children[columnIndex].textContent.toLowerCase();
+                row.style.display = cellValue.includes(filterValue) ? '' : 'none';
+            });
+        }
+        
+        // Export functionality
+        function exportToCSV(tableId) {
+            var table = document.getElementById(tableId);
+            var csv = [];
+            var rows = table.querySelectorAll('tr');
+            
+            for (var i = 0; i < rows.length; i++) {
+                var row = [], cols = rows[i].querySelectorAll('td, th');
+                for (var j = 0; j < cols.length; j++) {
+                    row.push(cols[j].innerText);
+                }
+                csv.push(row.join(','));
+            }
+            
+            var csvContent = csv.join('\n');
+            var blob = new Blob([csvContent], { type: 'text/csv' });
+            var url = window.URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = tableId + '.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+    {% endif %}
+    
+    {% block scripts %}
+    <!-- Additional scripts can be added by child templates -->
+    {% endblock %}
+</body>
+</html> 

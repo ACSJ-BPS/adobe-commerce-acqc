@@ -1,0 +1,18 @@
+{
+    "vendor_module_subscription": {
+        "column": {
+            "subscription_id": true,
+            "customer_id": true,
+            "email": true,
+            "status": true,
+            "subscribed_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "VENDOR_MODULE_SUBSCRIPTION_CUSTOMER_ID_CUSTOMER_ENTITY_ENTITY_ID": true
+        },
+        "index": {
+            "VENDOR_MODULE_SUBSCRIPTION_CUSTOMER_ID": true
+        }
+    }
+}

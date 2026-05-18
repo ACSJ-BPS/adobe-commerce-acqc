@@ -1,0 +1,10 @@
+<?php /** @var \Magento\Framework\View\Element\Template $block */ ?>
+<div class="vendor-form">
+    <!-- Good: uses GET method (no CSRF needed) for safe read-only actions -->
+    <form method="get" action="/vendor/module/search">
+        <input type="text" name="query" placeholder="Search..."/>
+        <input type="submit" value="Search"/>
+    </form>
+    <!-- Alternatively, a POST form should include the form key block:
+         <?= $block->getBlockHtml('formkey') ?> -->
+</div>

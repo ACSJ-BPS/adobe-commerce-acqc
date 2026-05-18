@@ -1,0 +1,74 @@
+schema_version: "1.0"
+id: "AC_FE_004"
+name: "ac-fe-004-requirejs-deps-array"
+title: "JavaScript: RequireJS Module Missing Dependencies Array"
+description: >
+  RequireJS modules defined with define() or require() without an explicit dependencies
+  array rely on implicit global scope, which breaks in strict AMD environments and causes
+  race conditions when Magento's JavaScript bundling reorders modules. All Commerce
+  JavaScript must declare its dependencies explicitly. Inline script tags that call
+  require() without the dependency array also prevent proper bundling and minification.
+category: "frontend"
+severity: "warning"
+tier: 1
+roles:
+  - developer
+  - tech_lead
+  - ci
+platforms:
+  - cli
+  - ci
+  - sarif
+introduced_in: "3.1.0"
+tags:
+  - frontend
+  - javascript
+  - requirejs
+  - amd
+  - bundling
+globs:
+  - "**/*.js"
+  - "**/*.phtml"
+check:
+  type: regex
+  pattern: '\bdefine\s*\(\s*function\s*\('
+recommendation: >
+  Always declare the dependency array as the second argument to define():
+
+    // Wrong — implicit dependencies
+    define(function () {
+        'use strict';
+        return {};
+    });
+
+    // Correct — explicit dependency array
+    define([
+        'jquery',
+        'Magento_Ui/js/lib/core/class'
+    ], function ($, Class) {
+        'use strict';
+        return Class.extend({});
+    });
+
+  Use data-mage-init or x-magento-init for widget initialization in templates rather
+  than inline require() calls; these are processed by the Magento JS initialization system
+  after all bundles are loaded.
+examples:
+  bad: |
+    define(function () {
+        'use strict';
+        var $ = jQuery; // relying on global jQuery — breaks in bundled mode
+        return {
+            init: function () { $('body').addClass('loaded'); }
+        };
+    });
+  good: |
+    define(['jquery'], function ($) {
+        'use strict';
+        return {
+            init: function () { $('body').addClass('loaded'); }
+        };
+    });
+references:
+  - "https://developer.adobe.com/commerce/frontend-core/javascript/init/"
+  - "https://developer.adobe.com/commerce/frontend-core/javascript/requirejs/"
