@@ -241,12 +241,7 @@ ai:
   
   # AI Provider configurations
   providers:
-    openai:
-      enabled: true
-      api_key: ""
-      model: "gpt-4"
-      base_url: "https://api.openai.com/v1"
-      timeout: 30
+    
       
     local:
       enabled: true
