@@ -1,0 +1,84 @@
+# Dependencies
+/vendor/
+/node_modules/
+
+# Build artifacts
+/build/
+/dist/
+
+# IDE files
+.vscode/
+.idea/
+.cursor/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+/logs/
+
+# Runtime data
+pids
+*.pid
+*.seed
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# PHPUnit
+/phpunit.xml
+.phpunit.result.cache
+
+# Composer
+composer.lock
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Cache and temporary files
+/cache/
+/var/
+/tmp/
+/.cache/
+
+# Reports
+/reports/
+*.report.*
+
+# ACQC generated output files (scan results, upgrade reports, audits)
+acqc_*.json
+upgrade-readiness-*.xlsx
+upgrade-readiness-*.html
+upgrade-report.html
+upgrade-report.xlsx
+vendor-audit.json
+
+# Test outputs
+/tests/output/
+
+# Exclude only auto-generated markdown at root level; preserve docs in subdirectories
+/*.md
+!README.md
+!CHANGELOG.md
+!CONTRIBUTING.md
+!CODE_OF_CONDUCT.md
+!SECURITY.md
+!GOVERNANCE.md
+!OPEN_SOURCE_GUIDE.md
+
+# ADLC and agent internals
+.claude/agents/README.md
+docs/adlc/
