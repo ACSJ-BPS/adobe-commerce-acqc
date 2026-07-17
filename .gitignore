@@ -32,8 +32,9 @@ pids
 *.pid
 *.seed
 
-# Coverage directory used by tools like istanbul
-coverage/
+# Coverage directory used by tools like istanbul/vitest (root-level only —
+# unanchored would also match src/Core/Coverage/ due to case-insensitive git)
+/coverage/
 *.lcov
 
 # PHPUnit
