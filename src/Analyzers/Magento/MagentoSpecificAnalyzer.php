@@ -719,15 +719,16 @@ class MagentoSpecificAnalyzer extends AbstractAnalyzer implements AnalyzerInterf
 
         if ($ast) {
             $nodeFinder = new NodeFinder();
-            
-            // Registration issues - check all nodes
-            $allNodes = $nodeFinder->findInstanceOf($ast, Node::class);
-            foreach ($allNodes as $node) {
-                $violation = ModuleStructureRules::detectRegistrationIssues($filePath, $node);
-                if ($violation) {
-                    $violations[] = $violation;
-                }
+
+            // Registration issues - a single file-level check, since a valid
+            // ComponentRegistrar::register() call is one node among many and
+            // checking node-by-node would flag every other node as "invalid"
+            $registrationViolation = ModuleStructureRules::detectRegistrationIssues($filePath, $ast);
+            if ($registrationViolation) {
+                $violations[] = $registrationViolation;
             }
+
+            $allNodes = $nodeFinder->findInstanceOf($ast, Node::class);
 
             // Namespace violations - check all nodes
             foreach ($allNodes as $node) {

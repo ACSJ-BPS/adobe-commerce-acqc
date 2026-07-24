@@ -57,15 +57,8 @@ class InitCommand extends Command
         ['platform' => $platform, 'version' => $platformVersion] = $this->detectPlatform($projectRoot);
         $phpVersion = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
 
-        // Choose rule bundle
-        $ruleBundle = 'adobe-commerce/latest';
-        if ($platform !== 'unknown' && $platformVersion !== 'unknown') {
-            $clean = ltrim((string) preg_replace('/[^0-9.]/', '', $platformVersion), '~^');
-            $parts = explode('.', $clean);
-            if (count($parts) >= 2) {
-                $ruleBundle = "adobe-commerce/{$parts[0]}.{$parts[1]}";
-            }
-        }
+        // Bundled rule set — matches the config/rules/adobe-commerce/ directory on disk
+        $ruleBundle = 'adobe-commerce';
 
         // Create .acqc directory
         if (!is_dir($acqcDir)) {

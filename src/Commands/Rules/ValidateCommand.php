@@ -19,10 +19,14 @@ class ValidateCommand extends Command
 {
     protected function configure(): void
     {
+        // Default target is ACQC's own bundled rule set, not a path relative to
+        // whatever project the command happens to be run from.
+        $defaultPath = dirname(__DIR__, 3) . '/config/rules/';
+
         $this
             ->setName('rules:validate')
             ->setDescription('Validate all rule YAML files in a directory')
-            ->addArgument('path', InputArgument::OPTIONAL, 'Directory to scan', 'config/rules/')
+            ->addArgument('path', InputArgument::OPTIONAL, 'Directory to scan', $defaultPath)
             ->addOption('format', null, InputOption::VALUE_OPTIONAL, 'Output format: text|json', 'text');
     }
 
@@ -39,7 +43,18 @@ class ValidateCommand extends Command
 
         $validator = new RuleValidator();
         $finder    = new Finder();
-        $finder->files()->name(['*.yaml', '*.yml'])->in($path)->sortByName();
+        $finder->files()->name(['*.yaml', '*.yml'])->sortByName();
+
+        $bundledRulesRoot = dirname(__DIR__, 3) . '/config/rules';
+        if (realpath($path) === realpath($bundledRulesRoot)) {
+            // The bundled rules directory also holds legacy rule packs
+            // (frontend.yaml, performance.yaml, etc.) that use a different,
+            // multi-rule-per-file schema — only global/ and adobe-commerce/
+            // contain the modern single-rule-per-file format this validates.
+            $finder->in(["{$path}/global", "{$path}/adobe-commerce"]);
+        } else {
+            $finder->in($path);
+        }
 
         $passed  = 0;
         $failed  = 0;

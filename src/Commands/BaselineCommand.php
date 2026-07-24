@@ -623,7 +623,7 @@ class BaselineCommand extends Command
             $codeAnalyzer = new \ACQC\Core\CodeAnalyzer();
             $result = $codeAnalyzer->analyze($path);
             
-            $violations = $result['violations'] ?? [];
+            $violations = $result['violations'] ?? $result['issues'] ?? [];
             $metrics = $result['metrics'] ?? [];
             
             // Count files

@@ -15,10 +15,10 @@ use ACQC\Analyzers\Magento\UpgradeCompatibilityAnalyzer;
 use ACQC\Analyzers\Magento\ApiServiceAnalyzer;
 use ACQC\Analyzers\Magento\GraphQLAnalyzer;
 use ACQC\Analyzers\Performance\LayoutCacheAnalyzer;
-use ACQC\Analyzers\Performance\OPcacheAnalyzer;
+use ACQC\Analyzers\Performance\OpCacheAnalyzer;
 use ACQC\Analyzers\Performance\VarnishPerformanceAnalyzer;
 use ACQC\Analyzers\Performance\RedisEnhancedAnalyzer;
-use ACQC\Analyzers\Performance\ApiRateLimitingAnalyzer;
+use ACQC\Analyzers\Performance\APIRateLimitingAnalyzer;
 use ACQC\Analyzers\Performance\ServerUptimeAnalyzer;
 use ACQC\Analyzers\Performance\IndexersAnalyzer;
 use ACQC\Analyzers\Performance\HttpProtocolAnalyzer;
@@ -167,7 +167,7 @@ class AnalyzerOrchestrator
         }
         
         if ($config['analyzers']['performance_opcache'] ?? true) {
-            $this->addAnalyzer('performance_opcache', new OPcacheAnalyzer($config, $this->logger));
+            $this->addAnalyzer('performance_opcache', new OpCacheAnalyzer($config, $this->logger));
         }
         
         if ($config['analyzers']['performance_varnish'] ?? true) {
@@ -179,7 +179,7 @@ class AnalyzerOrchestrator
         }
         
         if ($config['analyzers']['performance_api_rate_limiting'] ?? true) {
-            $this->addAnalyzer('performance_api_rate_limiting', new ApiRateLimitingAnalyzer($config, $this->logger));
+            $this->addAnalyzer('performance_api_rate_limiting', new APIRateLimitingAnalyzer($config, $this->logger));
         }
         
         if ($config['analyzers']['performance_server_uptime'] ?? true) {

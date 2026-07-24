@@ -19,15 +19,15 @@ class ModuleStructureRules
     /**
      * Rule: Missing or incorrect registration.php files
      */
-    public static function detectRegistrationIssues(string $filePath, Node $node): ?Violation
+    public static function detectRegistrationIssues(string $filePath, Node|array $ast): ?Violation
     {
         if (basename($filePath) === 'registration.php') {
-            if (!self::hasValidRegistrationStructure($node)) {
+            if (!self::hasValidRegistrationStructure($ast)) {
                 return new Violation(
                     'invalid-registration-structure',
                     'Invalid registration.php file structure.',
                     $filePath,
-                    $node->getLine(),
+                    1,
                     0,
                     'error'
                 );
@@ -148,15 +148,21 @@ class ModuleStructureRules
      */
     public static function detectDirectoryStructureIssues(string $filePath): ?Violation
     {
+        $moduleDir = self::findModuleRoot(dirname($filePath));
+        if ($moduleDir === null) {
+            // No registration.php found within a reasonable number of parent
+            // directories — this file isn't inside a recognizable module, so
+            // there's no module root to validate against.
+            return null;
+        }
+
         $expectedStructure = [
             'registration.php',
             'etc/module.xml',
             'composer.json'
         ];
 
-        $moduleDir = dirname($filePath);
         $missingFiles = [];
-
         foreach ($expectedStructure as $file) {
             if (!file_exists($moduleDir . '/' . $file)) {
                 $missingFiles[] = $file;
@@ -178,12 +184,35 @@ class ModuleStructureRules
     }
 
     /**
+     * Walk up from a file's directory to find the module root (identified by
+     * registration.php), since a file may live several levels below it
+     * (e.g. Vendor/Module/etc/di.xml).
+     */
+    private static function findModuleRoot(string $dir): ?string
+    {
+        for ($i = 0; $i < 6; $i++) {
+            if (file_exists($dir . '/registration.php')) {
+                return $dir;
+            }
+
+            $parent = dirname($dir);
+            if ($parent === $dir) {
+                break;
+            }
+
+            $dir = $parent;
+        }
+
+        return null;
+    }
+
+    /**
      * Check if registration.php has valid structure
      */
-    private static function hasValidRegistrationStructure(Node $node): bool
+    private static function hasValidRegistrationStructure(Node|array $ast): bool
     {
         $nodeFinder = new NodeFinder();
-        $staticCalls = $nodeFinder->findInstanceOf($node, Node\Expr\StaticCall::class);
+        $staticCalls = $nodeFinder->findInstanceOf($ast, Node\Expr\StaticCall::class);
 
         foreach ($staticCalls as $call) {
             if ($call->class instanceof Node\Name) {

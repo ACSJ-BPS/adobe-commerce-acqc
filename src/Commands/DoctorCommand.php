@@ -6,6 +6,7 @@ namespace ACQC\Commands;
 
 use ACQC\Core\History\SqliteHistoryStorage;
 use ACQC\Core\Rules\SuppressionStore;
+use ACQC\Core\Validation\AnalyzerAutoloadValidator;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -28,7 +29,10 @@ class DoctorCommand extends Command
         $projectRoot = getcwd();
         $asJson      = (bool) $input->getOption('json');
 
+        $acqcRoot = dirname(__DIR__, 2);
+
         $results = [
+            $this->checkAnalyzerAutoload($acqcRoot),
             $this->checkConfigFile($projectRoot),
             $this->checkRuleBundle($projectRoot),
             $this->checkLastScan($projectRoot),
@@ -82,6 +86,27 @@ class DoctorCommand extends Command
     }
 
     // ── checks ─────────────────────────────────────────────────────────────────
+
+    private function checkAnalyzerAutoload(string $acqcRoot): array
+    {
+        $validator = new AnalyzerAutoloadValidator();
+        $issues = $validator->validateAcqcPackage($acqcRoot);
+
+        if ($issues === []) {
+            return $this->pass('Analyzer autoload', 'All orchestrator analyzer classes match PSR-4 paths');
+        }
+
+        $preview = implode('; ', array_slice($issues, 0, 3));
+        if (count($issues) > 3) {
+            $preview .= sprintf(' (+%d more)', count($issues) - 3);
+        }
+
+        return $this->fail(
+            'Analyzer autoload',
+            $preview,
+            'Fix class names to match filenames (case-sensitive autoload) in AnalyzerOrchestrator.php'
+        );
+    }
 
     private function checkConfigFile(string $projectRoot): array
     {
