@@ -280,7 +280,7 @@ class MagentoSpecificAnalyzer extends AbstractAnalyzer implements AnalyzerInterf
                 }
 
                 // Namespace violations detection
-                $namespaceViolation = ModuleStructureRules::detectNamespaceViolations($node);
+                $namespaceViolation = ModuleStructureRules::detectNamespaceViolations($node, $filePath);
                 if ($namespaceViolation) {
                     $violations[] = $namespaceViolation;
                 }
@@ -719,19 +719,20 @@ class MagentoSpecificAnalyzer extends AbstractAnalyzer implements AnalyzerInterf
 
         if ($ast) {
             $nodeFinder = new NodeFinder();
-            
-            // Registration issues - check all nodes
-            $allNodes = $nodeFinder->findInstanceOf($ast, Node::class);
-            foreach ($allNodes as $node) {
-                $violation = ModuleStructureRules::detectRegistrationIssues($filePath, $node);
-                if ($violation) {
-                    $violations[] = $violation;
-                }
+
+            // Registration issues - a single file-level check, since a valid
+            // ComponentRegistrar::register() call is one node among many and
+            // checking node-by-node would flag every other node as "invalid"
+            $registrationViolation = ModuleStructureRules::detectRegistrationIssues($filePath, $ast);
+            if ($registrationViolation) {
+                $violations[] = $registrationViolation;
             }
+
+            $allNodes = $nodeFinder->findInstanceOf($ast, Node::class);
 
             // Namespace violations - check all nodes
             foreach ($allNodes as $node) {
-                $violation = ModuleStructureRules::detectNamespaceViolations($node);
+                $violation = ModuleStructureRules::detectNamespaceViolations($node, $filePath);
                 if ($violation) {
                     $violations[] = $violation;
                 }
@@ -890,20 +891,20 @@ class MagentoSpecificAnalyzer extends AbstractAnalyzer implements AnalyzerInterf
             $nodeFinder = new NodeFinder();
             
             // Missing translation
-            $translationViolations = $nodeFinder->find($ast, function(Node $node) {
-                return FrontendRules::detectMissingTranslation($node);
+            $translationViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return FrontendRules::detectMissingTranslation($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($translationViolations));
 
             // Block inheritance issues
-            $inheritanceViolations = $nodeFinder->find($ast, function(Node $node) {
-                return FrontendRules::detectBlockInheritanceIssues($node);
+            $inheritanceViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return FrontendRules::detectBlockInheritanceIssues($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($inheritanceViolations));
 
             // Missing escaping
-            $escapingViolations = $nodeFinder->find($ast, function(Node $node) {
-                return FrontendRules::detectMissingEscaping($node);
+            $escapingViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return FrontendRules::detectMissingEscaping($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($escapingViolations));
         }
@@ -937,14 +938,14 @@ class MagentoSpecificAnalyzer extends AbstractAnalyzer implements AnalyzerInterf
             $nodeFinder = new NodeFinder();
             
             // Hardcoded store IDs
-            $storeViolations = $nodeFinder->find($ast, function(Node $node) {
-                return ConfigurationRules::detectHardcodedStoreIds($node);
+            $storeViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return ConfigurationRules::detectHardcodedStoreIds($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($storeViolations));
 
             // Core config path issues
-            $configViolations = $nodeFinder->find($ast, function(Node $node) {
-                return ConfigurationRules::detectCoreConfigPathIssues($node);
+            $configViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return ConfigurationRules::detectCoreConfigPathIssues($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($configViolations));
         }
@@ -986,38 +987,38 @@ class MagentoSpecificAnalyzer extends AbstractAnalyzer implements AnalyzerInterf
             $nodeFinder = new NodeFinder();
             
             // Missing CSRF protection
-            $csrfViolations = $nodeFinder->find($ast, function(Node $node) {
-                return SecurityRules::detectMissingCsrfProtection($node);
+            $csrfViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return SecurityRules::detectMissingCsrfProtection($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($csrfViolations));
 
             // Missing authorization
-            $authViolations = $nodeFinder->find($ast, function(Node $node) {
-                return SecurityRules::detectMissingAuthorization($node);
+            $authViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return SecurityRules::detectMissingAuthorization($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($authViolations));
 
             // Unsafe output
-            $outputViolations = $nodeFinder->find($ast, function(Node $node) {
-                return SecurityRules::detectUnsafeOutput($node);
+            $outputViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return SecurityRules::detectUnsafeOutput($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($outputViolations));
 
             // Missing input validation
-            $inputViolations = $nodeFinder->find($ast, function(Node $node) {
-                return SecurityRules::detectMissingInputValidation($node);
+            $inputViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return SecurityRules::detectMissingInputValidation($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($inputViolations));
 
             // Session issues
-            $sessionViolations = $nodeFinder->find($ast, function(Node $node) {
-                return SecurityRules::detectSessionIssues($node);
+            $sessionViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return SecurityRules::detectSessionIssues($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($sessionViolations));
 
             // File upload issues
-            $uploadViolations = $nodeFinder->find($ast, function(Node $node) {
-                return SecurityRules::detectFileUploadIssues($node);
+            $uploadViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return SecurityRules::detectFileUploadIssues($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($uploadViolations));
         }
@@ -1043,44 +1044,44 @@ class MagentoSpecificAnalyzer extends AbstractAnalyzer implements AnalyzerInterf
             $nodeFinder = new NodeFinder();
             
             // Collection in loops
-            $collectionViolations = $nodeFinder->find($ast, function(Node $node) {
-                return PerformanceRules::detectCollectionInLoops($node);
+            $collectionViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return PerformanceRules::detectCollectionInLoops($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($collectionViolations));
 
             // Missing indexing
-            $indexingViolations = $nodeFinder->find($ast, function(Node $node) {
-                return PerformanceRules::detectMissingIndexing($node);
+            $indexingViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return PerformanceRules::detectMissingIndexing($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($indexingViolations));
 
             // Inefficient repository usage
-            $repositoryViolations = $nodeFinder->find($ast, function(Node $node) {
-                return PerformanceRules::detectInefficientRepositoryUsage($node);
+            $repositoryViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return PerformanceRules::detectInefficientRepositoryUsage($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($repositoryViolations));
 
             // Missing caching
-            $cachingViolations = $nodeFinder->find($ast, function(Node $node) {
-                return PerformanceRules::detectMissingCaching($node);
+            $cachingViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return PerformanceRules::detectMissingCaching($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($cachingViolations));
 
             // Inefficient queries
-            $queryViolations = $nodeFinder->find($ast, function(Node $node) {
-                return PerformanceRules::detectInefficientQueries($node);
+            $queryViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return PerformanceRules::detectInefficientQueries($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($queryViolations));
 
             // Memory issues
-            $memoryViolations = $nodeFinder->find($ast, function(Node $node) {
-                return PerformanceRules::detectMemoryIssues($node);
+            $memoryViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return PerformanceRules::detectMemoryIssues($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($memoryViolations));
 
             // Missing lazy loading
-            $lazyViolations = $nodeFinder->find($ast, function(Node $node) {
-                return PerformanceRules::detectMissingLazyLoading($node);
+            $lazyViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return PerformanceRules::detectMissingLazyLoading($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($lazyViolations));
         }
@@ -1102,38 +1103,38 @@ class MagentoSpecificAnalyzer extends AbstractAnalyzer implements AnalyzerInterf
             $nodeFinder = new NodeFinder();
             
             // Hardcoded currency codes
-            $currencyViolations = $nodeFinder->find($ast, function(Node $node) {
-                return BusinessLogicRules::detectHardcodedCurrencyCodes($node);
+            $currencyViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return BusinessLogicRules::detectHardcodedCurrencyCodes($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($currencyViolations));
 
             // Missing multi-store support
-            $storeViolations = $nodeFinder->find($ast, function(Node $node) {
-                return BusinessLogicRules::detectMissingMultiStoreSupport($node);
+            $storeViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return BusinessLogicRules::detectMissingMultiStoreSupport($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($storeViolations));
 
             // Price calculation issues
-            $priceViolations = $nodeFinder->find($ast, function(Node $node) {
-                return BusinessLogicRules::detectPriceCalculationIssues($node);
+            $priceViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return BusinessLogicRules::detectPriceCalculationIssues($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($priceViolations));
 
             // Tax calculation issues
-            $taxViolations = $nodeFinder->find($ast, function(Node $node) {
-                return BusinessLogicRules::detectTaxCalculationIssues($node);
+            $taxViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return BusinessLogicRules::detectTaxCalculationIssues($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($taxViolations));
 
             // Missing event dispatching
-            $eventViolations = $nodeFinder->find($ast, function(Node $node) {
-                return BusinessLogicRules::detectMissingEventDispatching($node);
+            $eventViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return BusinessLogicRules::detectMissingEventDispatching($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($eventViolations));
 
             // Plugin signature issues
-            $pluginViolations = $nodeFinder->find($ast, function(Node $node) {
-                return BusinessLogicRules::detectPluginSignatureIssues($node);
+            $pluginViolations = $nodeFinder->find($ast, function(Node $node) use ($filePath) {
+                return BusinessLogicRules::detectPluginSignatureIssues($node, $filePath);
             });
             $violations = array_merge($violations, array_filter($pluginViolations));
         }

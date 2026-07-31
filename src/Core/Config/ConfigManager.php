@@ -440,12 +440,21 @@ class ConfigManager
 
     private function getDefaultConfigPath(): string
     {
-        return $this->projectRoot . '/' . self::DEFAULT_CONFIG_FILE;
+        return $this->getPackageRoot() . '/' . self::DEFAULT_CONFIG_FILE;
     }
 
     private function getRoleConfigPath(string $role): string
     {
-        return $this->projectRoot . "/config/roles/{$role}.yaml";
+        return $this->getPackageRoot() . "/config/roles/{$role}.yaml";
+    }
+
+    /**
+     * Root of the ACQC package itself (bundled config lives here), as opposed to
+     * $projectRoot which is the target project being analyzed and defaults to cwd.
+     */
+    private function getPackageRoot(): string
+    {
+        return dirname(__DIR__, 3);
     }
 
     private function validateAnalyzersConfig(array $analyzers): array

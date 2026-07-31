@@ -25,25 +25,29 @@ class BusinessLogicRules
     /**
      * Rule: Hardcoded currency codes
      */
-    public static function detectHardcodedCurrencyCodes(Node $node): ?Violation
+    public static function detectHardcodedCurrencyCodes(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof String_) {
             $value = $node->value;
-            
+
             if (in_array($value, self::HARDCODED_CURRENCIES)) {
-                return new Violation(
+                $violation = new Violation(
                     'hardcoded-currency',
-                    'warning',
                     'Hardcoded currency code detected: ' . $value,
+                    $filePath,
                     $node->getLine(),
-                    'Use configuration or context to get currency dynamically.',
-                    [
-                        'Use: `$this->storeManager->getStore()->getCurrentCurrencyCode()`',
-                        'Use: `$this->currencyFactory->create()->load($code)`',
-                        'Use: `$this->config->getValue(\'currency/options/base\')`',
-                        'Avoid hardcoded currency codes for multi-currency support'
-                    ]
+                    0,
+                    'warning'
                 );
+                $violation->setSuggestion('Use configuration or context to get currency dynamically.');
+                $violation->addMetadata('suggestions', [
+                    'Use: `$this->storeManager->getStore()->getCurrentCurrencyCode()`',
+                    'Use: `$this->currencyFactory->create()->load($code)`',
+                    'Use: `$this->config->getValue(\'currency/options/base\')`',
+                    'Avoid hardcoded currency codes for multi-currency support'
+                ]);
+
+                return $violation;
             }
         }
 
@@ -53,26 +57,30 @@ class BusinessLogicRules
     /**
      * Rule: Missing multi-store compatibility
      */
-    public static function detectMissingMultiStoreSupport(Node $node): ?Violation
+    public static function detectMissingMultiStoreSupport(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof ClassMethod) {
             $methodName = $node->name->toString();
-            
+
             if (self::isStoreSpecificMethod($methodName)) {
                 if (!self::hasMultiStoreSupport($node)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'missing-multi-store-support',
-                        'warning',
                         'Missing multi-store compatibility in method: ' . $methodName,
+                        $filePath,
                         $node->getLine(),
-                        'Implement multi-store compatibility for business logic.',
-                        [
-                            'Use: `$this->storeManager->getStore()`',
-                            'Use: `$this->storeManager->getStores()`',
-                            'Check store context in business logic',
-                            'Use store-specific configuration'
-                        ]
+                        0,
+                        'warning'
                     );
+                    $violation->setSuggestion('Implement multi-store compatibility for business logic.');
+                    $violation->addMetadata('suggestions', [
+                        'Use: `$this->storeManager->getStore()`',
+                        'Use: `$this->storeManager->getStores()`',
+                        'Check store context in business logic',
+                        'Use store-specific configuration'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -83,27 +91,31 @@ class BusinessLogicRules
     /**
      * Rule: Improper price calculation methods
      */
-    public static function detectPriceCalculationIssues(Node $node): ?Violation
+    public static function detectPriceCalculationIssues(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof ClassMethod) {
             $methodName = $node->name->toString();
-            
+
             if (self::isPriceCalculationMethod($methodName)) {
                 $issues = self::validatePriceCalculation($node);
                 if (!empty($issues)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'price-calculation-issues',
-                        'error',
                         'Price calculation issues: ' . implode(', ', $issues),
+                        $filePath,
                         $node->getLine(),
-                        'Implement proper price calculation logic.',
-                        [
-                            'Use: `$this->priceCurrency->convert()`',
-                            'Use: `$this->taxCalculation->calculateTax()`',
-                            'Consider tax rules and discounts',
-                            'Use proper rounding methods'
-                        ]
+                        0,
+                        'error'
                     );
+                    $violation->setSuggestion('Implement proper price calculation logic.');
+                    $violation->addMetadata('suggestions', [
+                        'Use: `$this->priceCurrency->convert()`',
+                        'Use: `$this->taxCalculation->calculateTax()`',
+                        'Consider tax rules and discounts',
+                        'Use proper rounding methods'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -114,26 +126,30 @@ class BusinessLogicRules
     /**
      * Rule: Tax calculation rule violations
      */
-    public static function detectTaxCalculationIssues(Node $node): ?Violation
+    public static function detectTaxCalculationIssues(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof ClassMethod) {
             $methodName = $node->name->toString();
-            
+
             if (self::isTaxCalculationMethod($methodName)) {
                 if (!self::hasProperTaxCalculation($node)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'tax-calculation-issues',
-                        'error',
                         'Improper tax calculation in method: ' . $methodName,
+                        $filePath,
                         $node->getLine(),
-                        'Implement proper tax calculation logic.',
-                        [
-                            'Use: `$this->taxCalculation->calculateTax()`',
-                            'Use: `$this->taxConfig->getTaxClass()`',
-                            'Consider tax rules and rates',
-                            'Use proper tax rounding'
-                        ]
+                        0,
+                        'error'
                     );
+                    $violation->setSuggestion('Implement proper tax calculation logic.');
+                    $violation->addMetadata('suggestions', [
+                        'Use: `$this->taxCalculation->calculateTax()`',
+                        'Use: `$this->taxConfig->getTaxClass()`',
+                        'Consider tax rules and rates',
+                        'Use proper tax rounding'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -144,26 +160,30 @@ class BusinessLogicRules
     /**
      * Rule: Missing event dispatching for extensibility
      */
-    public static function detectMissingEventDispatching(Node $node): ?Violation
+    public static function detectMissingEventDispatching(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof ClassMethod) {
             $methodName = $node->name->toString();
-            
+
             if (self::isBusinessLogicMethod($methodName)) {
                 if (!self::hasEventDispatching($node)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'missing-event-dispatching',
-                        'warning',
                         'Missing event dispatching in business logic: ' . $methodName,
+                        $filePath,
                         $node->getLine(),
-                        'Dispatch events for extensibility in business logic.',
-                        [
-                            'Use: `$this->eventManager->dispatch()`',
-                            'Dispatch before and after events',
-                            'Pass relevant data in event',
-                            'Follow Magento 2 event naming conventions'
-                        ]
+                        0,
+                        'warning'
                     );
+                    $violation->setSuggestion('Dispatch events for extensibility in business logic.');
+                    $violation->addMetadata('suggestions', [
+                        'Use: `$this->eventManager->dispatch()`',
+                        'Dispatch before and after events',
+                        'Pass relevant data in event',
+                        'Follow Magento 2 event naming conventions'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -179,19 +199,23 @@ class BusinessLogicRules
         if (strpos($filePath, 'Observer.php') !== false) {
             $issues = self::validateObserverImplementation($content);
             if (!empty($issues)) {
-                return new Violation(
+                $violation = new Violation(
                     'observer-implementation-issues',
-                    'error',
                     'Observer implementation issues: ' . implode(', ', $issues),
+                    $filePath,
                     1,
-                    'Implement observers following Magento 2 patterns.',
-                    [
-                        'Extend: `Magento\Framework\Event\ObserverInterface`',
-                        'Implement: `execute()` method',
-                        'Use proper parameter injection',
-                        'Follow observer naming conventions'
-                    ]
+                    0,
+                    'error'
                 );
+                $violation->setSuggestion('Implement observers following Magento 2 patterns.');
+                $violation->addMetadata('suggestions', [
+                    'Extend: `Magento\Framework\Event\ObserverInterface`',
+                    'Implement: `execute()` method',
+                    'Use proper parameter injection',
+                    'Follow observer naming conventions'
+                ]);
+
+                return $violation;
             }
         }
 
@@ -201,26 +225,30 @@ class BusinessLogicRules
     /**
      * Rule: Plugin method signature mismatches
      */
-    public static function detectPluginSignatureIssues(Node $node): ?Violation
+    public static function detectPluginSignatureIssues(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof ClassMethod) {
             $methodName = $node->name->toString();
-            
+
             if (self::isPluginMethod($methodName)) {
                 if (!self::hasProperPluginSignature($node)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'plugin-signature-mismatch',
-                        'error',
                         'Plugin method signature mismatch: ' . $methodName,
+                        $filePath,
                         $node->getLine(),
-                        'Plugin methods should match original method signatures.',
-                        [
-                            'Use: `beforeMethod($subject, ...$args)`',
-                            'Use: `aroundMethod($subject, $proceed, ...$args)`',
-                            'Use: `afterMethod($subject, $result, ...$args)`',
-                            'Match parameter types and return types'
-                        ]
+                        0,
+                        'error'
                     );
+                    $violation->setSuggestion('Plugin methods should match original method signatures.');
+                    $violation->addMetadata('suggestions', [
+                        'Use: `beforeMethod($subject, ...$args)`',
+                        'Use: `aroundMethod($subject, $proceed, ...$args)`',
+                        'Use: `afterMethod($subject, $result, ...$args)`',
+                        'Match parameter types and return types'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -236,19 +264,23 @@ class BusinessLogicRules
         if (strpos($filePath, 'Test.php') !== false && strpos($filePath, 'Integration') !== false) {
             $issues = self::validateIntegrationTests($content);
             if (!empty($issues)) {
-                return new Violation(
+                $violation = new Violation(
                     'missing-integration-tests',
-                    'warning',
                     'Integration test issues: ' . implode(', ', $issues),
+                    $filePath,
                     1,
-                    'Implement comprehensive integration tests for critical paths.',
-                    [
-                        'Test complete user workflows',
-                        'Test database interactions',
-                        'Test external service integrations',
-                        'Test error scenarios'
-                    ]
+                    0,
+                    'warning'
                 );
+                $violation->setSuggestion('Implement comprehensive integration tests for critical paths.');
+                $violation->addMetadata('suggestions', [
+                    'Test complete user workflows',
+                    'Test database interactions',
+                    'Test external service integrations',
+                    'Test error scenarios'
+                ]);
+
+                return $violation;
             }
         }
 
@@ -263,19 +295,23 @@ class BusinessLogicRules
         if (strpos($filePath, 'Test.php') !== false) {
             $issues = self::validateMockUsage($content);
             if (!empty($issues)) {
-                return new Violation(
+                $violation = new Violation(
                     'improper-mock-usage',
-                    'warning',
                     'Mock usage issues: ' . implode(', ', $issues),
+                    $filePath,
                     1,
-                    'Use proper mocking techniques in unit tests.',
-                    [
-                        'Use: `$this->createMock()`',
-                        'Use: `$this->getMockBuilder()`',
-                        'Mock only external dependencies',
-                        'Use proper mock expectations'
-                    ]
+                    0,
+                    'warning'
                 );
+                $violation->setSuggestion('Use proper mocking techniques in unit tests.');
+                $violation->addMetadata('suggestions', [
+                    'Use: `$this->createMock()`',
+                    'Use: `$this->getMockBuilder()`',
+                    'Mock only external dependencies',
+                    'Use proper mock expectations'
+                ]);
+
+                return $violation;
             }
         }
 

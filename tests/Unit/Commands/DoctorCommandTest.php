@@ -70,10 +70,10 @@ class DoctorCommandTest extends TestCase
         $this->assertStringContainsString('Score:', $this->tester->getDisplay());
     }
 
-    public function testOutputScoreFormatIsNofSeven(): void
+    public function testOutputScoreFormatIsNofEight(): void
     {
         $this->tester->execute([]);
-        $this->assertMatchesRegularExpression('/Score:\s+\d\/7/', $this->tester->getDisplay());
+        $this->assertMatchesRegularExpression('/Score:\s+\d\/8/', $this->tester->getDisplay());
     }
 
     public function testOutputContainsPriorityActions(): void
@@ -89,7 +89,7 @@ class DoctorCommandTest extends TestCase
         $this->tester->execute(['--json' => true]);
         $decoded = json_decode($this->tester->getDisplay(), true);
         $this->assertIsArray($decoded);
-        $this->assertCount(7, $decoded);
+        $this->assertCount(8, $decoded);
     }
 
     public function testJsonResultsContainRequiredKeys(): void

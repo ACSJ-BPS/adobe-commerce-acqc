@@ -231,28 +231,53 @@ class TechnicalSpecCommand extends Command
         $standards = [];
 
         foreach ($checklist as $categoryKey => $category) {
-            if ($categoryKey === 'tools') {
+            // Skip the 'tools' pseudo-category and any malformed (non-array) entry.
+            if ($categoryKey === 'tools' || !is_array($category)) {
                 continue;
             }
 
             $standards[$categoryKey] = [
-                'name' => $category['name'],
+                'name' => $category['name'] ?? $categoryKey,
                 'requirements' => []
             ];
 
-            foreach ($category['items'] as $itemKey => $item) {
+            foreach (($category['items'] ?? []) as $itemKey => $item) {
+                // Skip the 'tools' pseudo-item and items with no checks to iterate.
+                if ($itemKey === 'tools' || !is_array($item) || empty($item['checks']) || !is_array($item['checks'])) {
+                    continue;
+                }
+
                 $standards[$categoryKey]['requirements'][$itemKey] = [
-                    'name' => $item['name'],
+                    'name' => $item['name'] ?? $itemKey,
                     'checks' => []
                 ];
 
                 foreach ($item['checks'] as $checkKey => $check) {
-                    $standards[$categoryKey]['requirements'][$itemKey]['checks'][$checkKey] = [
-                        'name' => $check['name'],
-                        'severity' => $check['severity'],
-                        'description' => $check['description'],
-                        'tools' => $check['tools']
-                    ];
+                    if (!is_array($check)) {
+                        continue;
+                    }
+
+                    // The checklist data has two shapes here: some roles list
+                    // leaf checks directly (they carry a 'severity'), while others
+                    // (e.g. junior-developer) group them one level deeper under a
+                    // sub-group that nests its own 'checks' array. Normalise both
+                    // to a flat list of leaf checks.
+                    $leafChecks = (isset($check['checks']) && is_array($check['checks']))
+                        ? $check['checks']
+                        : [$checkKey => $check];
+
+                    foreach ($leafChecks as $leafKey => $leaf) {
+                        if (!is_array($leaf)) {
+                            continue;
+                        }
+
+                        $standards[$categoryKey]['requirements'][$itemKey]['checks'][$leafKey] = [
+                            'name' => $leaf['name'] ?? $leafKey,
+                            'severity' => $leaf['severity'] ?? 'info',
+                            'description' => $leaf['description'] ?? '',
+                            'tools' => $leaf['tools'] ?? []
+                        ];
+                    }
                 }
             }
         }

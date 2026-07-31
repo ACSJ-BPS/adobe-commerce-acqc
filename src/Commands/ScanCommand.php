@@ -792,8 +792,9 @@ class ScanCommand extends Command
         }
 
         // Display top issues
-        if (!empty($results['violations'])) {
-            $this->displayTopIssues($results['violations'], $io);
+        $topIssues = $results['violations'] ?? $results['issues'] ?? [];
+        if (!empty($topIssues)) {
+            $this->displayTopIssues($topIssues, $io);
         }
     }
 
@@ -864,7 +865,7 @@ class ScanCommand extends Command
 
     private function generateSummaryStats(array $results): array
     {
-        $violations = $results['violations'] ?? [];
+        $violations = $results['violations'] ?? $results['issues'] ?? [];
         
         return [
             'files_scanned' => $results['files_scanned'] ?? $results['files_processed'] ?? 0,
@@ -898,7 +899,7 @@ class ScanCommand extends Command
         
         $issueGroups = [];
         foreach ($violations as $violation) {
-            $key = $violation['rule'] ?? 'Unknown';
+            $key = $violation['rule'] ?? $violation['type'] ?? 'Unknown';
             $issueGroups[$key] = ($issueGroups[$key] ?? 0) + 1;
         }
         
@@ -1007,7 +1008,7 @@ HELP;
             'path' => $config['path'],
             'format' => $config['format'],
             'role' => $config['role'],
-            'violations' => count($results['violations'] ?? []),
+            'violations' => count($results['violations'] ?? $results['issues'] ?? []),
             'exit_code' => $exitCode,
             'duration' => $this->stopwatch->getEvent('total_scan')->getDuration()
         ]);

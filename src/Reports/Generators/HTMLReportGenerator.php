@@ -23,8 +23,18 @@ class HTMLReportGenerator extends AbstractReportGenerator
     public function __construct($configManager = null, $logger = null, $predictiveAnalytics = null)
     {
         parent::__construct($configManager, $logger, $predictiveAnalytics);
-        $this->templatesDir = $this->reportConfig['formats']['html']['templates_dir'] ?? 'templates/reports/html';
+        $relativeTemplatesDir = $this->reportConfig['formats']['html']['templates_dir'] ?? 'templates/reports/html';
+        $this->templatesDir = $this->getPackageRoot() . '/' . $relativeTemplatesDir;
         $this->initializeTwig();
+    }
+
+    /**
+     * Root of the ACQC package itself, where bundled templates live — as opposed to
+     * getcwd(), which is the target project being analyzed and reported on.
+     */
+    private function getPackageRoot(): string
+    {
+        return dirname(__DIR__, 3);
     }
 
     /**
@@ -118,7 +128,7 @@ class HTMLReportGenerator extends AbstractReportGenerator
     {
         $loader = new FilesystemLoader($this->templatesDir);
         $this->twig = new Environment($loader, [
-            'cache' => 'var/cache/twig',
+            'cache' => $this->getPackageRoot() . '/var/cache/twig',
             'debug' => true,
             'auto_reload' => true
         ]);

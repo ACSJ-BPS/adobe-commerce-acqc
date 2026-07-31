@@ -32,7 +32,7 @@ class CodeAnalyzer
             'target' => $target,
             'files_processed' => count($files),
             'issues' => [],
-            'metrics' => [],
+            'metrics' => ['lines_of_code' => $this->countLines($files)],
         ];
 
         foreach ($analyzers as $analyzer) {
@@ -47,6 +47,19 @@ class CodeAnalyzer
         }
 
         return $results;
+    }
+
+    private function countLines(array $files): int
+    {
+        $lines = 0;
+        foreach ($files as $file) {
+            $content = @file_get_contents($file);
+            if ($content !== false) {
+                $lines += substr_count($content, "\n") + 1;
+            }
+        }
+
+        return $lines;
     }
 
     public function getAvailableAnalyzers(): array

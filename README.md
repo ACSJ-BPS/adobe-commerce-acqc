@@ -1,7 +1,7 @@
 # ACQC — Adobe Commerce Quality Control
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PHP Version](https://img.shields.io/badge/php-%3E%3D8.1-blue)](https://php.net)
+[![PHP Version](<https://img.shields.io/badge/php-%3E%3D8.1-blue>)](https://php.net)
 [![Adobe Commerce](https://img.shields.io/badge/adobe--commerce-2.4+-orange)](https://experienceleague.adobe.com/docs/commerce-operations/installation-guide/overview.html)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/adobe-commerce-quality/acqc)
 [![Version](https://img.shields.io/badge/version-3.1.0-blue)](https://github.com/adobe-commerce-quality/acqc)
@@ -50,7 +50,7 @@ ACQC is a static analysis and reporting platform that enforces the [Magento 2 co
 - [Rule System Deep Dive](#rule-system-deep-dive)
 - [Report Deep Dive](#report-deep-dive)
 - [Policy-as-Code](#policy-as-code)
-- [History & Trends](#history--trends)
+- [History &amp; Trends](#history--trends)
 - [Multi-Project Aggregation](#multi-project-aggregation)
 - [CI/CD Integration](#cicd-integration)
 - [Configuration](#configuration)
@@ -66,6 +66,7 @@ ACQC is a static analysis and reporting platform that enforces the [Magento 2 co
 Adobe Commerce projects accumulate technical debt quickly — custom modules, third-party extensions, and upgrade pressure compound over time. ACQC gives development teams a single command to measure and enforce quality across all three dimensions that matter: standards compliance, upgrade safety, and security posture.
 
 **Who it is for:**
+
 - **Developers** — instant feedback on violations, suppression management, live watch mode
 - **Tech leads** — team-level scoring, policy-as-code enforcement, baseline tracking
 - **Architects** — upgrade readiness reports, API change detection, architecture rule validation
@@ -82,34 +83,34 @@ ACQC understands Adobe Commerce semantics that generic tools miss — dependency
 
 ### Analysis Stack — Layered, Standards-First
 
-| Layer | Tool | Role | Required |
-|---|---|---|---|
-| **Base gate** | PHPCS + `magento/magento-coding-standard` | Primary standard — all Adobe Commerce coding rules | Yes |
-| **Code health** | PHPMD | Code smells, complexity, unused code | Yes |
-| **Duplication** | PHPCPD | Copy-paste detection across files and classes | Optional (global install) |
-| **Type safety** | PHPStan | Static type analysis, level 0–9 | Optional |
-| **YAML rules** | 112 purpose-built rules | Commerce-specific patterns: DI, security, GraphQL, DB schema, deprecations | Bundled |
-| **Custom rules** | Policy-as-Code (YAML) | Team-specific rules, no PHP required | Optional |
+| Layer                  | Tool                                       | Role                                                                       | Required                  |
+| ---------------------- | ------------------------------------------ | -------------------------------------------------------------------------- | ------------------------- |
+| **Base gate**    | PHPCS +`magento/magento-coding-standard` | Primary standard — all Adobe Commerce coding rules                        | Yes                       |
+| **Code health**  | PHPMD                                      | Code smells, complexity, unused code                                       | Yes                       |
+| **Duplication**  | PHPCPD                                     | Copy-paste detection across files and classes                              | Optional (global install) |
+| **Type safety**  | PHPStan                                    | Static type analysis, level 0–9                                           | Optional                  |
+| **YAML rules**   | 112 purpose-built rules                    | Commerce-specific patterns: DI, security, GraphQL, DB schema, deprecations | Bundled                   |
+| **Custom rules** | Policy-as-Code (YAML)                      | Team-specific rules, no PHP required                                       | Optional                  |
 
 ### 112 Rules Across 15 Categories
 
-| Category | Rules | What It Catches |
-|---|---|---|
-| `architecture` | 10 | Plugin conflicts, preference chains, observer collisions |
-| `async` | 3 | Blocking operations in message queue consumers |
-| `cloud` | 3 | Local filesystem writes, env config in cloud |
-| `deprecation` | 13 | Zend/Laminas migrations, deprecated APIs, removed classes |
-| `di` | 6 | ObjectManager direct use, around-plugin anti-patterns |
-| `graphql` | 5 | N+1 resolvers, missing auth, unbounded list queries |
-| `indexing` | 4 | Schedule vs. save mode, missing FK indexes |
-| `performance` | — | N+1 queries, eager loading, unbounded loops |
-| `schema` | 10 | db_schema.xml naming, types, constraints |
-| `security` | 7 | SQL injection, XSS, CSRF, path traversal |
-| `http` | — | Response handling, session misuse |
-| `cron` | — | Cron group and schedule issues |
-| `frontend` | — | LESS/SCSS, UI component issues |
-| `guidance` | — | Best-practice advisory rules |
-| `global` | 1 | Cross-language best practices |
+| Category         | Rules | What It Catches                                           |
+| ---------------- | ----- | --------------------------------------------------------- |
+| `architecture` | 10    | Plugin conflicts, preference chains, observer collisions  |
+| `async`        | 3     | Blocking operations in message queue consumers            |
+| `cloud`        | 3     | Local filesystem writes, env config in cloud              |
+| `deprecation`  | 13    | Zend/Laminas migrations, deprecated APIs, removed classes |
+| `di`           | 6     | ObjectManager direct use, around-plugin anti-patterns     |
+| `graphql`      | 5     | N+1 resolvers, missing auth, unbounded list queries       |
+| `indexing`     | 4     | Schedule vs. save mode, missing FK indexes                |
+| `performance`  | —    | N+1 queries, eager loading, unbounded loops               |
+| `schema`       | 10    | db_schema.xml naming, types, constraints                  |
+| `security`     | 7     | SQL injection, XSS, CSRF, path traversal                  |
+| `http`         | —    | Response handling, session misuse                         |
+| `cron`         | —    | Cron group and schedule issues                            |
+| `frontend`     | —    | LESS/SCSS, UI component issues                            |
+| `guidance`     | —    | Best-practice advisory rules                              |
+| `global`       | 1     | Cross-language best practices                             |
 
 ### Enterprise Reporting
 
@@ -132,16 +133,16 @@ ACQC understands Adobe Commerce semantics that generic tools miss — dependency
 
 ## Requirements
 
-| Requirement | Version | Notes |
-|---|---|---|
-| PHP | 8.1 or higher | 8.2/8.3 recommended |
-| Composer | 2.x | |
-| Adobe Commerce / Magento 2 | 2.4.x | Target project being analyzed |
-| ext-sqlite3 | Any | For history tracking (`~/.acqc/history.sqlite`) |
-| ext-xml | Any | For PHPCS and report generation |
-| Xdebug 3.x | Optional | For PHPUnit coverage collection in reports |
-| PHPStan | Optional | For type-safety analysis layer |
-| PHPCPD | Optional | Install globally: `composer global require sebastian/phpcpd` |
+| Requirement                | Version       | Notes                                                         |
+| -------------------------- | ------------- | ------------------------------------------------------------- |
+| PHP                        | 8.1 or higher | 8.2/8.3 recommended                                           |
+| Composer                   | 2.x           |                                                               |
+| Adobe Commerce / Magento 2 | 2.4.x         | Target project being analyzed                                 |
+| ext-sqlite3                | Any           | For history tracking (`~/.acqc/history.sqlite`)             |
+| ext-xml                    | Any           | For PHPCS and report generation                               |
+| Xdebug 3.x                 | Optional      | For PHPUnit coverage collection in reports                    |
+| PHPStan                    | Optional      | For type-safety analysis layer                                |
+| PHPCPD                     | Optional      | Install globally:`composer global require sebastian/phpcpd` |
 
 ---
 
@@ -188,6 +189,7 @@ php /path/to/acqc/bin/acqc audit app/code --severity=error
 ```
 
 > **Tip:** Add `bin/acqc` to your shell PATH or create an alias to avoid typing the full path every time:
+>
 > ```bash
 > alias acqc="php /path/to/acqc/bin/acqc"
 > ```
@@ -206,17 +208,17 @@ php bin/acqc scan <path> [options]
 
 **Options:**
 
-| Option | Description | Default |
-|---|---|---|
-| `--format` | Output format: `console`, `json`, `xml`, `html`, `pdf`, `junit`, `csv`, `txt` | `console` |
-| `--output` | Output file path | stdout |
-| `--severity` | Minimum severity: `info`, `warning`, `error`, `critical` | `warning` |
-| `--profile` | Role profile: `developer`, `tech-lead`, `architect`, `executive`, `ci` | project default |
-| `--analyzers` | Comma-separated list of analyzers to run | all |
-| `--exclude-paths` | Path patterns to exclude | `vendor,var,generated` |
-| `--exclude-modules` | Module names to exclude | — |
-| `--parallel` | Number of parallel workers | 4 |
-| `--no-cache` | Disable caching | — |
+| Option                | Description                                                                                  | Default                  |
+| --------------------- | -------------------------------------------------------------------------------------------- | ------------------------ |
+| `--format`          | Output format:`console`, `json`, `xml`, `html`, `pdf`, `junit`, `csv`, `txt` | `console`              |
+| `--output`          | Output file path                                                                             | stdout                   |
+| `--severity`        | Minimum severity:`info`, `warning`, `error`, `critical`                              | `warning`              |
+| `--profile`         | Role profile:`developer`, `tech-lead`, `architect`, `executive`, `ci`              | project default          |
+| `--analyzers`       | Comma-separated list of analyzers to run                                                     | all                      |
+| `--exclude-paths`   | Path patterns to exclude                                                                     | `vendor,var,generated` |
+| `--exclude-modules` | Module names to exclude                                                                      | —                       |
+| `--parallel`        | Number of parallel workers                                                                   | 4                        |
+| `--no-cache`        | Disable caching                                                                              | —                       |
 
 **Examples:**
 
@@ -239,19 +241,19 @@ php bin/acqc scan . --exclude-paths="*/Test/*,*/tests/*"
 
 **Available analyzers:**
 
-| Analyzer | What it runs |
-|---|---|
-| `phpcs` | Magento 2 coding standard (PHPCS) |
-| `phpmd` | Code smell and complexity analysis (PHPMD) |
-| `phpcpd` | Copy-paste detection |
-| `phpstan` | Static type analysis |
-| `security` | Security rule set (SQL injection, XSS, CSRF, path traversal) |
-| `di` | Dependency injection anti-patterns |
-| `graphql` | GraphQL resolver quality |
-| `schema` | `db_schema.xml` validation |
-| `performance` | N+1 queries and performance patterns |
-| `deprecation` | Deprecated and removed API usage |
-| `upgrade` | Upgrade compatibility analysis |
+| Analyzer        | What it runs                                                 |
+| --------------- | ------------------------------------------------------------ |
+| `phpcs`       | Magento 2 coding standard (PHPCS)                            |
+| `phpmd`       | Code smell and complexity analysis (PHPMD)                   |
+| `phpcpd`      | Copy-paste detection                                         |
+| `phpstan`     | Static type analysis                                         |
+| `security`    | Security rule set (SQL injection, XSS, CSRF, path traversal) |
+| `di`          | Dependency injection anti-patterns                           |
+| `graphql`     | GraphQL resolver quality                                     |
+| `schema`      | `db_schema.xml` validation                                 |
+| `performance` | N+1 queries and performance patterns                         |
+| `deprecation` | Deprecated and removed API usage                             |
+| `upgrade`     | Upgrade compatibility analysis                               |
 
 ---
 
@@ -265,15 +267,15 @@ php bin/acqc analyze <target> [options]
 
 **Options:**
 
-| Option | Description |
-|---|---|
-| `--module` | Treat target as a Magento module namespace (e.g. `Vendor/Module`) |
-| `--format` | Output format: `table`, `json`, `xml`, `html` |
-| `--output` | Output file path |
-| `--severity` | Minimum severity: `info`, `warning`, `error`, `critical` |
-| `--generate-fix` | Generate an executable fix script for detected issues |
-| `--analyzers` | Comma-separated analyzers to run |
-| `--exclude` | Path patterns to exclude |
+| Option             | Description                                                        |
+| ------------------ | ------------------------------------------------------------------ |
+| `--module`       | Treat target as a Magento module namespace (e.g.`Vendor/Module`) |
+| `--format`       | Output format:`table`, `json`, `xml`, `html`               |
+| `--output`       | Output file path                                                   |
+| `--severity`     | Minimum severity:`info`, `warning`, `error`, `critical`    |
+| `--generate-fix` | Generate an executable fix script for detected issues              |
+| `--analyzers`    | Comma-separated analyzers to run                                   |
+| `--exclude`      | Path patterns to exclude                                           |
 
 **Examples:**
 
@@ -303,14 +305,14 @@ php bin/acqc audit <path> [options]
 
 **Options:**
 
-| Option | Description | Default |
-|---|---|---|
-| `--format` | Output format: `console`, `json`, `html` | `console` |
-| `--output` | Output file path | stdout / auto-named |
-| `--severity` | Minimum severity | `warning` |
-| `--profile` | Role profile | project default |
-| `--fail-on` | Exit non-zero if this severity is found | — |
-| `--threshold` | Fail if quality score is below this value | — |
+| Option          | Description                                   | Default             |
+| --------------- | --------------------------------------------- | ------------------- |
+| `--format`    | Output format:`console`, `json`, `html` | `console`         |
+| `--output`    | Output file path                              | stdout / auto-named |
+| `--severity`  | Minimum severity                              | `warning`         |
+| `--profile`   | Role profile                                  | project default     |
+| `--fail-on`   | Exit non-zero if this severity is found       | —                  |
+| `--threshold` | Fail if quality score is below this value     | —                  |
 
 **Examples:**
 
@@ -343,13 +345,13 @@ php bin/acqc upgrade:analyze <path> [options]
 
 **Options:**
 
-| Option | Description | Default |
-|---|---|---|
-| `--current-version` | Current Magento version (`auto` to detect) | `auto` |
-| `--target-version` | Target Magento version | `2.4.8` |
-| `--format` | Output format: `console`, `json`, `html`, `excel` | `console` |
-| `--output` | Output file path | — |
-| `--priority` | Filter by priority: `critical`, `high`, `medium`, `low` | all |
+| Option                | Description                                                    | Default     |
+| --------------------- | -------------------------------------------------------------- | ----------- |
+| `--current-version` | Current Magento version (`auto` to detect)                   | `auto`    |
+| `--target-version`  | Target Magento version                                         | `2.4.8`   |
+| `--format`          | Output format:`console`, `json`, `html`, `excel`       | `console` |
+| `--output`          | Output file path                                               | —          |
+| `--priority`        | Filter by priority:`critical`, `high`, `medium`, `low` | all         |
 
 **Examples:**
 
@@ -409,12 +411,12 @@ php bin/acqc watch [path] [options]
 
 **Options:**
 
-| Option | Description | Default |
-|---|---|---|
-| `--interval` | Polling interval in seconds | `2` |
-| `--severity` | Minimum severity to display | `warning` |
-| `--analyzers` | Analyzers to run on change | all |
-| `--exclude` | Path patterns to exclude | `*/Test/*,*/vendor/*` |
+| Option          | Description                 | Default                 |
+| --------------- | --------------------------- | ----------------------- |
+| `--interval`  | Polling interval in seconds | `2`                   |
+| `--severity`  | Minimum severity to display | `warning`             |
+| `--analyzers` | Analyzers to run on change  | all                     |
+| `--exclude`   | Path patterns to exclude    | `*/Test/*,*/vendor/*` |
 
 **Examples:**
 
@@ -435,17 +437,17 @@ php bin/acqc auto-fix <path> [options]
 
 **Options:**
 
-| Option | Description |
-|---|---|
-| `--fixer=NAME` | Apply a specific fixer only (default: all) |
-| `--dry-run` | Preview changes without applying them |
-| `--no-backup` | Skip creating a backup before applying fixes |
-| `--list-fixers` | Show all available fixers |
+| Option            | Description                                  |
+| ----------------- | -------------------------------------------- |
+| `--fixer=NAME`  | Apply a specific fixer only (default: all)   |
+| `--dry-run`     | Preview changes without applying them        |
+| `--no-backup`   | Skip creating a backup before applying fixes |
+| `--list-fixers` | Show all available fixers                    |
 
 **Available fixers:**
 
-| Fixer | What it fixes |
-|---|---|
+| Fixer               | What it fixes                                                   |
+| ------------------- | --------------------------------------------------------------- |
 | `zend-to-laminas` | Converts Zend Framework class references to Laminas equivalents |
 
 **Examples:**
@@ -478,10 +480,10 @@ php bin/acqc validate [options]
 
 **Options:**
 
-| Option | Description | Default |
-|---|---|---|
-| `--format` | Export format: `json`, `yaml`, `md` | `json` |
-| `--export` | Export validation results to a file | — |
+| Option       | Description                              | Default  |
+| ------------ | ---------------------------------------- | -------- |
+| `--format` | Export format:`json`, `yaml`, `md` | `json` |
+| `--export` | Export validation results to a file      | —       |
 
 **Examples:**
 
@@ -539,28 +541,28 @@ php bin/acqc report <path> [options]
 
 **Options:**
 
-| Option | Description | Default |
-|---|---|---|
-| `--format` | `html`, `pdf`, `excel`, `json`, `junit`, `sarif` | `html` |
-| `--type` | `summary`, `detailed`, `executive`, `diff` | `detailed` |
-| `--output` | Output file or directory | auto-named |
-| `--min-severity` | Minimum severity to include | `info` |
-| `--module` | Single module: `Vendor_Module` | — |
-| `--exclude-modules` | Comma-separated modules to skip | — |
-| `--diff-baseline` | Compare against a baseline file | — |
-| `--coverage-clover` | Path to PHPUnit clover.xml for code coverage | — |
+| Option                | Description                                                  | Default      |
+| --------------------- | ------------------------------------------------------------ | ------------ |
+| `--format`          | `html`, `pdf`, `excel`, `json`, `junit`, `sarif` | `html`     |
+| `--type`            | `summary`, `detailed`, `executive`, `diff`           | `detailed` |
+| `--output`          | Output file or directory                                     | auto-named   |
+| `--min-severity`    | Minimum severity to include                                  | `info`     |
+| `--module`          | Single module:`Vendor_Module`                              | —           |
+| `--exclude-modules` | Comma-separated modules to skip                              | —           |
+| `--diff-baseline`   | Compare against a baseline file                              | —           |
+| `--coverage-clover` | Path to PHPUnit clover.xml for code coverage                 | —           |
 
 **Format details:**
 
-| Format | Use Case |
-|---|---|
-| `html` | Interactive browser report with charts, dark/light mode, filterable table |
-| `pdf` | Printable report for stakeholder distribution |
+| Format    | Use Case                                                                       |
+| --------- | ------------------------------------------------------------------------------ |
+| `html`  | Interactive browser report with charts, dark/light mode, filterable table      |
+| `pdf`   | Printable report for stakeholder distribution                                  |
 | `excel` | 12-sheet workbook: summary, violations by category, by file, by module, trends |
-| `json` | Machine-readable for CI or custom tooling |
-| `junit` | JUnit XML for CI/CD pipeline test reporters |
-| `sarif` | SARIF 2.1.0 for GitHub Code Scanning / Azure DevOps |
-| `csv` | Full violation dataset for spreadsheet analysis |
+| `json`  | Machine-readable for CI or custom tooling                                      |
+| `junit` | JUnit XML for CI/CD pipeline test reporters                                    |
+| `sarif` | SARIF 2.1.0 for GitHub Code Scanning / Azure DevOps                            |
+| `csv`   | Full violation dataset for spreadsheet analysis                                |
 
 **Examples:**
 
@@ -609,27 +611,43 @@ Upload to GitHub Code Scanning:
 
 ### 13. `checklist`
 
-Generate a prioritized action checklist of violations for a developer or team to work through.
+Generate a role-based quality checklist, optionally scanning a path for violations relevant to that role.
 
 ```bash
-php bin/acqc checklist <path> [--format=console|html|json] [--severity=error]
+php bin/acqc checklist <role> [path] [options]
 ```
+
+`role` is required: `junior-developer`, `senior-developer`, or `architect`. `path` is optional (defaults to the current directory).
+
+| Option           | Description                                              | Default |
+| ---------------- | ---------------------------------------------------------| ------- |
+| `--format`     | Output format: `table`, `json`, `xml`, `html`     | `table` |
+| `--category`   | Restrict to a specific rule category                      | —       |
+| `--severity`   | Minimum severity: `info`, `warning`, `error`, `critical` | `info`  |
+| `--output`     | Output file path                                          | stdout  |
+| `--detailed`   | Show detailed checklist items                             | —       |
+| `--tools-only` | Show only tool recommendations                             | —       |
+| `--summary`    | Show summary only                                          | —       |
 
 ---
 
 ### 14. `tech-spec`
 
-Generate a technical specification document from the codebase — module inventory, dependency graph, API surface, and quality summary.
+Generate a technical specification document describing the responsibilities, competencies, and quality requirements for a developer role.
 
 ```bash
-php bin/acqc tech-spec <path> [options]
+php bin/acqc tech-spec <role> [options]
 ```
 
-| Option | Description |
-|---|---|
-| `--format` | `html`, `pdf`, `markdown`, `json` |
-| `--output` | Output file path |
-| `--include-violations` | Include violation summary in spec |
+`role` is required: `junior-developer`, `senior-developer`, or `architect`.
+
+| Option                 | Description                                     | Default    |
+| ---------------------- | ------------------------------------------------ | ---------- |
+| `--format`           | `markdown`, `json`, `yaml`, `html`         | `markdown` |
+| `--output`           | Output file path                                  | stdout     |
+| `--include-tools`    | Include tool configurations                        | —          |
+| `--include-examples` | Include code examples                              | —          |
+| `--include-metrics`  | Include quality metrics and thresholds             | —          |
 
 ---
 
@@ -643,9 +661,9 @@ php bin/acqc history [options]
 
 **Options:**
 
-| Option | Description | Default |
-|---|---|---|
-| `--format` | Output format: `table`, `json` | `table` |
+| Option       | Description                       | Default   |
+| ------------ | --------------------------------- | --------- |
+| `--format` | Output format:`table`, `json` | `table` |
 
 **Examples:**
 
@@ -691,13 +709,13 @@ Export ACQC rules and configuration as context files for use in developer tools 
 php bin/acqc export <target> [options]
 ```
 
-| Target | Output | Use Case |
-|---|---|---|
-| `cursor` | `.cursor/rules/acqc.mdc` | Cursor IDE rules context |
-| `claude` | `CLAUDE.md` | Claude-aware coding assistant context |
-| `sarif` | SARIF 2.1.0 file | GitHub Code Scanning, Azure DevOps |
-| `junit` | JUnit XML | CI pipeline test reporters |
-| `json` | Rules as JSON | Custom integrations |
+| Target     | Output                     | Use Case                              |
+| ---------- | -------------------------- | ------------------------------------- |
+| `cursor` | `.cursor/rules/acqc.mdc` | Cursor IDE rules context              |
+| `claude` | `CLAUDE.md`              | Claude-aware coding assistant context |
+| `sarif`  | SARIF 2.1.0 file           | GitHub Code Scanning, Azure DevOps    |
+| `junit`  | JUnit XML                  | CI pipeline test reporters            |
+| `json`   | Rules as JSON              | Custom integrations                   |
 
 ---
 
@@ -711,12 +729,12 @@ Create and manage a quality baseline — lock in the current violation state, th
 php bin/acqc baseline <subcommand> [options]
 ```
 
-| Subcommand | Description |
-|---|---|
-| `create` | Snapshot current violations as the baseline |
+| Subcommand  | Description                                      |
+| ----------- | ------------------------------------------------ |
+| `create`  | Snapshot current violations as the baseline      |
 | `compare` | Show violations added or resolved since baseline |
-| `reset` | Remove the current baseline |
-| `show` | Display current baseline summary |
+| `reset`   | Remove the current baseline                      |
+| `show`    | Display current baseline summary                 |
 
 **Examples:**
 
@@ -754,11 +772,11 @@ Enforce a policy file against the current scan results. Exits non-zero if thresh
 php bin/acqc policy:check [options]
 ```
 
-| Option | Description |
-|---|---|
-| `--policy` | Path to policy file (default: `.acqc/policy.yaml`) |
-| `--results` | Path to scan results JSON |
-| `--format` | Output format: `console`, `json` |
+| Option        | Description                                         |
+| ------------- | --------------------------------------------------- |
+| `--policy`  | Path to policy file (default:`.acqc/policy.yaml`) |
+| `--results` | Path to scan results JSON                           |
+| `--format`  | Output format:`console`, `json`                 |
 
 **Example policy file (`.acqc/policy.yaml`):**
 
@@ -799,13 +817,13 @@ List all rules available to the current project, with filtering options.
 php bin/acqc rules:list [options]
 ```
 
-| Option | Description | Default |
-|---|---|---|
-| `--format` | `table`, `json`, `csv` | `table` |
-| `--category` | Filter by category | — |
-| `--severity` | Filter by severity | — |
-| `--profile` | Filter by role profile | — |
-| `--active-only` | Show only active (non-suppressed) rules | — |
+| Option            | Description                             | Default   |
+| ----------------- | --------------------------------------- | --------- |
+| `--format`      | `table`, `json`, `csv`            | `table` |
+| `--category`    | Filter by category                      | —        |
+| `--severity`    | Filter by severity                      | —        |
+| `--profile`     | Filter by role profile                  | —        |
+| `--active-only` | Show only active (non-suppressed) rules | —        |
 
 ```bash
 php bin/acqc rules:list
@@ -1160,12 +1178,12 @@ analyzers:
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|---|---|---|
-| `ACQC_PROJECT_PATH` | Override project root detection | auto |
-| `ACQC_HISTORY_DB` | Path to history SQLite database | `~/.acqc/history.sqlite` |
-| `ACQC_CACHE_DIR` | Cache directory | `~/.acqc/cache` |
-| `ACQC_LOG_LEVEL` | Log verbosity: `debug`, `info`, `warning`, `error` | `warning` |
+| Variable              | Description                                               | Default                    |
+| --------------------- | --------------------------------------------------------- | -------------------------- |
+| `ACQC_PROJECT_PATH` | Override project root detection                           | auto                       |
+| `ACQC_HISTORY_DB`   | Path to history SQLite database                           | `~/.acqc/history.sqlite` |
+| `ACQC_CACHE_DIR`    | Cache directory                                           | `~/.acqc/cache`          |
+| `ACQC_LOG_LEVEL`    | Log verbosity:`debug`, `info`, `warning`, `error` | `warning`                |
 
 ---
 
@@ -1176,6 +1194,7 @@ Contributions are welcome — bug reports, feature requests, new rules, document
 ### Reporting Bugs
 
 Open an issue on [GitHub](https://github.com/adobe-commerce-quality/acqc/issues) with:
+
 - ACQC version (`php bin/acqc --version`)
 - PHP version and OS
 - The exact command you ran

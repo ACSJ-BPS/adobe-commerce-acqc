@@ -236,7 +236,7 @@ class OptimizedScannerEngine extends ScannerEngine
         }
         
         // Check incremental opportunity
-        if ($this->incrementalMode && $context->hasChangedFiles()) {
+        if ($this->incrementalMode && $context->hasChangedFiles() && $fileCount > 0) {
             $changedRatio = count($context->getChangedFiles()) / $fileCount;
             if ($changedRatio < 0.3) { // Less than 30% changed
                 return 'incremental';
@@ -315,7 +315,7 @@ class OptimizedScannerEngine extends ScannerEngine
         $this->logger->info('Performing incremental scan', [
             'total_files' => count($allFiles),
             'changed_files' => count($changedFiles),
-            'change_ratio' => count($changedFiles) / count($allFiles)
+            'change_ratio' => count($allFiles) > 0 ? count($changedFiles) / count($allFiles) : 0.0
         ]);
 
         // Load cached results for unchanged files
