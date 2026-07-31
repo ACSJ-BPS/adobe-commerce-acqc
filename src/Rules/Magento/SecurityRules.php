@@ -37,26 +37,30 @@ class SecurityRules
     /**
      * Rule: Missing CSRF protection in forms
      */
-    public static function detectMissingCsrfProtection(Node $node): ?Violation
+    public static function detectMissingCsrfProtection(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof ClassMethod) {
             $methodName = $node->name->toString();
-            
+
             if (self::isCsrfAction($methodName)) {
                 if (!self::hasCsrfProtection($node)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'missing-csrf-protection',
-                        'critical',
                         'Missing CSRF protection in action: ' . $methodName,
+                        $filePath,
                         $node->getLine(),
-                        'Implement CSRF protection for form submissions.',
-                        [
-                            'Use: `$this->_isAllowed()`',
-                            'Use: `$this->getRequest()->isPost()`',
-                            'Use: `$this->validateFormKey()`',
-                            'Include form key in templates: `<?= $block->getFormKey() ?>`'
-                        ]
+                        0,
+                        'critical'
                     );
+                    $violation->setSuggestion('Implement CSRF protection for form submissions.');
+                    $violation->addMetadata('suggestions', [
+                        'Use: `$this->_isAllowed()`',
+                        'Use: `$this->getRequest()->isPost()`',
+                        'Use: `$this->validateFormKey()`',
+                        'Include form key in templates: `<?= $block->getFormKey() ?>`'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -72,19 +76,23 @@ class SecurityRules
         if (strpos($filePath, 'routes.xml') !== false) {
             $issues = self::validateAdminRoutes($content);
             if (!empty($issues)) {
-                return new Violation(
+                $violation = new Violation(
                     'improper-admin-routes',
-                    'error',
                     'Admin route issues: ' . implode(', ', $issues),
+                    $filePath,
                     1,
-                    'Admin routes should have proper security configuration.',
-                    [
-                        'Include proper <admin> route configuration',
-                        'Use proper ACL resources',
-                        'Include proper security settings',
-                        'Follow Magento 2 admin route conventions'
-                    ]
+                    0,
+                    'error'
                 );
+                $violation->setSuggestion('Admin routes should have proper security configuration.');
+                $violation->addMetadata('suggestions', [
+                    'Include proper <admin> route configuration',
+                    'Use proper ACL resources',
+                    'Include proper security settings',
+                    'Follow Magento 2 admin route conventions'
+                ]);
+
+                return $violation;
             }
         }
 
@@ -94,26 +102,30 @@ class SecurityRules
     /**
      * Rule: Missing authorization checks in controllers
      */
-    public static function detectMissingAuthorization(Node $node): ?Violation
+    public static function detectMissingAuthorization(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof ClassMethod) {
             $methodName = $node->name->toString();
-            
+
             if (self::isAdminAction($methodName)) {
                 if (!self::hasAuthorizationCheck($node)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'missing-authorization',
-                        'critical',
                         'Missing authorization check in admin action: ' . $methodName,
+                        $filePath,
                         $node->getLine(),
-                        'Implement proper authorization checks for admin actions.',
-                        [
-                            'Use: `$this->_isAllowed()`',
-                            'Use: `$this->authorization->isAllowed()`',
-                            'Check specific ACL resources',
-                            'Implement proper role-based access control'
-                        ]
+                        0,
+                        'critical'
                     );
+                    $violation->setSuggestion('Implement proper authorization checks for admin actions.');
+                    $violation->addMetadata('suggestions', [
+                        'Use: `$this->_isAllowed()`',
+                        'Use: `$this->authorization->isAllowed()`',
+                        'Check specific ACL resources',
+                        'Implement proper role-based access control'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -124,7 +136,7 @@ class SecurityRules
     /**
      * Rule: Unsafe data output without escaping functions
      */
-    public static function detectUnsafeOutput(Node $node): ?Violation
+    public static function detectUnsafeOutput(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof FuncCall) {
             if ($node->name instanceof \PhpParser\Node\Name) {
@@ -147,19 +159,23 @@ class SecurityRules
                         
                         // Check if escaped
                         if (!self::isEscaped($firstArg)) {
-                            return new Violation(
+                            $violation = new Violation(
                                 'unsafe-output',
-                                'error',
                                 'Unsafe output detected without escaping.',
+                                $filePath,
                                 $node->getLine(),
-                                'Use proper escaping functions for output.',
-                                [
-                                    'Use: `escapeHtml()` for HTML content',
-                                    'Use: `escapeHtmlAttr()` for HTML attributes',
-                                    'Use: `escapeUrl()` for URLs',
-                                    'Use: `escapeCss()` for CSS values'
-                                ]
+                                0,
+                                'error'
                             );
+                            $violation->setSuggestion('Use proper escaping functions for output.');
+                            $violation->addMetadata('suggestions', [
+                                'Use: `escapeHtml()` for HTML content',
+                                'Use: `escapeHtmlAttr()` for HTML attributes',
+                                'Use: `escapeUrl()` for URLs',
+                                'Use: `escapeCss()` for CSS values'
+                            ]);
+
+                            return $violation;
                         }
                     }
                 }
@@ -172,26 +188,30 @@ class SecurityRules
     /**
      * Rule: Missing input validation
      */
-    public static function detectMissingInputValidation(Node $node): ?Violation
+    public static function detectMissingInputValidation(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof MethodCall) {
             $methodName = $node->name->toString();
-            
+
             if (in_array($methodName, ['getParam', 'getPost', 'getQuery'])) {
                 if (!self::hasInputValidation($node)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'missing-input-validation',
-                        'error',
                         'Missing input validation for: ' . $methodName,
+                        $filePath,
                         $node->getLine(),
-                        'Validate all user inputs before processing.',
-                        [
-                            'Use: `$this->getRequest()->getParam()` with validation',
-                            'Use: `filter_var()` for data sanitization',
-                            'Use: `preg_match()` for pattern validation',
-                            'Implement proper input validation rules'
-                        ]
+                        0,
+                        'error'
                     );
+                    $violation->setSuggestion('Validate all user inputs before processing.');
+                    $violation->addMetadata('suggestions', [
+                        'Use: `$this->getRequest()->getParam()` with validation',
+                        'Use: `filter_var()` for data sanitization',
+                        'Use: `preg_match()` for pattern validation',
+                        'Implement proper input validation rules'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -202,30 +222,34 @@ class SecurityRules
     /**
      * Rule: Improper session management
      */
-    public static function detectSessionIssues(Node $node): ?Violation
+    public static function detectSessionIssues(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof MethodCall) {
             $methodName = $node->name->toString();
-            
+
             if (in_array($methodName, ['setData', 'getData', 'unsetData'])) {
                 $var = $node->var;
                 if ($var instanceof \PhpParser\Node\Expr\PropertyFetch) {
                     $propertyName = $var->name->toString();
                     if ($propertyName === 'session') {
                         if (!self::hasProperSessionHandling($node)) {
-                            return new Violation(
+                            $violation = new Violation(
                                 'improper-session-handling',
-                                'warning',
                                 'Improper session data handling.',
+                                $filePath,
                                 $node->getLine(),
-                                'Use proper session management practices.',
-                                [
-                                    'Use: `$this->session->setData()` with proper scope',
-                                    'Use: `$this->session->getData()` with validation',
-                                    'Implement session timeout',
-                                    'Use proper session security settings'
-                                ]
+                                0,
+                                'warning'
                             );
+                            $violation->setSuggestion('Use proper session management practices.');
+                            $violation->addMetadata('suggestions', [
+                                'Use: `$this->session->setData()` with proper scope',
+                                'Use: `$this->session->getData()` with validation',
+                                'Implement session timeout',
+                                'Use proper session security settings'
+                            ]);
+
+                            return $violation;
                         }
                     }
                 }
@@ -242,19 +266,23 @@ class SecurityRules
     {
         if (strpos($filePath, 'web.xml') !== false || strpos($filePath, 'htaccess') !== false) {
             if (!self::hasSecurityHeaders($content)) {
-                return new Violation(
+                $violation = new Violation(
                     'missing-security-headers',
-                    'warning',
                     'Missing security headers configuration.',
+                    $filePath,
                     1,
-                    'Implement security headers for enhanced protection.',
-                    [
-                        'Add X-Frame-Options header',
-                        'Add X-Content-Type-Options header',
-                        'Add X-XSS-Protection header',
-                        'Add Content-Security-Policy header'
-                    ]
+                    0,
+                    'warning'
                 );
+                $violation->setSuggestion('Implement security headers for enhanced protection.');
+                $violation->addMetadata('suggestions', [
+                    'Add X-Frame-Options header',
+                    'Add X-Content-Type-Options header',
+                    'Add X-XSS-Protection header',
+                    'Add Content-Security-Policy header'
+                ]);
+
+                return $violation;
             }
         }
 
@@ -264,26 +292,30 @@ class SecurityRules
     /**
      * Rule: Improper file upload handling
      */
-    public static function detectFileUploadIssues(Node $node): ?Violation
+    public static function detectFileUploadIssues(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof MethodCall) {
             $methodName = $node->name->toString();
-            
+
             if (in_array($methodName, ['upload', 'save', 'move'])) {
                 if (!self::hasFileUploadSecurity($node)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'improper-file-upload',
-                        'critical',
                         'Improper file upload handling.',
+                        $filePath,
                         $node->getLine(),
-                        'Implement proper file upload security.',
-                        [
-                            'Validate file types and extensions',
-                            'Check file size limits',
-                            'Scan for malware',
-                            'Use secure file storage location'
-                        ]
+                        0,
+                        'critical'
                     );
+                    $violation->setSuggestion('Implement proper file upload security.');
+                    $violation->addMetadata('suggestions', [
+                        'Validate file types and extensions',
+                        'Check file size limits',
+                        'Scan for malware',
+                        'Use secure file storage location'
+                    ]);
+
+                    return $violation;
                 }
             }
         }

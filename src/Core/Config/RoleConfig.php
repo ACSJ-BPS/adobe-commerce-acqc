@@ -300,7 +300,8 @@ class RoleConfig
                     'browser_tools' => 'Browser developer tools'
                 ]
             ],
-            'senior-developer' => [
+        ],
+        'senior-developer' => [
                 'advanced_code_quality' => [
                     'name' => 'Advanced Code Quality',
                     'items' => [
@@ -757,7 +758,6 @@ class RoleConfig
                     'security_scanning' => 'Security scanning (OWASP ZAP, Snyk)'
                 ]
             ]
-        ]
     ];
 
     private ConfigManager $configManager;

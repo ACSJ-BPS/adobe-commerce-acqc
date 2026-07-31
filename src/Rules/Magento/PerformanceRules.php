@@ -30,27 +30,31 @@ class PerformanceRules
     /**
      * Rule: Collection loading in loops
      */
-    public static function detectCollectionInLoops(Node $node): ?Violation
+    public static function detectCollectionInLoops(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof MethodCall) {
             $methodName = $node->name->toString();
-            
+
             if (in_array($methodName, self::COLLECTION_METHODS)) {
                 $parent = $node->getAttribute('parent');
                 if (self::isInLoop($parent)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'collection-in-loop',
-                        'error',
                         'Collection loading detected in loop.',
+                        $filePath,
                         $node->getLine(),
-                        'Avoid loading collections inside loops to prevent N+1 queries.',
-                        [
-                            'Load collection before the loop',
-                            'Use: `$collection->load()` once before loop',
-                            'Use: `$collection->getItems()` to get all items',
-                            'Consider using batch processing'
-                        ]
+                        0,
+                        'error'
                     );
+                    $violation->setSuggestion('Avoid loading collections inside loops to prevent N+1 queries.');
+                    $violation->addMetadata('suggestions', [
+                        'Load collection before the loop',
+                        'Use: `$collection->load()` once before loop',
+                        'Use: `$collection->getItems()` to get all items',
+                        'Consider using batch processing'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -61,26 +65,30 @@ class PerformanceRules
     /**
      * Rule: Missing proper indexing usage
      */
-    public static function detectMissingIndexing(Node $node): ?Violation
+    public static function detectMissingIndexing(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof MethodCall) {
             $methodName = $node->name->toString();
-            
+
             if (in_array($methodName, ['addFieldToFilter', 'addAttributeToFilter'])) {
                 if (!self::hasProperIndexing($node)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'missing-indexing',
-                        'warning',
                         'Missing proper indexing for filter: ' . $methodName,
+                        $filePath,
                         $node->getLine(),
-                        'Ensure proper database indexing for filtered fields.',
-                        [
-                            'Add database indexes for filtered fields',
-                            'Use: `db_schema.xml` to define indexes',
-                            'Consider composite indexes for multiple filters',
-                            'Monitor query performance with EXPLAIN'
-                        ]
+                        0,
+                        'warning'
                     );
+                    $violation->setSuggestion('Ensure proper database indexing for filtered fields.');
+                    $violation->addMetadata('suggestions', [
+                        'Add database indexes for filtered fields',
+                        'Use: `db_schema.xml` to define indexes',
+                        'Consider composite indexes for multiple filters',
+                        'Monitor query performance with EXPLAIN'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -91,26 +99,30 @@ class PerformanceRules
     /**
      * Rule: Inefficient repository pattern usage
      */
-    public static function detectInefficientRepositoryUsage(Node $node): ?Violation
+    public static function detectInefficientRepositoryUsage(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof MethodCall) {
             $methodName = $node->name->toString();
-            
+
             if (in_array($methodName, ['getById', 'getList'])) {
                 if (self::isInefficientRepositoryCall($node)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'inefficient-repository-usage',
-                        'warning',
                         'Inefficient repository usage detected.',
+                        $filePath,
                         $node->getLine(),
-                        'Optimize repository calls for better performance.',
-                        [
-                            'Use: `getList()` with filters instead of multiple `getById()`',
-                            'Implement proper caching for repository calls',
-                            'Use batch operations when possible',
-                            'Consider using collections for complex queries'
-                        ]
+                        0,
+                        'warning'
                     );
+                    $violation->setSuggestion('Optimize repository calls for better performance.');
+                    $violation->addMetadata('suggestions', [
+                        'Use: `getList()` with filters instead of multiple `getById()`',
+                        'Implement proper caching for repository calls',
+                        'Use batch operations when possible',
+                        'Consider using collections for complex queries'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -121,26 +133,30 @@ class PerformanceRules
     /**
      * Rule: Missing caching implementation where required
      */
-    public static function detectMissingCaching(Node $node): ?Violation
+    public static function detectMissingCaching(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof MethodCall) {
             $methodName = $node->name->toString();
-            
+
             if (in_array($methodName, ['getData', 'load', 'getItems'])) {
                 if (!self::hasCaching($node)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'missing-caching',
-                        'warning',
                         'Missing caching for expensive operation: ' . $methodName,
+                        $filePath,
                         $node->getLine(),
-                        'Implement caching for expensive operations.',
-                        [
-                            'Use: `$this->cache->load()` and `$this->cache->save()`',
-                            'Use: `$this->cacheManager->get()`',
-                            'Implement proper cache tags',
-                            'Set appropriate cache lifetime'
-                        ]
+                        0,
+                        'warning'
                     );
+                    $violation->setSuggestion('Implement caching for expensive operations.');
+                    $violation->addMetadata('suggestions', [
+                        'Use: `$this->cache->load()` and `$this->cache->save()`',
+                        'Use: `$this->cacheManager->get()`',
+                        'Implement proper cache tags',
+                        'Set appropriate cache lifetime'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -151,26 +167,30 @@ class PerformanceRules
     /**
      * Rule: Inefficient database queries
      */
-    public static function detectInefficientQueries(Node $node): ?Violation
+    public static function detectInefficientQueries(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof MethodCall) {
             $methodName = $node->name->toString();
-            
+
             if (in_array($methodName, ['query', 'fetchAll', 'fetchOne'])) {
                 if (!self::isOptimizedQuery($node)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'inefficient-query',
-                        'error',
                         'Inefficient database query detected.',
+                        $filePath,
                         $node->getLine(),
-                        'Optimize database queries for better performance.',
-                        [
-                            'Use proper WHERE clauses',
-                            'Add appropriate indexes',
-                            'Limit result sets',
-                            'Use prepared statements'
-                        ]
+                        0,
+                        'error'
                     );
+                    $violation->setSuggestion('Optimize database queries for better performance.');
+                    $violation->addMetadata('suggestions', [
+                        'Use proper WHERE clauses',
+                        'Add appropriate indexes',
+                        'Limit result sets',
+                        'Use prepared statements'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -181,26 +201,30 @@ class PerformanceRules
     /**
      * Rule: Memory usage optimization
      */
-    public static function detectMemoryIssues(Node $node): ?Violation
+    public static function detectMemoryIssues(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof MethodCall) {
             $methodName = $node->name->toString();
-            
+
             if (in_array($methodName, ['getAllIds', 'getSize'])) {
                 if (!self::hasMemoryOptimization($node)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'memory-optimization',
-                        'warning',
                         'Missing memory optimization for large datasets.',
+                        $filePath,
                         $node->getLine(),
-                        'Implement memory optimization for large operations.',
-                        [
-                            'Use pagination for large datasets',
-                            'Use: `setPageSize()` and `setCurPage()`',
-                            'Implement batch processing',
-                            'Use generators for large data processing'
-                        ]
+                        0,
+                        'warning'
                     );
+                    $violation->setSuggestion('Implement memory optimization for large operations.');
+                    $violation->addMetadata('suggestions', [
+                        'Use pagination for large datasets',
+                        'Use: `setPageSize()` and `setCurPage()`',
+                        'Implement batch processing',
+                        'Use generators for large data processing'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -211,26 +235,30 @@ class PerformanceRules
     /**
      * Rule: Missing lazy loading
      */
-    public static function detectMissingLazyLoading(Node $node): ?Violation
+    public static function detectMissingLazyLoading(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof MethodCall) {
             $methodName = $node->name->toString();
-            
+
             if (in_array($methodName, ['load', 'getData'])) {
                 if (!self::hasLazyLoading($node)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'missing-lazy-loading',
-                        'info',
                         'Missing lazy loading implementation.',
+                        $filePath,
                         $node->getLine(),
-                        'Implement lazy loading for better performance.',
-                        [
-                            'Use: `$this->getData()` instead of loading all data',
-                            'Implement lazy loading in getters',
-                            'Use proxy objects for expensive operations',
-                            'Consider using virtual types'
-                        ]
+                        0,
+                        'info'
                     );
+                    $violation->setSuggestion('Implement lazy loading for better performance.');
+                    $violation->addMetadata('suggestions', [
+                        'Use: `$this->getData()` instead of loading all data',
+                        'Implement lazy loading in getters',
+                        'Use proxy objects for expensive operations',
+                        'Consider using virtual types'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -246,19 +274,23 @@ class PerformanceRules
         if (strpos($filePath, '.phtml') !== false) {
             $issues = self::validateTemplateLoops($content);
             if (!empty($issues)) {
-                return new Violation(
+                $violation = new Violation(
                     'template-loop-issues',
-                    'warning',
                     'Template loop issues: ' . implode(', ', $issues),
+                    $filePath,
                     1,
-                    'Optimize template loops for better performance.',
-                    [
-                        'Use: `$block->getItems()` instead of loading in loop',
-                        'Implement proper pagination',
-                        'Use lazy loading for large datasets',
-                        'Consider using AJAX for dynamic content'
-                    ]
+                    0,
+                    'warning'
                 );
+                $violation->setSuggestion('Optimize template loops for better performance.');
+                $violation->addMetadata('suggestions', [
+                    'Use: `$block->getItems()` instead of loading in loop',
+                    'Implement proper pagination',
+                    'Use lazy loading for large datasets',
+                    'Consider using AJAX for dynamic content'
+                ]);
+
+                return $violation;
             }
         }
 

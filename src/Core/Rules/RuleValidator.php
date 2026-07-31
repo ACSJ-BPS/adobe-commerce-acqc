@@ -65,9 +65,10 @@ class RuleValidator
         // 7. Roles must all be valid
         if (isset($data['roles']) && is_array($data['roles'])) {
             foreach ($data['roles'] as $role) {
-                if (!in_array($role, RuleSchema::ROLES, true)) {
-                    $valid = implode(', ', RuleSchema::ROLES);
-                    $errors[] = "Invalid role '{$role}'. Must be one of: {$valid}";
+                if (!is_string($role) || !in_array($role, RuleSchema::ROLES, true)) {
+                    $valid   = implode(', ', RuleSchema::ROLES);
+                    $display = is_scalar($role) ? (string) $role : gettype($role);
+                    $errors[] = "Invalid role '{$display}'. Must be one of: {$valid}";
                 }
             }
         }
@@ -75,9 +76,10 @@ class RuleValidator
         // 8. Platforms must all be valid
         if (isset($data['platforms']) && is_array($data['platforms'])) {
             foreach ($data['platforms'] as $platform) {
-                if (!in_array($platform, RuleSchema::PLATFORMS, true)) {
-                    $valid = implode(', ', RuleSchema::PLATFORMS);
-                    $errors[] = "Invalid platform '{$platform}'. Must be one of: {$valid}";
+                if (!is_string($platform) || !in_array($platform, RuleSchema::PLATFORMS, true)) {
+                    $valid   = implode(', ', RuleSchema::PLATFORMS);
+                    $display = is_scalar($platform) ? (string) $platform : gettype($platform);
+                    $errors[] = "Invalid platform '{$display}'. Must be one of: {$valid}";
                 }
             }
         }

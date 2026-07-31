@@ -35,28 +35,32 @@ class FrontendRules
     /**
      * Rule: Missing translation functions (__())
      */
-    public static function detectMissingTranslation(Node $node): ?Violation
+    public static function detectMissingTranslation(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof String_) {
             $value = $node->value;
-            
+
             // Check for hardcoded strings that should be translated
             if (self::shouldBeTranslated($value)) {
                 $parent = $node->getAttribute('parent');
                 if (!self::isInTranslationFunction($parent)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'missing-translation',
-                        'warning',
                         'Hardcoded string should be translated: "' . substr($value, 0, 50) . '"',
+                        $filePath,
                         $node->getLine(),
-                        'Use translation functions for user-facing strings.',
-                        [
-                            'Use __() for simple strings: `__("Your text")`',
-                            'Use translate() for complex translations',
-                            'Use escapeHtml() for HTML output: `escapeHtml(__("Your text"))`',
-                            'Use escapeHtmlAttr() for HTML attributes'
-                        ]
+                        0,
+                        'warning'
                     );
+                    $violation->setSuggestion('Use translation functions for user-facing strings.');
+                    $violation->addMetadata('suggestions', [
+                        'Use __() for simple strings: `__("Your text")`',
+                        'Use translate() for complex translations',
+                        'Use escapeHtml() for HTML output: `escapeHtml(__("Your text"))`',
+                        'Use escapeHtmlAttr() for HTML attributes'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -67,25 +71,29 @@ class FrontendRules
     /**
      * Rule: Improper block class inheritance
      */
-    public static function detectBlockInheritanceIssues(Node $node): ?Violation
+    public static function detectBlockInheritanceIssues(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof Class_) {
             $className = $node->name?->toString() ?? '';
-            
+
             if (strpos($className, 'Block') !== false) {
                 if (!self::extendsBlockBaseClass($node)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'improper-block-inheritance',
-                        'error',
                         'Block class does not extend proper base class.',
+                        $filePath,
                         $node->getLine(),
-                        'Block classes should extend Magento block base classes.',
-                        [
-                            'Extend: `Magento\Framework\View\Element\Template`',
-                            'Extend: `Magento\Framework\View\Element\AbstractBlock`',
-                            'Use proper block inheritance hierarchy'
-                        ]
+                        0,
+                        'error'
                     );
+                    $violation->setSuggestion('Block classes should extend Magento block base classes.');
+                    $violation->addMetadata('suggestions', [
+                        'Extend: `Magento\Framework\View\Element\Template`',
+                        'Extend: `Magento\Framework\View\Element\AbstractBlock`',
+                        'Use proper block inheritance hierarchy'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -101,19 +109,23 @@ class FrontendRules
         if (strpos($filePath, 'layout/') !== false && strpos($filePath, '.xml') !== false) {
             $issues = self::validateLayoutXml($content);
             if (!empty($issues)) {
-                return new Violation(
+                $violation = new Violation(
                     'layout-xml-violations',
-                    'error',
                     'Layout XML issues: ' . implode(', ', $issues),
+                    $filePath,
                     1,
-                    'Layout XML should follow Magento 2 structure.',
-                    [
-                        'Use proper <page> or <referenceContainer> structure',
-                        'Include proper xmlns declarations',
-                        'Use proper block and container references',
-                        'Follow Magento 2 layout conventions'
-                    ]
+                    0,
+                    'error'
                 );
+                $violation->setSuggestion('Layout XML should follow Magento 2 structure.');
+                $violation->addMetadata('suggestions', [
+                    'Use proper <page> or <referenceContainer> structure',
+                    'Include proper xmlns declarations',
+                    'Use proper block and container references',
+                    'Follow Magento 2 layout conventions'
+                ]);
+
+                return $violation;
             }
         }
 
@@ -128,19 +140,23 @@ class FrontendRules
         if (strpos($filePath, '.js') !== false) {
             $issues = self::validateRequireJs($content);
             if (!empty($issues)) {
-                return new Violation(
+                $violation = new Violation(
                     'requirejs-violations',
-                    'warning',
                     'RequireJS issues: ' . implode(', ', $issues),
+                    $filePath,
                     1,
-                    'RequireJS modules should follow Magento 2 patterns.',
-                    [
-                        'Use proper define() structure',
-                        'Include proper dependencies',
-                        'Use proper module naming conventions',
-                        'Follow Magento 2 JavaScript standards'
-                    ]
+                    0,
+                    'warning'
                 );
+                $violation->setSuggestion('RequireJS modules should follow Magento 2 patterns.');
+                $violation->addMetadata('suggestions', [
+                    'Use proper define() structure',
+                    'Include proper dependencies',
+                    'Use proper module naming conventions',
+                    'Follow Magento 2 JavaScript standards'
+                ]);
+
+                return $violation;
             }
         }
 
@@ -150,27 +166,31 @@ class FrontendRules
     /**
      * Rule: Missing proper escaping in templates
      */
-    public static function detectMissingEscaping(Node $node): ?Violation
+    public static function detectMissingEscaping(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof String_) {
             $value = $node->value;
-            
+
             if (self::containsHtml($value)) {
                 $parent = $node->getAttribute('parent');
                 if (!self::isEscaped($parent)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'missing-escaping',
-                        'error',
                         'HTML content not properly escaped.',
+                        $filePath,
                         $node->getLine(),
-                        'Use proper escaping functions for HTML output.',
-                        [
-                            'Use escapeHtml() for HTML content',
-                            'Use escapeHtmlAttr() for HTML attributes',
-                            'Use escapeUrl() for URLs',
-                            'Use escapeCss() for CSS values'
-                        ]
+                        0,
+                        'error'
                     );
+                    $violation->setSuggestion('Use proper escaping functions for HTML output.');
+                    $violation->addMetadata('suggestions', [
+                        'Use escapeHtml() for HTML content',
+                        'Use escapeHtmlAttr() for HTML attributes',
+                        'Use escapeUrl() for URLs',
+                        'Use escapeCss() for CSS values'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -185,19 +205,23 @@ class FrontendRules
     {
         if (strpos($filePath, '.phtml') !== false || strpos($filePath, '.html') !== false) {
             if (self::hasInlineJavaScript($content)) {
-                return new Violation(
+                $violation = new Violation(
                     'inline-javascript',
-                    'warning',
                     'Inline JavaScript detected in template.',
+                    $filePath,
                     1,
-                    'Avoid inline JavaScript. Use RequireJS modules instead.',
-                    [
-                        'Move JavaScript to separate .js files',
-                        'Use RequireJS define() for modules',
-                        'Use proper event handling',
-                        'Follow Magento 2 JavaScript standards'
-                    ]
+                    0,
+                    'warning'
                 );
+                $violation->setSuggestion('Avoid inline JavaScript. Use RequireJS modules instead.');
+                $violation->addMetadata('suggestions', [
+                    'Move JavaScript to separate .js files',
+                    'Use RequireJS define() for modules',
+                    'Use proper event handling',
+                    'Follow Magento 2 JavaScript standards'
+                ]);
+
+                return $violation;
             }
         }
 
@@ -211,19 +235,23 @@ class FrontendRules
     {
         if (strpos($filePath, '.css') !== false || strpos($filePath, '.less') !== false) {
             if (!self::hasResponsiveDesign($content)) {
-                return new Violation(
+                $violation = new Violation(
                     'missing-responsive-design',
-                    'warning',
                     'Missing responsive design considerations.',
+                    $filePath,
                     1,
-                    'Include responsive design patterns for mobile compatibility.',
-                    [
-                        'Use CSS media queries for responsive design',
-                        'Implement mobile-first approach',
-                        'Use flexible layouts and units',
-                        'Test on multiple screen sizes'
-                    ]
+                    0,
+                    'warning'
                 );
+                $violation->setSuggestion('Include responsive design patterns for mobile compatibility.');
+                $violation->addMetadata('suggestions', [
+                    'Use CSS media queries for responsive design',
+                    'Implement mobile-first approach',
+                    'Use flexible layouts and units',
+                    'Test on multiple screen sizes'
+                ]);
+
+                return $violation;
             }
         }
 

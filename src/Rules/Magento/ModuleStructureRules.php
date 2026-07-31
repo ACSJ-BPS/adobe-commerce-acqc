@@ -45,18 +45,22 @@ class ModuleStructureRules
         if (basename($filePath) === 'module.xml') {
             $issues = self::validateModuleXml($content);
             if (!empty($issues)) {
-                return new Violation(
+                $violation = new Violation(
                     'invalid-module-xml',
-                    'error',
                     'Invalid module.xml structure: ' . implode(', ', $issues),
+                    $filePath,
                     1,
-                    'module.xml should have proper Magento 2 structure.',
-                    [
-                        'Include proper <module> tag with name attribute',
-                        'Include <sequence> tag for dependencies',
-                        'Use proper XML namespace declarations'
-                    ]
+                    0,
+                    'error'
                 );
+                $violation->setSuggestion('module.xml should have proper Magento 2 structure.');
+                $violation->addMetadata('suggestions', [
+                    'Include proper <module> tag with name attribute',
+                    'Include <sequence> tag for dependencies',
+                    'Use proper XML namespace declarations'
+                ]);
+
+                return $violation;
             }
         }
 
@@ -71,18 +75,22 @@ class ModuleStructureRules
         if (basename($filePath) === 'module.xml') {
             $sequenceIssues = self::validateModuleSequence($content);
             if (!empty($sequenceIssues)) {
-                return new Violation(
+                $violation = new Violation(
                     'invalid-module-sequence',
-                    'warning',
                     'Module sequence issues: ' . implode(', ', $sequenceIssues),
+                    $filePath,
                     1,
-                    'Check module dependencies and sequence order.',
-                    [
-                        'Ensure all dependencies are declared in <sequence>',
-                        'Check for circular dependencies',
-                        'Verify module names follow Vendor_Module format'
-                    ]
+                    0,
+                    'warning'
                 );
+                $violation->setSuggestion('Check module dependencies and sequence order.');
+                $violation->addMetadata('suggestions', [
+                    'Ensure all dependencies are declared in <sequence>',
+                    'Check for circular dependencies',
+                    'Verify module names follow Vendor_Module format'
+                ]);
+
+                return $violation;
             }
         }
 
@@ -97,19 +105,23 @@ class ModuleStructureRules
         if (basename($filePath) === 'composer.json') {
             $composerIssues = self::validateComposerJson($content);
             if (!empty($composerIssues)) {
-                return new Violation(
+                $violation = new Violation(
                     'invalid-composer-json',
-                    'error',
                     'Composer.json issues: ' . implode(', ', $composerIssues),
+                    $filePath,
                     1,
-                    'composer.json should have proper Magento 2 module metadata.',
-                    [
-                        'Include proper name in format: vendor/module-name',
-                        'Include magento2-module type',
-                        'Include proper autoload configuration',
-                        'Include proper version constraints'
-                    ]
+                    0,
+                    'error'
                 );
+                $violation->setSuggestion('composer.json should have proper Magento 2 module metadata.');
+                $violation->addMetadata('suggestions', [
+                    'Include proper name in format: vendor/module-name',
+                    'Include magento2-module type',
+                    'Include proper autoload configuration',
+                    'Include proper version constraints'
+                ]);
+
+                return $violation;
             }
         }
 
@@ -119,24 +131,28 @@ class ModuleStructureRules
     /**
      * Rule: Module namespace violations
      */
-    public static function detectNamespaceViolations(Node $node): ?Violation
+    public static function detectNamespaceViolations(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof Namespace_) {
             $namespace = $node->name->toString() ?? '';
-            
+
             if (!self::isValidModuleNamespace($namespace)) {
-                return new Violation(
+                $violation = new Violation(
                     'invalid-module-namespace',
-                    'error',
                     'Invalid module namespace: ' . $namespace,
+                    $filePath,
                     $node->getLine(),
-                    'Module namespaces should follow Magento 2 conventions.',
-                    [
-                        'Use format: Vendor\Module',
-                        'Match namespace with module name',
-                        'Follow PSR-4 autoloading standards'
-                    ]
+                    0,
+                    'error'
                 );
+                $violation->setSuggestion('Module namespaces should follow Magento 2 conventions.');
+                $violation->addMetadata('suggestions', [
+                    'Use format: Vendor\Module',
+                    'Match namespace with module name',
+                    'Follow PSR-4 autoloading standards'
+                ]);
+
+                return $violation;
             }
         }
 

@@ -24,44 +24,52 @@ class ConfigurationRules
     /**
      * Rule: Hardcoded store/website IDs
      */
-    public static function detectHardcodedStoreIds(Node $node): ?Violation
+    public static function detectHardcodedStoreIds(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof LNumber) {
             $value = $node->value;
-            
+
             if (in_array($value, self::HARDCODED_STORE_IDS)) {
-                return new Violation(
+                $violation = new Violation(
                     'hardcoded-store-id',
-                    'error',
                     'Hardcoded store ID detected: ' . $value,
+                    $filePath,
                     $node->getLine(),
-                    'Use configuration or context to get store ID dynamically.',
-                    [
-                        'Use: `$this->storeManager->getStore()->getId()`',
-                        'Use: `$this->storeManager->getStoreId()`',
-                        'Use: `$this->context->getStoreManager()->getStore()->getId()`',
-                        'Avoid hardcoded store IDs for multi-store compatibility'
-                    ]
+                    0,
+                    'error'
                 );
+                $violation->setSuggestion('Use configuration or context to get store ID dynamically.');
+                $violation->addMetadata('suggestions', [
+                    'Use: `$this->storeManager->getStore()->getId()`',
+                    'Use: `$this->storeManager->getStoreId()`',
+                    'Use: `$this->context->getStoreManager()->getStore()->getId()`',
+                    'Avoid hardcoded store IDs for multi-store compatibility'
+                ]);
+
+                return $violation;
             }
         }
 
         if ($node instanceof String_) {
             $value = $node->value;
-            
+
             if (is_numeric($value) && in_array((int)$value, self::HARDCODED_STORE_IDS)) {
-                return new Violation(
+                $violation = new Violation(
                     'hardcoded-store-id-string',
-                    'error',
                     'Hardcoded store ID detected: ' . $value,
+                    $filePath,
                     $node->getLine(),
-                    'Use configuration or context to get store ID dynamically.',
-                    [
-                        'Use: `$this->storeManager->getStore()->getId()`',
-                        'Use: `$this->storeManager->getStoreId()`',
-                        'Avoid hardcoded store IDs for multi-store compatibility'
-                    ]
+                    0,
+                    'error'
                 );
+                $violation->setSuggestion('Use configuration or context to get store ID dynamically.');
+                $violation->addMetadata('suggestions', [
+                    'Use: `$this->storeManager->getStore()->getId()`',
+                    'Use: `$this->storeManager->getStoreId()`',
+                    'Avoid hardcoded store IDs for multi-store compatibility'
+                ]);
+
+                return $violation;
             }
         }
 
@@ -76,19 +84,23 @@ class ConfigurationRules
         if (strpos($filePath, 'acl.xml') !== false) {
             $issues = self::validateAclXml($content);
             if (!empty($issues)) {
-                return new Violation(
+                $violation = new Violation(
                     'missing-acl-resources',
-                    'error',
                     'ACL resource issues: ' . implode(', ', $issues),
+                    $filePath,
                     1,
-                    'Define proper ACL resources for admin functionality.',
-                    [
-                        'Include <resource> tags for all admin actions',
-                        'Use proper resource hierarchy',
-                        'Define proper permissions for admin users',
-                        'Follow Magento 2 ACL conventions'
-                    ]
+                    0,
+                    'error'
                 );
+                $violation->setSuggestion('Define proper ACL resources for admin functionality.');
+                $violation->addMetadata('suggestions', [
+                    'Include <resource> tags for all admin actions',
+                    'Use proper resource hierarchy',
+                    'Define proper permissions for admin users',
+                    'Follow Magento 2 ACL conventions'
+                ]);
+
+                return $violation;
             }
         }
 
@@ -103,19 +115,23 @@ class ConfigurationRules
         if (strpos($filePath, 'system.xml') !== false) {
             $issues = self::validateSystemXml($content);
             if (!empty($issues)) {
-                return new Violation(
+                $violation = new Violation(
                     'system-config-violations',
-                    'error',
                     'System configuration issues: ' . implode(', ', $issues),
+                    $filePath,
                     1,
-                    'System configuration should follow Magento 2 structure.',
-                    [
-                        'Use proper <system> structure',
-                        'Include proper <section> and <group> tags',
-                        'Use proper <field> definitions',
-                        'Include proper <source_model> and <backend_model>'
-                    ]
+                    0,
+                    'error'
                 );
+                $violation->setSuggestion('System configuration should follow Magento 2 structure.');
+                $violation->addMetadata('suggestions', [
+                    'Use proper <system> structure',
+                    'Include proper <section> and <group> tags',
+                    'Use proper <field> definitions',
+                    'Include proper <source_model> and <backend_model>'
+                ]);
+
+                return $violation;
             }
         }
 
@@ -125,27 +141,31 @@ class ConfigurationRules
     /**
      * Rule: Improper use of core configuration paths
      */
-    public static function detectCoreConfigPathIssues(Node $node): ?Violation
+    public static function detectCoreConfigPathIssues(Node $node, string $filePath): ?Violation
     {
         if ($node instanceof String_) {
             $value = $node->value;
-            
+
             if (self::isCoreConfigPath($value)) {
                 $parent = $node->getAttribute('parent');
                 if (!self::isProperConfigUsage($parent)) {
-                    return new Violation(
+                    $violation = new Violation(
                         'improper-core-config-usage',
-                        'warning',
                         'Improper use of core configuration path: ' . $value,
+                        $filePath,
                         $node->getLine(),
-                        'Use proper configuration scope and avoid direct core path access.',
-                        [
-                            'Use: `$this->scopeConfig->getValue()`',
-                            'Use: `$this->config->getValue()`',
-                            'Specify proper scope: ScopeInterface::SCOPE_STORE',
-                            'Avoid hardcoded configuration paths'
-                        ]
+                        0,
+                        'warning'
                     );
+                    $violation->setSuggestion('Use proper configuration scope and avoid direct core path access.');
+                    $violation->addMetadata('suggestions', [
+                        'Use: `$this->scopeConfig->getValue()`',
+                        'Use: `$this->config->getValue()`',
+                        'Specify proper scope: ScopeInterface::SCOPE_STORE',
+                        'Avoid hardcoded configuration paths'
+                    ]);
+
+                    return $violation;
                 }
             }
         }
@@ -160,19 +180,23 @@ class ConfigurationRules
     {
         if (strpos($filePath, 'env.php') !== false || strpos($filePath, 'app/etc/') !== false) {
             if (!self::hasEnvironmentSpecificConfig($content)) {
-                return new Violation(
+                $violation = new Violation(
                     'missing-environment-config',
-                    'warning',
                     'Missing environment-specific configuration.',
+                    $filePath,
                     1,
-                    'Separate configuration for different environments.',
-                    [
-                        'Use env.php for environment-specific settings',
-                        'Separate dev, staging, and production configs',
-                        'Use proper configuration inheritance',
-                        'Avoid hardcoded environment values'
-                    ]
+                    0,
+                    'warning'
                 );
+                $violation->setSuggestion('Separate configuration for different environments.');
+                $violation->addMetadata('suggestions', [
+                    'Use env.php for environment-specific settings',
+                    'Separate dev, staging, and production configs',
+                    'Use proper configuration inheritance',
+                    'Avoid hardcoded environment values'
+                ]);
+
+                return $violation;
             }
         }
 
@@ -193,19 +217,23 @@ class ConfigurationRules
 
         foreach ($sensitivePatterns as $pattern) {
             if (preg_match($pattern, $content)) {
-                return new Violation(
+                $violation = new Violation(
                     'sensitive-config-exposure',
-                    'critical',
                     'Sensitive configuration parameter exposed.',
+                    $filePath,
                     1,
-                    'Mask sensitive parameters in configuration files.',
-                    [
-                        'Use environment variables for sensitive data',
-                        'Use configuration encryption',
-                        'Mask sensitive values in logs',
-                        'Use proper configuration security'
-                    ]
+                    0,
+                    'critical'
                 );
+                $violation->setSuggestion('Mask sensitive parameters in configuration files.');
+                $violation->addMetadata('suggestions', [
+                    'Use environment variables for sensitive data',
+                    'Use configuration encryption',
+                    'Mask sensitive values in logs',
+                    'Use proper configuration security'
+                ]);
+
+                return $violation;
             }
         }
 
@@ -220,19 +248,23 @@ class ConfigurationRules
         if (strpos($filePath, 'crontab.xml') !== false) {
             $issues = self::validateCronXml($content);
             if (!empty($issues)) {
-                return new Violation(
+                $violation = new Violation(
                     'missing-cron-config',
-                    'warning',
                     'Cron configuration issues: ' . implode(', ', $issues),
+                    $filePath,
                     1,
-                    'Define proper cron job configurations.',
-                    [
-                        'Include proper <job> definitions',
-                        'Use proper schedule expressions',
-                        'Define proper instance and method',
-                        'Follow Magento 2 cron conventions'
-                    ]
+                    0,
+                    'warning'
                 );
+                $violation->setSuggestion('Define proper cron job configurations.');
+                $violation->addMetadata('suggestions', [
+                    'Include proper <job> definitions',
+                    'Use proper schedule expressions',
+                    'Define proper instance and method',
+                    'Follow Magento 2 cron conventions'
+                ]);
+
+                return $violation;
             }
         }
 
@@ -247,19 +279,23 @@ class ConfigurationRules
         if (strpos($filePath, 'events.xml') !== false) {
             $issues = self::validateEventsXml($content);
             if (!empty($issues)) {
-                return new Violation(
+                $violation = new Violation(
                     'event-config-violations',
-                    'error',
                     'Event configuration issues: ' . implode(', ', $issues),
+                    $filePath,
                     1,
-                    'Event configuration should follow Magento 2 structure.',
-                    [
-                        'Use proper <event> structure',
-                        'Include proper <observer> definitions',
-                        'Use proper instance and method names',
-                        'Follow Magento 2 event conventions'
-                    ]
+                    0,
+                    'error'
                 );
+                $violation->setSuggestion('Event configuration should follow Magento 2 structure.');
+                $violation->addMetadata('suggestions', [
+                    'Use proper <event> structure',
+                    'Include proper <observer> definitions',
+                    'Use proper instance and method names',
+                    'Follow Magento 2 event conventions'
+                ]);
+
+                return $violation;
             }
         }
 

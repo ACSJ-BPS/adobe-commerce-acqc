@@ -178,7 +178,7 @@ class UpgradeAnalyzer
             'files_with_issues' => $filesWithIssues,
             'total_issues' => count($issues),
             'scan_time_seconds' => round($totalTime, 2),
-            'avg_time_per_file_ms' => round(($totalTime / $totalFiles) * 1000, 2)
+            'avg_time_per_file_ms' => $totalFiles > 0 ? round(($totalTime / $totalFiles) * 1000, 2) : 0.0
         ]);
 
         return $issues;
@@ -1825,7 +1825,7 @@ class UpgradeAnalyzer
             // Filter out excluded directories
             $filterIterator = new \RecursiveCallbackFilterIterator(
                 $directoryIterator,
-                function ($current, $key, $iterator) use ($excludedDirs, $excludedPatterns) {
+                function ($current, $key, $iterator) use ($directory, $excludedDirs, $excludedPatterns) {
                     // Skip excluded directories
                     if ($current->isDir()) {
                         $dirName = $current->getFilename();
@@ -1839,14 +1839,17 @@ class UpgradeAnalyzer
                         }
                     }
                     
-                    // Check against excluded patterns
-                    $path = $current->getPathname();
+                    // Check against excluded patterns, relative to the scanned
+                    // directory so an absolute path like /opt/homebrew/var/www/...
+                    // (e.g. on Homebrew installs) doesn't falsely match a pattern
+                    // like "*/var/*" meant for the project's own var/ directory.
+                    $relativePath = '/' . ltrim(substr($current->getPathname(), strlen($directory)), '/');
                     foreach ($excludedPatterns as $pattern) {
-                        if (fnmatch($pattern, $path)) {
+                        if (fnmatch($pattern, $relativePath)) {
                             return false;
                         }
                     }
-                    
+
                     return true;
                 }
             );

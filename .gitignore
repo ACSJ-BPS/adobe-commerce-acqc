@@ -40,6 +40,7 @@ pids
 # PHPUnit
 /phpunit.xml
 .phpunit.result.cache
+/.phpunit.cache/
 
 # Composer
 composer.lock
@@ -59,8 +60,12 @@ composer.lock
 /reports/
 *.report.*
 
+# ACQC generated project config (created when the tool runs against a project)
+/.acqc/
+
 # ACQC generated output files (scan results, upgrade reports, audits)
 acqc_*.json
+.acqc-baseline.json
 upgrade-readiness-*.xlsx
 upgrade-readiness-*.html
 upgrade-report.html
@@ -81,5 +86,5 @@ vendor-audit.json
 !OPEN_SOURCE_GUIDE.md
 
 # ADLC and agent internals
-.claude/agents/README.md
+.claude/
 docs/adlc/
