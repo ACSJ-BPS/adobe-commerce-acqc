@@ -142,7 +142,7 @@ function keyName(n: AstNode | undefined): string | undefined {
   return undefined;
 }
 
-function findFunctionByName(ast: AstNode, name: string): FunctionLike | null {
+export function findFunctionByName(ast: AstNode, name: string): FunctionLike | null {
   let found: FunctionLike | null = null;
   walkAst(ast, (n) => {
     if (found) return;
@@ -242,7 +242,13 @@ function maxNestingDepthRecursive(node: AstNode, root: AstNode, depth: number): 
       if (!item || typeof item !== "object" || !("type" in item)) continue;
       const child = item as AstNode;
       if (FUNCTION_TYPES.has(child.type) && child !== root) continue;
-      const childDepth = NESTING_TYPES.has(child.type) ? depth + 1 : depth;
+      // An `else if` is an IfStatement nested in its parent IfStatement's
+      // `alternate` slot — structurally recursive, but a flat if/else-if/
+      // else-if chain at one visual nesting level. Walking from one link of
+      // the chain to the next must not add depth; only entering a genuinely
+      // nested block (the `consequent`, or a real `else { ... }`) should.
+      const isElseIfContinuation = node.type === "IfStatement" && key === "alternate" && child.type === "IfStatement";
+      const childDepth = !isElseIfContinuation && NESTING_TYPES.has(child.type) ? depth + 1 : depth;
       const sub = maxNestingDepthRecursive(child, root, childDepth);
       if (sub > max) max = sub;
     }

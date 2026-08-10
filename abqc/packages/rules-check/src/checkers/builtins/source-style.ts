@@ -1,6 +1,6 @@
 import type { CheckHit, CheckContext, FileChecker } from "../../types.js";
 import { isSourceFile } from "@abqc/core";
-import { walkAst } from "../../utils/parse.js";
+import { walkAst, findFunctionByName, locStart, type AstNode } from "../../utils/parse.js";
 import {
   requireParsed,
   isCheckHitArray,
@@ -70,7 +70,13 @@ export const jsdocExportChecker: FileChecker = {
         const obj = left ? member(left, "object") : undefined;
         const prop = left ? member(left, "property") : undefined;
         if (identName(obj) === "exports" && identName(prop) === "main") {
-          const line = n.loc?.start.line ?? 1;
+          // `exports.main = main` re-exports a function declared earlier in the
+          // file — the JSDoc lives above THAT declaration, not above this
+          // assignment line. Resolve the reference so a documented `function
+          // main() {}` isn't flagged just because the re-export sits far below it.
+          const right = member(n, "right");
+          const target = right?.type === "Identifier" ? findFunctionByName(parsed.ast, identName(right) ?? "") : undefined;
+          const line = (target ?? right ?? n).loc?.start.line ?? 1;
           const block = extractJsdocBlock(parsed.lines, line);
           if (!jsdocIsValid(block)) {
             hits.push({ line, message: "Exported main action is missing JSDoc with @param and @returns" });
@@ -87,19 +93,45 @@ export const importsTopChecker: FileChecker = {
   kind: "file",
   appliesTo: isSourceFile,
   check(ctx) {
-    const lines = ctx.content.split("\n");
+    const parsed = requireParsed(ctx);
+    if (isCheckHitArray(parsed)) return parsed;
+    // AST-based rather than line-based: comments (including multi-line license/
+    // JSDoc header blocks) aren't part of Program.body at all, so they can't be
+    // mistaken for "code before the imports"; and only top-level statements are
+    // walked, so a lazy/conditional `require()` inside a function body is never
+    // considered a misplaced import in the first place.
+    const body = (parsed.ast as AstNode & { body?: AstNode[] }).body ?? [];
     let seenNonImport = false;
     const hits: CheckHit[] = [];
-    for (let i = 0; i < lines.length; i++) {
-      const t = lines[i]?.trim() ?? "";
-      if (!t || t.startsWith("//") || t.startsWith("/*")) continue;
-      const isImport = /^import\s/.test(t) || /^const\s+.+=\s+require\s*\(/.test(t) || /^require\s*\(/.test(t);
-      if (!isImport && !t.startsWith("'use strict'") && !t.startsWith('"use strict"')) seenNonImport = true;
-      if (seenNonImport && isImport) {
-        hits.push({ line: i + 1, message: "Imports and requires must appear at the top of the file" });
-        break;
+    for (const stmt of body) {
+      if (isDirectivePrologue(stmt)) continue;
+      if (isTopLevelImport(stmt)) {
+        if (seenNonImport) {
+          hits.push({ ...locStart(stmt), message: "Imports and requires must appear at the top of the file" });
+          break;
+        }
+        continue;
       }
+      seenNonImport = true;
     }
     return hits;
   },
 };
+
+function isDirectivePrologue(n: AstNode): boolean {
+  return n.type === "ExpressionStatement" && member(n, "expression")?.type === "Literal";
+}
+
+function isRequireCall(n: AstNode | undefined): boolean {
+  return !!n && n.type === "CallExpression" && identName(member(n, "callee")) === "require";
+}
+
+function isTopLevelImport(n: AstNode): boolean {
+  if (n.type === "ImportDeclaration") return true;
+  if (n.type === "ExpressionStatement") return isRequireCall(member(n, "expression"));
+  if (n.type === "VariableDeclaration") {
+    const decls = (n as AstNode & { declarations?: AstNode[] }).declarations ?? [];
+    return decls.some((d) => isRequireCall(member(d, "init")));
+  }
+  return false;
+}

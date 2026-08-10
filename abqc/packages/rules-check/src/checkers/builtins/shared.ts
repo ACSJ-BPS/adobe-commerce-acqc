@@ -40,10 +40,23 @@ export function identName(n: AstNode | undefined): string | undefined {
 
 export function extractJsdocBlock(lines: string[], endLine: number): string {
   const parts: string[] = [];
-  for (let i = endLine - 2; i >= 0 && i >= endLine - 20; i--) {
-    const t = lines[i]?.trim() ?? "";
-    parts.unshift(lines[i] ?? "");
+  let i = endLine - 2;
+  // Blank lines are allowed directly between the JSDoc's closing `*/` and the declaration.
+  while (i >= 0 && (lines[i]?.trim() ?? "") === "") i--;
+  // No fixed line cap: a docblock with `@example` sections can easily run past
+  // 20 lines, and stopping early made a genuinely documented function look
+  // undocumented. Walk back until the opening `/**` (block found) or until a
+  // line that isn't a `*`-prefixed comment continuation (no docblock directly
+  // above this declaration — stop rather than scanning past unrelated code).
+  for (; i >= 0; i--) {
+    const raw = lines[i] ?? "";
+    const t = raw.trim();
+    parts.unshift(raw);
     if (t.startsWith("/**")) break;
+    if (!t.startsWith("*")) {
+      parts.shift();
+      break;
+    }
   }
   return parts.join("\n");
 }

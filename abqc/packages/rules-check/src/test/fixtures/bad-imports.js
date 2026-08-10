@@ -1,9 +1,10 @@
-export async function helper() {
+async function helper() {
   return 1;
 }
 
+const { Core } = require('@adobe/aio-sdk');
+
 async function main(params) {
-  const { Core } = require('@adobe/aio-sdk');
   return { statusCode: 200, body: params };
 }
 exports.main = main;

@@ -1,6 +1,7 @@
 import { Linter, Rule } from "eslint";
 import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import type { Finding, Severity } from "./types.js";
 import * as tsParser from "@typescript-eslint/parser";
 
@@ -40,6 +41,27 @@ const TEST_FILE_RE = /(?:^|[/\\])(?:__tests__[/\\]|__mocks__[/\\])|\.(?:test|spe
 
 function isTestFile(filePath: string): boolean {
   return TEST_FILE_RE.test(filePath);
+}
+
+// A shebang line (`#!/usr/bin/env node`) is the standard, universal signal that
+// a file is a standalone CLI entry point meant to be executed directly — not an
+// Adobe I/O Runtime action or a module meant to be required/imported. `n/no-
+// process-exit` exists to protect the Runtime's execution model (calling
+// process.exit() inside an action can kill the container before the response is
+// flushed); that rationale doesn't apply to a CLI script, where exiting with a
+// status code on completion is the correct, idiomatic pattern. Content-based
+// (not path-based) so it works for any project's scripts/tooling, not just
+// paths hardcoded for one repo.
+function hasShebang(code: string): boolean {
+  return code.startsWith("#!");
+}
+
+function fileHasShebang(filePath: string): boolean {
+  try {
+    return hasShebang(readFileSync(filePath, "utf8"));
+  } catch {
+    return false;
+  }
 }
 
 // ─── Plugin rule sets ─────────────────────────────────────────────────────────
@@ -186,6 +208,7 @@ export class EslintRunner {
         ...ALL_FILE_RULES,
         ...(isTS ? TS_ONLY_RULES : {}),
         ...(isJSX ? JSX_RULES : {}),
+        ...(hasShebang(code) ? { "n/no-process-exit": "off" } : {}),
       },
     };
 
@@ -210,6 +233,7 @@ export class EslintRunner {
       ...ALL_FILE_RULES,
       ...(isTS ? TS_ONLY_RULES : {}),
       ...(isJSX ? JSX_RULES : {}),
+      ...(fileHasShebang(filePath) ? { "n/no-process-exit": "off" } : {}),
     };
     const defined = this.linter.getRules();
     return Object.entries(merged)
