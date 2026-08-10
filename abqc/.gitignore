@@ -1,0 +1,36 @@
+# Dependencies & build output
+node_modules/
+packages/*/dist/
+packages/*/node_modules/
+
+# TypeScript incremental
+*.tsbuildinfo
+packages/*/*.tsbuildinfo
+
+# Logs & OS junk
+*.log
+.DS_Store
+Thumbs.db
+
+# Tool caches / MCP run-state (server persists coverage runs to .abqc/runs/)
+.abqc/
+.abqc-cache/
+
+# Secrets & local env (never commit real env files)
+.env
+.env.*
+!.env.example
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# JetBrains / VS Code — machine-local (keep shared configs outside these paths if needed)
+.idea/
+
+# Cursor IDE — local-only (rules for agents live here but are not versioned in this repo)
+.cursor/
+.github/
+
+# Claude Code — local overrides (share non-local config via a different filename if needed)
+.claude/settings.local.json

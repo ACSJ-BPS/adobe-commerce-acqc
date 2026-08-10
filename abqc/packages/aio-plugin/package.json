@@ -1,0 +1,10 @@
+{
+  "name": "@abqc/aio-plugin",
+  "version": "0.1.0",
+  "description": "aio CLI plugin for appbuilder-quality-check (v0.2 — placeholder).",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'aio-plugin: v0.2 — not yet implemented'"
+  }
+}

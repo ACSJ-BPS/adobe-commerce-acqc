@@ -214,6 +214,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica N
    DATA SETUP
    ═══════════════════════════════════════════════════════ #}
 {% set violations = data.violations|default({}) %}
+{% set is_magento_project = data.is_magento_project is defined ? data.is_magento_project : true %}
 {% set total      = violations.total_count|default(0) %}
 {% set by_sev     = violations.by_severity|default({}) %}
 {% set by_cat     = violations.by_category|default({}) %}
@@ -685,9 +686,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica N
     <div class="rec-card">
       <div class="rec-head"><span class="rec-ico">🔒</span><span class="rec-cat">Security</span><span class="rec-count">{{ sec_issues }}</span></div>
       <div class="rec-body">
-        <div class="rec-row"><span class="rec-key">What</span><span class="rec-val">SQL injection, XSS, CSRF, path traversal, hardcoded credentials</span></div>
+        <div class="rec-row"><span class="rec-key">What</span><span class="rec-val">{{ (violations.category_samples.security|default([]))|join('; ')|default('SQL injection, XSS, CSRF, path traversal, hardcoded credentials') }}</span></div>
         <div class="rec-row"><span class="rec-key">Why</span><span class="rec-val">Active attack surface; OWASP Top 10 compliance requirement</span></div>
-        <div class="rec-row"><span class="rec-key">Impact</span><span class="rec-val">Data breach, customer PII exposure, PCI-DSS non-compliance</span></div>
+        <div class="rec-row"><span class="rec-key">Impact</span><span class="rec-val">{{ is_magento_project ? 'Data breach, customer PII exposure, PCI-DSS non-compliance' : 'Data breach, credential/token leakage, unauthorized API or data access' }}</span></div>
         <div class="rec-row"><span class="rec-key">Priority</span><span class="rec-val"><span class="pri-high">HIGH</span></span></div>
         <div class="rec-row"><span class="rec-key">Effort</span><span class="rec-val"><span class="eff-badge">1–3 days</span></span></div>
         <div class="rec-fix">→ Escape all output with $escaper->escapeHtml()<br>→ Use parameterized queries via resource model<br>→ Validate form_key on all POST controllers</div>
@@ -699,9 +700,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica N
     <div class="rec-card">
       <div class="rec-head"><span class="rec-ico">⚡</span><span class="rec-cat">Performance</span><span class="rec-count">{{ perf_issues }}</span></div>
       <div class="rec-body">
-        <div class="rec-row"><span class="rec-key">What</span><span class="rec-val">N+1 queries, unfiltered collections, cache-busting layouts</span></div>
-        <div class="rec-row"><span class="rec-key">Why</span><span class="rec-val">Each unresolved N+1 adds O(n) database queries per page load</span></div>
-        <div class="rec-row"><span class="rec-key">Impact</span><span class="rec-val">Page load &gt; 3s, cart abandonment, search ranking drop</span></div>
+        <div class="rec-row"><span class="rec-key">What</span><span class="rec-val">{{ (violations.category_samples.performance|default([]))|join('; ')|default('N+1 queries, unfiltered collections, cache-busting layouts') }}</span></div>
+        <div class="rec-row"><span class="rec-key">Why</span><span class="rec-val">{{ is_magento_project ? 'Each unresolved N+1 adds O(n) database queries per page load' : 'Unoptimized code paths add latency and resource cost on every invocation' }}</span></div>
+        <div class="rec-row"><span class="rec-key">Impact</span><span class="rec-val">{{ is_magento_project ? 'Page load &gt; 3s, cart abandonment, search ranking drop' : 'Slower API/action response times, higher compute cost, degraded UX' }}</span></div>
         <div class="rec-row"><span class="rec-key">Priority</span><span class="rec-val"><span class="pri-high">HIGH</span></span></div>
         <div class="rec-row"><span class="rec-key">Effort</span><span class="rec-val"><span class="eff-badge">2–5 days</span></span></div>
         <div class="rec-fix">→ Add addAttributeToSelect() with specific attributes<br>→ Use $collection->addFieldToFilter() before load<br>→ Remove cacheable="false" from layout XML</div>
@@ -755,7 +756,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica N
     <div class="rec-card">
       <div class="rec-head"><span class="rec-ico">📋</span><span class="rec-cat">Maintainability</span><span class="rec-count">{{ maint_issues }}</span></div>
       <div class="rec-body">
-        <div class="rec-row"><span class="rec-key">What</span><span class="rec-val">Complex classes, missing documentation, long methods</span></div>
+        <div class="rec-row"><span class="rec-key">What</span><span class="rec-val">{{ ((violations.category_samples.maintainability|default([]))|merge(violations.category_samples.complexity|default([]))|merge(violations.category_samples.documentation|default([])))|slice(0, 3)|join('; ')|default('Complex classes, missing documentation, long methods') }}</span></div>
         <div class="rec-row"><span class="rec-key">Why</span><span class="rec-val">High cyclomatic complexity increases bug probability per change</span></div>
         <div class="rec-row"><span class="rec-key">Impact</span><span class="rec-val">Developer onboarding time +40%; PR review cycle longer</span></div>
         <div class="rec-row"><span class="rec-key">Priority</span><span class="rec-val"><span class="pri-low">LOW</span></span></div>

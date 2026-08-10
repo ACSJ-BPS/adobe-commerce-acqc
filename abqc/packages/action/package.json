@@ -1,0 +1,10 @@
+{
+  "name": "@abqc/action",
+  "version": "0.1.0",
+  "description": "GitHub Action wrapper for appbuilder-quality-check (v0.2 — placeholder).",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'action: v0.2 — not yet implemented'"
+  }
+}

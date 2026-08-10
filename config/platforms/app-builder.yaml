@@ -1,0 +1,35 @@
+# Platform plugin manifest: Adobe App Builder (Adobe I/O Runtime, aio SDK)
+platform:
+  id: app-builder
+  name: "Adobe App Builder"
+  detect:
+    # Requires BOTH an aio app manifest AND an @adobe/aio-* dependency to avoid
+    # matching a generic Node project that merely has a yaml file.
+    all_of:
+      files:
+        - "app.config.yaml"
+      package_json_requires:
+        - "@adobe/aio-sdk"
+        - "@adobe/aio-lib-*"
+        - "@adobe/generator-app*"
+  rule_bundles:
+    - appbuilder
+    - nodejs
+  include_patterns:
+    - "*.js"
+    - "*.jsx"
+    - "*.ts"
+    - "*.tsx"
+    - "*.mjs"
+    - "*.cjs"
+    - "app.config.yaml"
+    - "package.json"
+    - "*.yaml"
+    - "*.yml"
+  analyzers:
+    - node-eslint
+    - node-npm-audit
+    - appbuilder-structure
+    - appbuilder-manifest
+  version_feed: appbuilder
+  guardrail_domain: appbuilder

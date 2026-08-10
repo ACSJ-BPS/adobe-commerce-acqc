@@ -1,0 +1,21 @@
+# Platform plugin manifest: generic Node.js / TypeScript
+platform:
+  id: nodejs
+  name: "Node.js / TypeScript"
+  detect:
+    files:
+      - "package.json"
+  rule_bundles:
+    - nodejs
+  include_patterns:
+    - "*.js"
+    - "*.jsx"
+    - "*.ts"
+    - "*.tsx"
+    - "*.mjs"
+    - "*.cjs"
+    - "package.json"
+  analyzers:
+    - node-eslint
+    - node-npm-audit
+  version_feed: nodejs

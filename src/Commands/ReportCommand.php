@@ -10,6 +10,9 @@ use ACQC\Core\Coverage\CloverXmlGenerator;
 use ACQC\Core\Coverage\PHPUnitTextCoverageParser;
 use ACQC\Core\AI\PredictiveAnalytics;
 use ACQC\Core\Analysis\AnalyzerOrchestrator;
+use ACQC\Analyzers\AppBuilder\AbqcAnalyzer;
+use ACQC\Core\Platform\PlatformDetector;
+use ACQC\Core\Platform\PlatformRegistry;
 use ACQC\Reports\Generators\HTMLReportGenerator;
 use ACQC\Reports\Generators\PDFReportGenerator;
 use ACQC\Reports\Generators\ExcelReportGenerator;
@@ -271,57 +274,94 @@ Generate comprehensive quality reports in multiple formats for different audienc
         // Detect project name dynamically
         $projectName = $this->detectProjectName($target, $input);
         $data['project_name'] = $projectName;
-        
+
+        $detectedPlatforms = array_map(
+            static fn ($p) => $p->id,
+            (new PlatformDetector(new PlatformRegistry(\ACQC\Core\AcqcPaths::resourceRoot())))->detect($target)
+        );
+        $isMagentoProject = in_array('adobe-commerce', $detectedPlatforms, true);
+        $isAppBuilderProject = array_intersect(['app-builder', 'nodejs'], $detectedPlatforms) !== [];
+        // Drives the Why/Impact copy on the Security & Performance recommendation
+        // cards (summary.html.twig) — those lines are otherwise hardcoded Magento
+        // ecommerce framing (PCI-DSS, cart abandonment) that doesn't fit a Node.js
+        // App Builder project.
+        $data['is_magento_project'] = $isMagentoProject;
+
         // Detect modules using enhanced detection (returns module PATHS)
         $modulePaths = $this->detectModules($target, $input);
         $data['modules'] = array_map(fn($modulePath) => $this->getModuleInfo($modulePath, $target), $modulePaths);
         $data['total_modules'] = count($modulePaths);
-        
+
         $io->writeln("Project: {$projectName}");
         $io->writeln("Detected modules: " . count($modulePaths));
-        
+
         // Always use real analysis (not mock data)
         $io->writeln('Running real analysis...');
-        
-        $io->writeln('Collecting violations data...');
-        // Collect PHP and XML files from target (XML needed for DatabaseAnalyzer)
+
+        // App Builder's runtime is Node.js-only — PHP never executes as part of the
+        // deployed app. Any .php sitting in the repo (a bundled utility script,
+        // an unrelated legacy tool, etc.) isn't part of the App Builder project and
+        // scanning it with Magento/frontend PHP analyzers produces noise, not
+        // signal (e.g. treating a CLI scraper's index.php as a web page and
+        // flagging it for missing ARIA landmarks). Skip PHP/XML collection
+        // entirely unless this is (also) a real Magento project.
+        $skipPhpScan = $isAppBuilderProject && !$isMagentoProject;
+
         $phpFiles = [];
         $excludePathsOption = $input->getOption('exclude-paths') ?? '';
         $excludePathPatterns = $excludePathsOption !== '' ? array_map('trim', explode(',', $excludePathsOption)) : [];
-        if (is_dir($target)) {
-            $iterator = new \RecursiveIteratorIterator(
-                new \RecursiveDirectoryIterator($target, \RecursiveDirectoryIterator::SKIP_DOTS)
-            );
-            foreach ($iterator as $file) {
-                if ($file->isFile()) {
-                    $ext = $file->getExtension();
-                    // Include PHP and XML files (DatabaseAnalyzer needs db_schema.xml)
-                    if ($ext === 'php' || $ext === 'xml') {
-                        if (!$this->shouldExcludeFilePath($file->getPathname(), $excludePathPatterns)) {
-                            $phpFiles[] = $file->getPathname();
+        if ($skipPhpScan) {
+            $io->writeln('Skipping PHP/XML scan (App Builder / Node.js project, not Magento) — any .php in this repo is incidental to the app.');
+        } else {
+            $io->writeln('Collecting violations data...');
+            // Collect PHP and XML files from target (XML needed for DatabaseAnalyzer)
+            if (is_dir($target)) {
+                $iterator = new \RecursiveIteratorIterator(
+                    new \RecursiveDirectoryIterator($target, \RecursiveDirectoryIterator::SKIP_DOTS)
+                );
+                foreach ($iterator as $file) {
+                    if ($file->isFile()) {
+                        $ext = $file->getExtension();
+                        // Include PHP and XML files (DatabaseAnalyzer needs db_schema.xml)
+                        if ($ext === 'php' || $ext === 'xml') {
+                            if (!$this->shouldExcludeFilePath($file->getPathname(), $excludePathPatterns)) {
+                                $phpFiles[] = $file->getPathname();
+                            }
                         }
                     }
                 }
-            }
-        } else if (is_file($target)) {
-            $ext = pathinfo($target, PATHINFO_EXTENSION);
-            if ($ext === 'php' || $ext === 'xml') {
-                if (!$this->shouldExcludeFilePath($target, $excludePathPatterns)) {
-                    $phpFiles[] = $target;
+            } else if (is_file($target)) {
+                $ext = pathinfo($target, PATHINFO_EXTENSION);
+                if ($ext === 'php' || $ext === 'xml') {
+                    if (!$this->shouldExcludeFilePath($target, $excludePathPatterns)) {
+                        $phpFiles[] = $target;
+                    }
                 }
             }
         }
 
-        $data['violations'] = $this->collectRealViolationsDataFromModules($modulePaths, $target, $excludePathPatterns);
+        $data['violations'] = $skipPhpScan
+            ? ['total_count' => 0, 'by_severity' => [], 'by_category' => [], 'top_violations' => [], 'violations' => []]
+            : $this->collectRealViolationsDataFromModules($modulePaths, $target, $excludePathPatterns);
 
         // Run advanced analyzers (API, GraphQL, Code Health, etc.)
         $io->writeln('Running advanced analyzers (API, GraphQL, Security, Performance)...');
         try {
+            $orchestratorConfig = $this->configManager->loadConfig();
+            if (!$isMagentoProject) {
+                // performance_server_uptime / performance_opcache read THIS MACHINE's live
+                // load average and php.ini (see ServerUptimeAnalyzer::analyze /
+                // OpCacheAnalyzer::analyze) — they audit a live Magento host, not the target
+                // codebase, and opcache's message hardcodes a "Magento has 30,000+ PHP files"
+                // assumption. Both are meaningless noise on a non-Magento project.
+                $orchestratorConfig['analyzers']['performance_server_uptime'] = false;
+                $orchestratorConfig['analyzers']['performance_opcache'] = false;
+            }
             $orchestrator = new AnalyzerOrchestrator(
-                $this->configManager->loadConfig(),
+                $orchestratorConfig,
                 $this->logger
             );
-            
+
             $advancedResults = $orchestrator->analyze($phpFiles);
             
             // Extract all violations from orchestrator results
@@ -348,12 +388,46 @@ Generate comprehensive quality reports in multiple formats for different audienc
                 }
                 
                 $io->writeln('  - Total advanced violations: ' . count($advancedViolations));
-                
+
+            }
+
+            // App Builder / Node.js: fold in abqc's ESLint-backed findings too. Gated to
+            // that platform since abqc's engine only understands JS/TS — running it against
+            // a pure Magento/PHP project would add nothing but wasted process time.
+            if (array_intersect(['app-builder', 'nodejs'], $detectedPlatforms) !== []) {
+                $io->writeln('Running abqc (App Builder / Node.js ESLint checks)...');
+                $abqcResult = (new AbqcAnalyzer())->analyze([], ['project_path' => $target]);
+                $abqcIssues = $abqcResult['issues'];
+
+                // Trim: drop low-confidence findings (taint-blind security heuristics like
+                // object-injection — a pattern match there isn't a confirmed vulnerability,
+                // see AbqcAnalyzer/eslint-runner.ts) so they don't pollute the report's counts.
+                $abqcIssues = array_values(array_filter(
+                    $abqcIssues,
+                    static fn ($issue) => ($issue['confidence'] ?? 'high') !== 'low'
+                ));
+
+                if ($abqcIssues !== []) {
+                    $abqcViolationsArray = $this->convertViolationsToArray($abqcIssues);
+                    $data['violations']['violations'] = array_merge(
+                        $data['violations']['violations'] ?? [],
+                        $abqcViolationsArray
+                    );
+                    $data['violations']['total_count'] = count($data['violations']['violations']);
+                    $io->writeln('  - abqc: Found ' . count($abqcIssues) . ' findings (after trimming low-confidence)');
+                } else {
+                    $io->writeln('  - abqc: no findings (or not built — run `npm install` at the ACQC root)');
+                }
             }
 
             // Update violation counts by severity after merging
             $data['violations']['by_severity'] = $this->groupBySeverity($data['violations']['violations'] ?? []);
             $data['violations']['by_category'] = $this->groupByCategory($data['violations']['violations'] ?? []);
+            // Real "what was actually found" text per category, so the HTML report's
+            // Actionable Recommendations cards (summary.html.twig) describe THIS project's
+            // findings instead of always showing hardcoded Magento-flavored boilerplate
+            // ("SQL injection, XSS, CSRF...") regardless of what the violations actually are.
+            $data['violations']['category_samples'] = $this->sampleMessagesByCategory($data['violations']['violations'] ?? []);
 
             // Separate violations by type for specific worksheets.
             // Filter from the FULL merged violations array (not just advancedViolationsArray) so that
@@ -3553,7 +3627,47 @@ XML;
 
         return $byCategory;
     }
-    
+
+    /**
+     * Distinct rule/message samples per category (lowest severity_rank-first, so
+     * critical/error findings are represented before low-value ones), used by the
+     * HTML report to describe what was ACTUALLY found instead of static boilerplate.
+     *
+     * @param array<int,array<string,mixed>> $violations
+     * @return array<string,array<int,string>>
+     */
+    private function sampleMessagesByCategory(array $violations, int $limit = 3): array
+    {
+        $rank = ['blocker' => 5, 'critical' => 4, 'error' => 3, 'warning' => 2, 'info' => 1, 'minor' => 0];
+        usort($violations, static function ($a, $b) use ($rank) {
+            $av = is_array($a) ? (string) ($a['severity'] ?? '') : '';
+            $bv = is_array($b) ? (string) ($b['severity'] ?? '') : '';
+            return ($rank[$bv] ?? 0) <=> ($rank[$av] ?? 0);
+        });
+
+        $samples = [];
+        foreach ($violations as $violation) {
+            if (!is_array($violation)) {
+                continue;
+            }
+            $category = strtolower((string) ($violation['category'] ?? $violation['type'] ?? 'general'));
+            if (isset($samples[$category]) && count($samples[$category]) >= $limit) {
+                continue;
+            }
+            $label = (string) ($violation['message'] ?? $violation['rule_id'] ?? $violation['rule'] ?? '');
+            $label = trim(preg_replace('/\s+/', ' ', $label) ?? '');
+            if ($label === '') {
+                continue;
+            }
+            $samples[$category] ??= [];
+            if (!in_array($label, $samples[$category], true)) {
+                $samples[$category][] = $label;
+            }
+        }
+
+        return $samples;
+    }
+
     /**
      * Apply severity and type filters to violations
      */

@@ -1,0 +1,5 @@
+packages:
+  sample:
+    actions:
+      process:
+        function: /abs/path/to/index.js

@@ -3,6 +3,11 @@
   "version": "3.1.0",
   "description": "Interactive React Dashboard for Adobe Commerce Quality Control",
   "private": true,
+  "workspaces": [
+    "abqc/packages/core",
+    "abqc/packages/rules-check",
+    "abqc/packages/cli"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -12,7 +17,9 @@
     "type-check": "tsc --noEmit",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "postinstall": "npm run build --workspace=abqc",
+    "abqc": "node abqc/packages/cli/dist/bin.js"
   },
   "dependencies": {
     "@emotion/react": "^11.10.5",

@@ -9,6 +9,9 @@ use ACQC\Analyzers\MagentoSpecificAnalyzer;
 use ACQC\Analyzers\SecurityAnalyzer;
 use ACQC\Analyzers\PerformanceAnalyzer;
 use ACQC\Analyzers\CodeQualityAnalyzer;
+use ACQC\Analyzers\AppBuilder\AbqcAnalyzer;
+use ACQC\Core\Platform\PlatformDetector;
+use ACQC\Core\Platform\PlatformRegistry;
 use ACQC\Core\Rules\RuleRegistry;
 use ACQC\Core\Rules\CheckerRegistry;
 use ACQC\Core\Rules\YamlRuleLoader;
@@ -71,6 +74,15 @@ class AuditEngine
         $yamlIssues = $this->runYamlRules($files, $profile, $ruleRegistry);
         $results['issues'] = array_merge($results['issues'], $yamlIssues);
         $results['rules_evaluated'] = count($ruleRegistry->forProfile($profile));
+
+        // App Builder / Node.js projects: the PHP-oriented analyzers/rules above only
+        // ever see incidental .php files (App Builder's runtime is Node.js-only), so
+        // fold in abqc's ESLint-backed findings against the real JS/TS source. Same
+        // rationale as ReportCommand's abqc integration.
+        if ($this->isAppBuilderProject($projectPath)) {
+            $abqcResult = (new AbqcAnalyzer())->analyze([], ['project_path' => $projectPath]);
+            $results['issues'] = array_merge($results['issues'], $this->normalizeAbqcIssues($abqcResult['issues'] ?? []));
+        }
 
         // Calculate summary metrics
         $results['issues_found'] = count($results['issues']);
@@ -142,6 +154,27 @@ class AuditEngine
     {
         // Add logic to determine if analyzer should run based on options
         return true;
+    }
+
+    private function isAppBuilderProject(string $projectPath): bool
+    {
+        $platforms = array_map(
+            static fn ($p) => $p->id,
+            (new PlatformDetector(new PlatformRegistry(AcqcPaths::resourceRoot())))->detect($projectPath)
+        );
+
+        return array_intersect(['app-builder', 'nodejs'], $platforms) !== [];
+    }
+
+    /** AbqcAnalyzer emits 'rule_id'; the rest of this codebase's issue arrays use 'rule'. */
+    private function normalizeAbqcIssues(array $issues): array
+    {
+        return array_map(static function (array $issue): array {
+            if (!isset($issue['rule']) && isset($issue['rule_id'])) {
+                $issue['rule'] = $issue['rule_id'];
+            }
+            return $issue;
+        }, $issues);
     }
 
     private function calculateQualityScore(array $results): int

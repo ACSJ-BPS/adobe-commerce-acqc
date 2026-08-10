@@ -1,0 +1,8 @@
+packages:
+  sample:
+    actions:
+      generate-report:
+        function: actions/generate-report/index.js
+        web: 'yes'
+        limits:
+          timeout: 30000

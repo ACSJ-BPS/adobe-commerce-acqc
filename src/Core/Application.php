@@ -40,6 +40,7 @@ use ACQC\Commands\Version\EolReportCommand as VersionEolReportCommand;
 use ACQC\Commands\Version\PathCommand as VersionPathCommand;
 use ACQC\Commands\Version\AdvisoriesCommand as VersionAdvisoriesCommand;
 use ACQC\Commands\Version\DownloadCommand as VersionDownloadCommand;
+use ACQC\Commands\AppBuilder\LintCommand as AppBuilderLintCommand;
 use Symfony\Component\Console\Application as ConsoleApplication;
 
 class Application extends ConsoleApplication
@@ -88,6 +89,7 @@ class Application extends ConsoleApplication
             new VersionPathCommand(),
             new VersionAdvisoriesCommand(),
             new VersionDownloadCommand(),
+            new AppBuilderLintCommand(),
         ]);
     }
 }
