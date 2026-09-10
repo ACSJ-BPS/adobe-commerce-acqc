@@ -36,7 +36,7 @@ Adobe's default log retention in the mesh data plane is short. Production diagno
 ```yaml
 type: builtin
 id: mesh-log-forwarding
-files: ["**/meshConfig.json"]
+files: ["**/meshConfig.json", "**/mesh.json"]
 ```
 
 ### Bad
@@ -58,7 +58,7 @@ Enabling `httpDetails` in mesh logs captures full request and response bodies, i
 ```yaml
 type: builtin
 id: mesh-httpdetails-prod
-files: ["**/prod/**/meshConfig.json"]
+files: ["**/prod/**/meshConfig.json", "**/prod/**/mesh.json"]
 ```
 
 ### Bad

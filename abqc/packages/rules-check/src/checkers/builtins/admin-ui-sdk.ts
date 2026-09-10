@@ -27,16 +27,29 @@ function hasSiblingExtConfigYaml(appConfigPath: string): boolean {
   return existsSync(join(dirname(appConfigPath), "ext.config.yaml"));
 }
 
-function declaresCommerceProductDependency(doc: unknown): boolean {
-  const depsArrays: unknown[] = [];
-  collectByKey(doc, "productDependencies", depsArrays);
-  return depsArrays.some(
-    (arr) => Array.isArray(arr) && arr.some((d) => !!d && typeof d === "object" && (d as Record<string, unknown>).code === "COMMC"),
-  );
+/**
+ * The real, structural Admin UI SDK signal for a root `app.config.yaml` that
+ * doesn't have `ext.config.yaml` sitting directly next to it (the common real
+ * shape: `extensions: { commerce/backend-ui/1: { $include: src/.../ext.config.yaml } }`).
+ * Deliberately NOT based on `productDependencies` — a plain, non-Admin-UI-SDK
+ * App Builder app declaring `productDependencies: [{code: COMMC}]` for unrelated
+ * Commerce-integration reasons (e.g. calling Commerce REST/GraphQL from backend
+ * actions) is not itself evidence of an Admin UI SDK extension, and using it as
+ * one made this gate circular for the `product-dependencies` rule specifically
+ * (the condition it exists to validate would satisfy its own applicability check).
+ */
+function hasExtensionsBlock(doc: unknown): boolean {
+  return !!doc && typeof doc === "object" && "extensions" in (doc as object);
+}
+
+function referencesExtConfigYaml(doc: unknown): boolean {
+  const includes: unknown[] = [];
+  collectByKey(doc, "$include", includes);
+  return includes.some((v) => typeof v === "string" && /ext\.config\.ya?ml$/i.test(v));
 }
 
 function isAdminUiSdkApp(appConfigPath: string, doc: unknown): boolean {
-  return hasSiblingExtConfigYaml(appConfigPath) || declaresCommerceProductDependency(doc);
+  return hasSiblingExtConfigYaml(appConfigPath) || hasExtensionsBlock(doc) || referencesExtConfigYaml(doc);
 }
 
 function parseYamlSafe(content: string): unknown | undefined {
@@ -381,6 +394,25 @@ function referencesSensitiveToken(n: AstNode): boolean {
   return false;
 }
 
+/**
+ * Logging the action's WHOLE `params` object (the conventional, universal name
+ * for an App Builder action's sole handler argument — `async function main(params)`)
+ * evades `referencesSensitiveToken`'s narrow identifier-name matching entirely, even
+ * though `params` always carries `__ow_headers.authorization` (the caller's IMS
+ * bearer token) for a web action, plus any secret/token input parameters. This
+ * checker only applies to files matched by `isActionFile`, so a bare identifier
+ * named `params`/`event.params` there is reliably the actual request payload, not
+ * an unrelated same-named local variable.
+ */
+function referencesWholeParamsObject(n: AstNode): boolean {
+  if (n.type === "Identifier") return (identName(n) ?? "").toLowerCase() === "params";
+  if (n.type === "MemberExpression") {
+    const chain = memberChainNames(n).join(".").toLowerCase();
+    return chain === "event.params" || chain.endsWith(".params");
+  }
+  return false;
+}
+
 export const noLogImsTokenChecker: FileChecker = {
   ruleId: "appbuilder/admin-ui-sdk/security/never-log-ims-tokens-authorization-headers-or-oauth-secrets",
   kind: "file",
@@ -404,6 +436,14 @@ export const noLogImsTokenChecker: FileChecker = {
           hits.push({ ...locStart(n), message: "Do not log IMS tokens, Authorization headers, or OAuth secrets" });
           break;
         }
+        if (referencesWholeParamsObject(arg)) {
+          hits.push({
+            ...locStart(n),
+            message:
+              "Logging the entire params object also logs __ow_headers.authorization (the caller's IMS token) and any secret input params — log only the specific, non-sensitive fields you need",
+          });
+          break;
+        }
       }
     });
     return hits;
@@ -413,6 +453,20 @@ export const noLogImsTokenChecker: FileChecker = {
 // ---------------------------------------------------------------------------
 // 26. legacy-application-pattern
 // ---------------------------------------------------------------------------
+
+/**
+ * The real, common App Builder shape nests `actions:` several levels deep —
+ * `application.runtimeManifest.packages.<name>.actions` — not directly under
+ * `application`. A one-level-deep check structurally can never see this,
+ * making the rule blind on virtually every real (and Adobe-generated) app.
+ */
+function hasKeyAtAnyDepth(obj: unknown, key: string, maxDepth = 8): boolean {
+  if (maxDepth < 0 || !obj || typeof obj !== "object") return false;
+  if (Array.isArray(obj)) return obj.some((item) => hasKeyAtAnyDepth(item, key, maxDepth - 1));
+  const rec = obj as Record<string, unknown>;
+  if (key in rec) return true;
+  return Object.values(rec).some((v) => hasKeyAtAnyDepth(v, key, maxDepth - 1));
+}
 
 export const legacyApplicationPatternChecker: FileChecker = {
   ruleId: "appbuilder/admin-ui-sdk/structure/use-the-extensions-pattern-in-app-config-yaml-not-actions-applic",
@@ -425,7 +479,7 @@ export const legacyApplicationPatternChecker: FileChecker = {
     const hasApplication = "application" in d;
     const applicationObj = d.application;
     const hasActionsTopLevel = "actions" in d;
-    const hasActionsNested = !!applicationObj && typeof applicationObj === "object" && "actions" in (applicationObj as object);
+    const hasActionsNested = hasKeyAtAnyDepth(applicationObj, "actions");
     const hasExtensions = "extensions" in d;
     // `application:`/`actions:` at the top level is the CORRECT, standard
     // shape for an ordinary (non-Admin-UI-SDK) App Builder app — it's only

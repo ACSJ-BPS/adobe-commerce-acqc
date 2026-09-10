@@ -1,21 +1,22 @@
 import { readFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
+import { basename } from "node:path";
 import type { CheckHit, CheckContext, FileChecker, RepoChecker } from "../../types.js";
-import { isSourceFile } from "@abqc/core";
 import { walkAst, findFunctions, locStart, type AstNode } from "../../utils/parse.js";
-import { requireParsed, isCheckHitArray, member, identName } from "./shared.js";
+import {
+  requireParsed,
+  isCheckHitArray,
+  member,
+  identName,
+  isMeshConfigPath,
+  isResolverOrHookPath,
+  isHookPath,
+  isResolverPath,
+} from "./shared.js";
 
 // ---------------------------------------------------------------------------
 // Gap-fill batch — API Mesh checkers (rules audit items 21-33).
-// Self-contained: small local helpers duplicate a few conveniences that
-// already exist (unexported) in apimesh.ts, rather than reaching into that
-// file's internals.
 // ---------------------------------------------------------------------------
-
-const isMeshConfigPath = (p: string): boolean => /(^|\/)meshConfig(\..+)?\.json$/i.test(p.replace(/\\/g, "/"));
-const isResolverOrHookPath = (p: string): boolean => isSourceFile(p) && /resolver|hook/i.test(p);
-const isHookPath = (p: string): boolean => isSourceFile(p) && /hook/i.test(p);
-const isResolverPath = (p: string): boolean => isSourceFile(p) && /resolver/i.test(p);
 
 function parseJsonSafe(content: string): unknown | undefined {
   try {
@@ -103,7 +104,11 @@ const STATE_GET_RE = /\bstate\.get\s*\(|\bState\.get\s*\(/;
 export const meshHookTokenCacheChecker: FileChecker = {
   ruleId: "appbuilder/api-mesh/auth/cache-short-lived-oauth-ims-tokens-in-a-runtime-action-don-t-ref",
   kind: "file",
-  appliesTo: isSourceFile,
+  // The rule's own rationale is specifically about mesh hooks ("fire on every incoming
+  // GraphQL query") — scope to actual mesh hook files, not every source file in the repo
+  // (was `isSourceFile`, which flagged unrelated token-minting code like I/O Events
+  // publishers that have nothing to do with API Mesh).
+  appliesTo: isHookPath,
   check(ctx) {
     const hits: CheckHit[] = [];
     const re = new RegExp(TOKEN_MINT_RE.source, "g");
@@ -214,9 +219,11 @@ export const meshSourceRenameHistoryChecker: RepoChecker = {
   ruleId: "appbuilder/api-mesh/config/source-names-are-public-schema-choose-stable-names-never-rename-",
   kind: "repo",
   async check(ctx) {
+    const meshFile = ctx.allFiles.find(isMeshConfigPath);
+    if (!meshFile) return [];
     let log: string;
     try {
-      log = execFileSync("git", ["log", "-p", "--follow", "--", "meshConfig.json"], {
+      log = execFileSync("git", ["log", "-p", "--follow", "--", meshFile], {
         cwd: ctx.projectRoot,
         encoding: "utf8",
         stdio: ["ignore", "pipe", "ignore"],
@@ -235,7 +242,7 @@ export const meshSourceRenameHistoryChecker: RepoChecker = {
           return [
             {
               line: 1,
-              message: `meshConfig.json history shows source name "${removed[1]}" renamed to "${added[1]}" — source names are public schema; choose stable names and never rename casually.`,
+              message: `${basename(meshFile)} history shows source name "${removed[1]}" renamed to "${added[1]}" — source names are public schema; choose stable names and never rename casually.`,
             },
           ];
         }
@@ -290,7 +297,7 @@ export const workspaceEnvMappingChecker: RepoChecker = {
   ruleId: "appbuilder/api-mesh/operations/map-dev-console-workspaces-to-environments-dev-stage-prod",
   kind: "repo",
   async check(ctx) {
-    const meshFiles = ctx.allFiles.filter((f) => /meshConfig.*\.json$/i.test(f.replace(/\\/g, "/")));
+    const meshFiles = ctx.allFiles.filter(isMeshConfigPath);
     if (meshFiles.length === 0) return [];
     const envPatterns: Array<[string, RegExp]> = [
       ["dev", /^dev$/i],

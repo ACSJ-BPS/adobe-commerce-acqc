@@ -1,4 +1,3 @@
-import { basename } from "node:path";
 import { readFile, stat } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import type { CheckHit, CheckContext, FileChecker, RepoChecker } from "../../types.js";
@@ -11,19 +10,24 @@ import {
   countFunctionLines,
   type AstNode,
 } from "../../utils/parse.js";
-import { requireParsed, isCheckHitArray, member, identName } from "./shared.js";
+import {
+  requireParsed,
+  isCheckHitArray,
+  member,
+  identName,
+  isMeshConfigPath,
+  isResolverPath as isResolverSourceFile,
+} from "./shared.js";
 
 // ---------------------------------------------------------------------------
 // Shared JSON/mesh helpers
 // ---------------------------------------------------------------------------
 
-const isMeshConfigPath = (p: string): boolean => /(^|\/)meshConfig(\..+)?\.json$/i.test(p.replace(/\\/g, "/"));
 // Matches a whole path SEGMENT, not a substring anywhere in the path — an
 // unrelated ancestor directory whose name merely contains "prod" (e.g.
 // "my-productivity-tools") must not count as a production-scoped file.
 const isProdPath = (p: string): boolean =>
   p.replace(/\\/g, "/").split("/").some((part) => /^prod(uction)?$/i.test(part));
-const isResolverSourceFile = (p: string): boolean => isSourceFile(p) && /resolver/i.test(p);
 
 function parseJsonSafe(content: string): unknown | undefined {
   try {
@@ -87,7 +91,12 @@ function findWorkflowFiles(allFiles: string[]): string[] {
 // ---------------------------------------------------------------------------
 
 const SECRET_HEADER_RE = /^(authorization|x-api-key|x-auth-token|apikey|api-key)$/i;
-const ENV_TEMPLATE_RE = /^\{\{env\.[A-Z0-9_]+\}\}$/;
+// The rule's own documented "Good" example is `"Bearer {{env.UPSTREAM_TOKEN}}"` — a
+// literal prefix (scheme name) plus an env template, not the whole value being
+// exactly `{{env.VAR}}`. Match containment, not full-string equality, so the
+// common `"Bearer {{env.VAR}}"` / `"Basic {{env.VAR}}"` forms aren't flagged as
+// literal credentials.
+const ENV_TEMPLATE_RE = /\{\{env\.[A-Z0-9_]+\}\}/;
 
 export const meshHeaderSecretsChecker: FileChecker = {
   ruleId: "appbuilder/api-mesh/auth/use-operationheaders-schemaheaders-for-upstream-credentials-sour",
@@ -227,7 +236,7 @@ export const meshConfigSizeChecker: RepoChecker = {
   ruleId: "appbuilder/api-mesh/config/keep-meshconfig-json-under-375-kb-pre-filter-large-openapi-schem",
   kind: "repo",
   async check(ctx) {
-    const meshFile = ctx.allFiles.find((f) => /^meshConfig(\..+)?\.json$/i.test(basename(f)));
+    const meshFile = ctx.allFiles.find((f) => isMeshConfigPath(f));
     if (!meshFile) return [];
     try {
       const info = await stat(meshFile);
@@ -316,7 +325,7 @@ export const meshConfigGitCiChecker: RepoChecker = {
   ruleId: "appbuilder/api-mesh/config/treat-meshconfig-json-as-code-git-versioned-pr-reviewed-ci-deplo",
   kind: "repo",
   async check(ctx) {
-    const anyMeshFile = ctx.allFiles.find((f) => /^meshConfig(\..+)?\.json$/i.test(basename(f)));
+    const anyMeshFile = ctx.allFiles.find((f) => isMeshConfigPath(f));
     if (!anyMeshFile) return [];
     const hits: CheckHit[] = [];
     try {
@@ -414,7 +423,7 @@ export const meshDevProdEndpointChecker: RepoChecker = {
   ruleId: "appbuilder/api-mesh/operations/never-point-a-dev-mesh-at-production-commerce-or-aem-endpoints",
   kind: "repo",
   async check(ctx) {
-    const meshFiles = ctx.allFiles.filter((f) => /^meshConfig(\..+)?\.json$/i.test(basename(f)));
+    const meshFiles = ctx.allFiles.filter((f) => isMeshConfigPath(f));
     const hits: CheckHit[] = [];
     // Match whole path SEGMENTS (not a substring test on the full path) so an
     // unrelated ancestor directory name that merely contains "dev"/"prod" as a
@@ -547,6 +556,92 @@ export const meshResolverNPlusOneChecker: FileChecker = {
         }
       }
     });
+    return hits;
+  },
+};
+
+// ---------------------------------------------------------------------------
+// 12b. mesh-resolver-sequential-await (STATIC AST heuristic)
+// Was previously mis-registered onto `sequence-budget` — a Runtime Action
+// Sequences YAML-comment checker unrelated to API Mesh resolver code, which
+// never validated what this rule's own Bad/Good examples describe. Detects a
+// resolver function making 2+ sequential `await`ed upstream calls where a
+// later call's arguments don't reference an earlier call's result (no real
+// data dependency) — exactly the rule's documented Bad example
+// (`fetchA(); fetchB(a); fetchC(b)` IS a dependency chain and stays silent;
+// three independent awaits with no shared variables should have been
+// `Promise.all`'d). Known limits: only sees same-function, top-level
+// `const/let x = await fn(...)` statements — awaits buried in nested blocks,
+// or true data dependencies expressed only through object/array member access
+// rather than a bare identifier, aren't tracked.
+// ---------------------------------------------------------------------------
+
+function collectIdentifierNames(n: AstNode | undefined, out: Set<string>): void {
+  if (!n) return;
+  walkAst(n, (node) => {
+    if (node.type === "Identifier") {
+      const name = identName(node);
+      if (name) out.add(name);
+    }
+  });
+}
+
+function functionAlreadyUsesPromiseAll(fn: AstNode): boolean {
+  let found = false;
+  walkAst(fn, (n) => {
+    if (n.type !== "CallExpression") return;
+    const callee = member(n, "callee");
+    if (callee?.type === "MemberExpression" && identName(member(callee, "object")) === "Promise" && identName(member(callee, "property")) === "all") {
+      found = true;
+    }
+  });
+  return found;
+}
+
+export const meshResolverSequentialAwaitChecker: FileChecker = {
+  ruleId: "appbuilder/api-mesh/performance/design-queries-to-complete-well-under-the-60s-edge-timeout",
+  kind: "file",
+  appliesTo: isResolverSourceFile,
+  check(ctx) {
+    const parsed = requireParsed(ctx);
+    if (isCheckHitArray(parsed)) return parsed;
+    const hits: CheckHit[] = [];
+    for (const { node: fn } of findFunctions(parsed.ast)) {
+      if (functionAlreadyUsesPromiseAll(fn)) continue;
+      const body = member(fn, "body");
+      const statements = ((body as (AstNode & { body?: AstNode[] }) | undefined)?.body ?? []) as AstNode[];
+      const awaitDecls: Array<{ node: AstNode; declaredNames: Set<string>; usedNames: Set<string> }> = [];
+      for (const stmt of statements) {
+        if (stmt.type !== "VariableDeclaration") continue;
+        const decls = ((stmt as AstNode & { declarations?: AstNode[] }).declarations ?? []) as AstNode[];
+        for (const decl of decls) {
+          const init = member(decl, "init");
+          if (!init || init.type !== "AwaitExpression") continue;
+          const inner = member(init, "argument");
+          if (!inner || inner.type !== "CallExpression") continue;
+          const declaredNames = new Set<string>();
+          collectIdentifierNames(member(decl, "id"), declaredNames);
+          const usedNames = new Set<string>();
+          collectIdentifierNames(inner, usedNames);
+          awaitDecls.push({ node: stmt, declaredNames, usedNames });
+        }
+      }
+      if (awaitDecls.length < 2) continue;
+      const seenDeclared = new Set<string>();
+      for (const d of awaitDecls) for (const n of d.declaredNames) seenDeclared.add(n);
+      for (let i = 1; i < awaitDecls.length; i++) {
+        const priorDeclared = new Set<string>();
+        for (let j = 0; j < i; j++) for (const n of awaitDecls[j]!.declaredNames) priorDeclared.add(n);
+        const dependsOnEarlier = [...awaitDecls[i]!.usedNames].some((n) => priorDeclared.has(n));
+        if (!dependsOnEarlier) {
+          hits.push({
+            ...locStart(awaitDecls[i]!.node),
+            message:
+              "Sequential awaited upstream call with no data dependency on the previous one — batch independent calls with Promise.all instead of awaiting one after another; each sequential call eats into the mesh's ~60s edge timeout.",
+          });
+        }
+      }
+    }
     return hits;
   },
 };

@@ -4,3 +4,9 @@ application:
 productDependencies:
   - code: COMMC
     minVersion: 2.4.5
+# This IS an Admin UI SDK app (has an extensions: block) but the `application:`
+# block above was mistakenly left in app.config.yaml instead of moved to
+# ext.config.yaml — the exact violation this rule exists to catch.
+extensions:
+  commerce/backend-ui/1:
+    $include: ./ext.config.yaml

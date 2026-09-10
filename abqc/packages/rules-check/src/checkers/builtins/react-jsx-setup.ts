@@ -332,6 +332,17 @@ export const noSpectrumProviderChecker: RepoChecker = {
     // (e.g. backend-only App Builder actions or plain Node CLIs) — otherwise
     // this fires on any `index.js`/`main.js` that happens to exist.
     const candidates = ctx.allFiles.filter((f) => /\/(index|app|main)\.(jsx|tsx|js|mjs|cjs)$/i.test(f));
+    // Idiomatic React App Builder scaffolds split `index.js` (just
+    // `createRoot(...).render(<App/>)`, no Provider) from `App.js` (which
+    // holds the actual <Provider>) — both match the candidate glob above.
+    // Check EVERY candidate before concluding no Provider exists; the
+    // previous version returned on the FIRST React-looking candidate it
+    // found, so an `index.js` with no Provider short-circuited the scan
+    // before `App.js` (right next to it, also a candidate) was ever read —
+    // a false positive with the wrong stated reason.
+    let anyReactEntry = false;
+    let hasProviderWithThemeAndLocale = false;
+    const reactEntries: string[] = [];
     for (const entry of candidates) {
       let content: string;
       try {
@@ -347,7 +358,6 @@ export const noSpectrumProviderChecker: RepoChecker = {
       const parsed = parseSource(content, entry);
       if (!parsed) return [{ message: "File could not be parsed — fix syntax errors before running AST checks", path: entry, line: 1 }];
       let hasJsx = false;
-      let hasProviderWithThemeAndLocale = false;
       walkAst(parsed.ast, (n) => {
         if (n.type === "JSXElement") {
           hasJsx = true;
@@ -359,16 +369,18 @@ export const noSpectrumProviderChecker: RepoChecker = {
       // Skip non-React entries (backend-only App Builder actions, plain Node
       // CLIs) — they have neither a React/Spectrum import nor any JSX.
       if (!importsReact && !hasJsx) continue;
+      anyReactEntry = true;
+      reactEntries.push(entry);
       if (hasProviderWithThemeAndLocale) return [];
-      return [
-        {
-          message: `React app entry '${entry}' has no <Provider theme=... locale=...> ancestor — Spectrum components need a Provider ancestor`,
-          path: entry,
-          line: 1,
-        },
-      ];
     }
-    return [];
+    if (!anyReactEntry) return [];
+    return [
+      {
+        message: `No <Provider theme=... locale=...> found across React app entries (${reactEntries.join(", ")}) — Spectrum components need a Provider ancestor with both props set`,
+        path: reactEntries[0],
+        line: 1,
+      },
+    ];
   },
 };
 

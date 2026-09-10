@@ -9,7 +9,7 @@ Introspection (`__schema`, `__type`) lets attackers enumerate every type and ope
 ```yaml
 type: builtin
 id: mesh-introspection-prod
-files: ["**/prod/**/meshConfig.json"]
+files: ["**/prod/**/meshConfig.json", "**/prod/**/mesh.json"]
 ```
 
 ### Bad
@@ -30,7 +30,7 @@ If `baseUrl` or operation path is concatenated from user input (e.g., header val
 ```yaml
 type: builtin
 id: mesh-ssrf-endpoint
-files: ["**/meshConfig.json"]
+files: ["**/meshConfig.json", "**/mesh.json"]
 ```
 
 ### Bad
@@ -50,7 +50,7 @@ API Mesh runs in Adobe's edge plane, not your VPC. It cannot reach `localhost`, 
 ```yaml
 type: builtin
 id: mesh-endpoint-https
-files: ["**/meshConfig.json"]
+files: ["**/meshConfig.json", "**/mesh.json"]
 ```
 
 ### Bad

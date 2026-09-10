@@ -563,6 +563,24 @@ export const stateOnlyPersistenceChecker: FileChecker = {
       /\bdb\.\w+\s*\(/i.test(ctx.content) ||
       /\b(mongo|mongoose|sequelize|knex|pg\.|mysql)\b/i.test(ctx.content);
     if (hasOtherPersistence) return [];
+    // A real App Builder app's actual "source of truth" is far more often an
+    // external SaaS API (Commerce REST/GraphQL, SAP, etc.) than a local SQL/Mongo
+    // call — the only kind the check above recognized. A file that calls an
+    // external API AND passes an explicit `ttl` to `state.put(...)` is exactly
+    // the rule's own endorsed pattern (State as a bounded CACHE in front of the
+    // real source of truth, not a substitute for it) — not a violation. An
+    // explicit `ttl` option on `state.put(...)` is itself the deterministic
+    // signal: it's the developer consciously bounding the data's lifetime,
+    // exactly the rule's own "Good" example ("TTL slightly less than token
+    // lifetime"). Real App Builder apps' actual source of truth is far more
+    // often an external SaaS API reached through a project-specific client
+    // wrapper (e.g. `getClient().get(...)`) than one of a fixed list of
+    // low-level HTTP call forms, so — unlike the local-DB check above, which
+    // can reasonably enumerate `db.*`/`mongo`/`pg.` — requiring a specific
+    // network-call shape here would just re-create the same narrow-escape-hatch
+    // problem with different literals.
+    const hasExplicitTtl = /\bstate\.put\s*\([^;]*\bttl\b/is.test(ctx.content);
+    if (hasExplicitTtl) return [];
     return [
       {
         line: 1,

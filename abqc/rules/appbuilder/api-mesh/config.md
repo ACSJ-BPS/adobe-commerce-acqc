@@ -9,7 +9,7 @@ meshConfig.json is checked into git. Inline `x-api-key: "abc123"` exposes creden
 ```yaml
 type: builtin
 id: mesh-literal-secret
-files: ["**/meshConfig.json"]
+files: ["**/meshConfig.json", "**/mesh.json"]
 ```
 
 ### Bad
@@ -74,7 +74,7 @@ A single mesh that serves both the public storefront and internal admin operatio
 ```yaml
 type: builtin
 id: mesh-admin-unfiltered
-files: ["**/meshConfig.json"]
+files: ["**/meshConfig.json", "**/mesh.json"]
 ```
 
 ### Bad

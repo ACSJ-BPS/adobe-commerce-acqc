@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import type { Severity } from "@abqc/core";
+import { findProjectRootFromPaths, type Severity } from "@abqc/core";
 import { loadRulesAndValidate } from "../registry.js";
 import { filterBySeverity, runMechanicalChecks } from "../runner.js";
 import { buildMechanicalSarif, formatTerminal } from "../formatters.js";
@@ -54,7 +54,7 @@ function parseArgs(argv: string[]): CheckOptions {
   const paths: string[] = [];
   let format: CheckOptions["format"] = "terminal";
   let severityFloor: Severity = "info";
-  let cwd = process.cwd();
+  let explicitCwd: string | undefined;
   let eslint = true;
 
   for (let i = 0; i < argv.length; i++) {
@@ -72,7 +72,7 @@ function parseArgs(argv: string[]): CheckOptions {
       const val = argv[++i];
       if (val === "error" || val === "warn" || val === "info") severityFloor = val;
     } else if (a.startsWith("--cwd=")) {
-      cwd = resolve(a.slice("--cwd=".length));
+      explicitCwd = resolve(a.slice("--cwd=".length));
     } else if (a === "--no-eslint") {
       eslint = false;
     } else if (a === "--eslint") {
@@ -81,5 +81,9 @@ function parseArgs(argv: string[]): CheckOptions {
       paths.push(a);
     }
   }
+  // `--cwd` stays available for hosts that already know the project root (CI, MCP);
+  // otherwise infer it from the scanned paths — see findProjectRootFromPaths's own
+  // doc comment for why defaulting to process.cwd() is wrong for repo-scoped checks.
+  const cwd = explicitCwd ?? findProjectRootFromPaths(paths);
   return { paths, format, severityFloor, cwd, eslint };
 }

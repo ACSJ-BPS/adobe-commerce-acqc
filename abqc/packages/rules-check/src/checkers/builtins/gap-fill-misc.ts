@@ -88,10 +88,22 @@ function isUnpinnedUixVersion(ver: string): boolean {
   return v === "latest" || /^[\^~*]/.test(v);
 }
 
+// `ext.config.yaml` is exclusively an Admin UI SDK / Commerce-extensibility
+// construct — a plain, non-Admin-UI-SDK App Builder app never has one anywhere
+// in the repo. Gate on its presence so this rule only nags apps that are
+// actually meant to depend on @adobe/uix-core/uix-guest in the first place
+// (was ungated, so it flagged every project — including pure backend apps
+// with zero Admin UI SDK surface — for "missing" packages they have no
+// reason to declare).
+function repoHasExtConfigYaml(allFiles: string[]): boolean {
+  return allFiles.some((f) => /(^|\/)ext\.config\.ya?ml$/i.test(f.replace(/\\/g, "/")));
+}
+
 export const uixVersionPinChecker: RepoChecker = {
   ruleId: "appbuilder/admin-ui-sdk/deploy/pin-adobe-uix-core-and-adobe-uix-guest-versions-to-the-app-revie",
   kind: "repo",
   async check(ctx) {
+    if (!repoHasExtConfigYaml(ctx.allFiles)) return [];
     const pkgPath = join(ctx.projectRoot, "package.json");
     const raw = await readSafe(pkgPath);
     if (raw === null) return [];

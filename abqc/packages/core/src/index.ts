@@ -1,5 +1,5 @@
 export { Engine, type EngineOptions, type ReviewResult } from "./engine.js";
-export { resolveProjectRoot, resolveProjectRootReal } from "./project-root.js";
+export { resolveProjectRoot, resolveProjectRootReal, findProjectRootFromPaths } from "./project-root.js";
 export {
   defaultRulesDir,
   resolveRulesDirFromModule,

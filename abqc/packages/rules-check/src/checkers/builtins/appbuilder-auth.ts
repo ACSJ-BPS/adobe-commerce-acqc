@@ -45,8 +45,18 @@ export const imsAutoRenewalChecker: FileChecker = {
     if (!/ims/i.test(content)) return [];
     // Legitimate SDK delegation — `getToken(...)`, `getImsAccessToken(...)`,
     // `.getAccessToken(...)` — is precisely the "use the IMS SDK's
-    // auto-renewal" behavior this rule wants, not something to flag.
-    if (/\bgetToken\s*\(|\bgetImsAccessToken\s*\(|\.getAccessToken\s*\(/.test(content)) return [];
+    // auto-renewal" behavior this rule wants, not something to flag. But a
+    // bare `.getAccessToken(` call is ambiguous: a file can hand-roll its OWN
+    // method of that exact name (then call it via `this.getAccessToken()`),
+    // which is the violation this rule exists to catch, not an exemption from
+    // it. Only treat these calls as real SDK delegation when the file also
+    // imports an actual IMS SDK package — otherwise a same-named hand-rolled
+    // method's self-call would silently defeat this check.
+    const importsImsSdk =
+      /\bfrom\s+['"]@adobe\/aio-lib-ims['"]/.test(content) ||
+      /require\(\s*['"]@adobe\/aio-lib-ims['"]\s*\)/.test(content) ||
+      (/\bfrom\s+['"]@adobe\/aio-sdk['"]/.test(content) && /\bIms\b/.test(content));
+    if (importsImsSdk && /\bgetToken\s*\(|\bgetImsAccessToken\s*\(|\.getAccessToken\s*\(/.test(content)) return [];
     const lines = content.split("\n");
     // Any ims-named call not already excluded above by the SDK-delegation
     // check — e.g. a hand-rolled `imsRawRequest()`. The known legitimate SDK

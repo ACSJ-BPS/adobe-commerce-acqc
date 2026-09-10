@@ -123,7 +123,16 @@ export const stateWriteConcurrencyChecker: FileChecker = {
 const CHECKPOINT_REF_RE = /checkpoint|cursor|lastId/i;
 const STATE_PUT_RE = /\bstate\.put\s*\(|\bState\.put\s*\(/;
 const COUNTER_GUARD_RE = /\b\w+\s*(\+\+|\+=\s*1)/;
-const COUNTER_COMPARE_RE = /(<|<=|>=|>)\s*\d+/;
+// A loop bound by a literal number (`i < 100`) OR by `.length` of an
+// already-in-memory array/string (`i < items.length`) is inherently
+// finite — the ordinary, safe shape for validating/transforming a fixed
+// batch that's already been loaded, not a candidate for checkpointing.
+// Without the `.length` alternative, this matched NO ordinary bounded
+// array-iteration loop at all (only literal-number bounds), so it flagged
+// every single `for (i = 0; i < arr.length; i++)` loop in the codebase —
+// including small, size-capped, purely in-memory validation loops that
+// have nothing to do with pagination or long-running bulk jobs.
+const COUNTER_COMPARE_RE = /(<|<=|>=|>)\s*(?:\d+|[\w.]+\.length\b)/;
 
 export const chunkCheckpointsChecker: FileChecker = {
   ruleId: "appbuilder/performance/chunk-large-jobs-across-invocations-with-state-checkpoints",

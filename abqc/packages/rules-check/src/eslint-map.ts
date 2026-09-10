@@ -29,6 +29,9 @@ export const ESLINT_TO_LIBRARY: Record<string, string> = {
   "security/detect-object-injection": "security/eslint-security/no-bracket-access-on-user-controlled-keys-object-injection",
   "security/detect-non-literal-fs-filename": "security/eslint-security/no-dynamic-fs-paths-from-user-input-non-literal-fs-filename",
   "security/detect-pseudoRandomBytes": "security/eslint-security/no-pseudorandombytes-for-security-sensitive-values",
+  // Supplements the plugin rule above, which only matches the `crypto.pseudoRandomBytes(...)`
+  // MemberExpression form — see the rule definition's own comment in eslint-runner.ts.
+  "security/detect-pseudoRandomBytes-bare-call": "security/eslint-security/no-pseudorandombytes-for-security-sensitive-values",
   "n/no-process-exit": "node/errors/don-t-process-exit-let-the-runtime-finish-gracefully",
   "n/no-callback-literal": "node/errors/error-first-callback-functions-only-invoke-with-an-error-or-null",
   "@typescript-eslint/no-explicit-any": "typescript/type-safety/no-explicit-any",

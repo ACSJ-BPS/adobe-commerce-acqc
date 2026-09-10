@@ -30,6 +30,7 @@ const HEURISTIC_ONLY_RULES: Set<string> = new Set([
   "security/detect-non-literal-fs-filename",
   "security/detect-possible-timing-attacks",
   "security/detect-pseudoRandomBytes",
+  "security/detect-pseudoRandomBytes-bare-call",
   "security/detect-unsafe-regex",
 ]);
 
@@ -37,6 +38,33 @@ const HEURISTIC_ONLY_RULES: Set<string> = new Set([
 // (built into ESLint core) and stop flagging describe/it/test/expect/jest/
 // beforeEach/afterEach/beforeAll/afterAll as no-undef. Without this, every
 // test file lints as if globals like `jest` don't exist.
+/**
+ * `eslint-plugin-security`'s `detect-pseudoRandomBytes` only matches the
+ * `crypto.pseudoRandomBytes(...)` MemberExpression form — a destructured
+ * import (`const { pseudoRandomBytes } = require("node:crypto")`, or the ESM
+ * equivalent) followed by a bare `pseudoRandomBytes(...)` call evades it
+ * entirely, even though it's the exact same insecure-PRNG call. Supplement
+ * with a small custom rule matching the bare-identifier call form — the
+ * function name is specific enough (no legitimate unrelated API shares it)
+ * that a name-only heuristic, with no import-tracking, is safe.
+ */
+const pseudoRandomBytesBareCallRule: Rule.RuleModule = {
+  meta: { type: "problem", schema: [] },
+  create(context) {
+    return {
+      CallExpression(node) {
+        const callee = (node as unknown as { callee: { type: string; name?: string } }).callee;
+        if (callee.type === "Identifier" && callee.name === "pseudoRandomBytes") {
+          context.report({
+            node,
+            message: "Found pseudoRandomBytes() (imported directly from crypto) — insecure PRNG for security-sensitive values; use crypto.randomBytes() instead.",
+          });
+        }
+      },
+    };
+  },
+};
+
 const TEST_FILE_RE = /(?:^|[/\\])(?:__tests__[/\\]|__mocks__[/\\])|\.(?:test|spec)\.[jt]sx?$/i;
 
 function isTestFile(filePath: string): boolean {
@@ -93,6 +121,7 @@ const ALL_FILE_RULES: Linter.RulesRecord = {
   "security/detect-object-injection": "warn",
   "security/detect-non-literal-fs-filename": "error",
   "security/detect-pseudoRandomBytes": "error",
+  "security/detect-pseudoRandomBytes-bare-call": "error",
   // Node.js plugin
   "n/no-deprecated-api": "error",
   "n/no-process-exit": "warn",
@@ -165,6 +194,7 @@ export class EslintRunner {
     this.maxFileChars = options.maxFileChars ?? 200_000;
     this.linter.defineParser(TS_PARSER_ID, tsParser as Linter.ParserModule);
     this.registerPlugins();
+    this.linter.defineRule("security/detect-pseudoRandomBytes-bare-call", pseudoRandomBytesBareCallRule);
   }
 
   private registerPlugins(): void {

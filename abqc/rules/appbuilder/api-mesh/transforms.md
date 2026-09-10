@@ -9,7 +9,7 @@ Upstream sources often expose mutations and queries intended for internal use (`
 ```yaml
 type: builtin
 id: mesh-filterschema-missing
-files: ["**/meshConfig.json"]
+files: ["**/meshConfig.json", "**/mesh.json"]
 ```
 
 ### Bad
@@ -30,7 +30,7 @@ Upstream type names (`commerce_v2_product_t`) leak vendor naming into your clien
 ```yaml
 type: builtin
 id: mesh-raw-naming
-files: ["**/meshConfig.json"]
+files: ["**/meshConfig.json", "**/mesh.json"]
 ```
 
 ### Bad
@@ -79,7 +79,7 @@ Type-merging joins types across sources by a key. Done well it's powerful; done 
 ```yaml
 type: builtin
 id: mesh-typemerging-unbounded
-files: ["**/meshConfig.json"]
+files: ["**/meshConfig.json", "**/mesh.json"]
 ```
 
 ### Bad

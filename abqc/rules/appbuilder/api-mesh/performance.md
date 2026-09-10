@@ -51,14 +51,17 @@ API Mesh enforces a hard ~60s timeout at the edge. Sequence steps and slow upstr
 ### Check
 ```yaml
 type: builtin
-id: sequence-budget
-files: ["**/*.config.yaml", "**/*.config.yml", "**/app.config.yaml"]
+id: mesh-resolver-sequential-await
+files: ["**/resolvers/**/*.{js,ts}", "**/resolver.{js,ts}", "**/hooks/**/*.{js,ts}", "**/hook.{js,ts}"]
 ```
 
 ### Bad
 ```js
-// resolver does three sequential 10s upstream calls
-const a = await fetchA(); const b = await fetchB(a); const c = await fetchC(b);
+// resolver awaits two independent 10s upstream calls one after another —
+// fetchB doesn't use `a`, so there's no real reason to wait for fetchA first
+const a = await fetchA();
+const b = await fetchB();
+const c = await fetchC(a, b);
 ```
 
 ### Good

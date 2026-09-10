@@ -9,7 +9,7 @@ Mesh field-level cache and CDN cache will gladly serve a personalized response t
 ```yaml
 type: builtin
 id: mesh-cache-personalized
-files: ["**/meshConfig.json"]
+files: ["**/meshConfig.json", "**/mesh.json"]
 ```
 
 ### Bad
@@ -32,7 +32,7 @@ Default headers vary by source. Without explicit `Cache-Control`, CDNs may cache
 ```yaml
 type: builtin
 id: mesh-cache-control-header
-files: ["**/meshConfig.json"]
+files: ["**/meshConfig.json", "**/mesh.json"]
 ```
 
 ### Bad
@@ -57,7 +57,7 @@ TTL too short → cache miss rate dominates and the cache adds latency. Too long
 ```yaml
 type: builtin
 id: mesh-ttl-blanket
-files: ["**/meshConfig.json"]
+files: ["**/meshConfig.json", "**/mesh.json"]
 ```
 
 ### Bad

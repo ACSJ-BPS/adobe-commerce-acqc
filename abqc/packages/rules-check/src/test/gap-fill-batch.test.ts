@@ -366,7 +366,11 @@ describe("gap-fill batch — repo-scoped: misc", () => {
       JSON.stringify({ dependencies: { "@adobe/uix-core": "^1.0.0", "@adobe/uix-guest": "latest" } }),
       "utf8",
     );
-    const ctx: RepoContext = { projectRoot: root, allFiles: [join(root, "package.json")] };
+    // Only applicable to actual Admin UI SDK apps — mark this one via the
+    // presence of an ext.config.yaml (a plain, non-Admin-UI-SDK App Builder
+    // app never has one).
+    const extConfig = join(root, "src", "commerce-backend-ui-1", "ext.config.yaml");
+    const ctx: RepoContext = { projectRoot: root, allFiles: [join(root, "package.json"), extConfig] };
     const hits = await uixVersionPinChecker.check(ctx);
     assert.ok(hits.length > 0);
   });
@@ -378,6 +382,15 @@ describe("gap-fill batch — repo-scoped: misc", () => {
       JSON.stringify({ dependencies: { "@adobe/uix-core": "0.8.3", "@adobe/uix-guest": "0.8.3" } }),
       "utf8",
     );
+    const extConfig = join(root, "src", "commerce-backend-ui-1", "ext.config.yaml");
+    const ctx: RepoContext = { projectRoot: root, allFiles: [join(root, "package.json"), extConfig] };
+    const hits = await uixVersionPinChecker.check(ctx);
+    assert.equal(hits.length, 0);
+  });
+
+  it("uix-version-pin does not apply to a plain (non-Admin-UI-SDK) App Builder app", async () => {
+    const root = await tempRoot("abqc-gap-uix-not-admin-ui-sdk-");
+    await writeFile(join(root, "package.json"), JSON.stringify({ dependencies: {} }), "utf8");
     const ctx: RepoContext = { projectRoot: root, allFiles: [join(root, "package.json")] };
     const hits = await uixVersionPinChecker.check(ctx);
     assert.equal(hits.length, 0);

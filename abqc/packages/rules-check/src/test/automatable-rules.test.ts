@@ -179,6 +179,36 @@ const FILE_CASES: FixtureCase[] = [
     good: "good-require-auth.yaml",
     filePath: "/proj/actions.config.yaml",
   },
+  {
+    ruleId: "appbuilder/admin-ui-sdk/security/store-secrets-in-app-management-secret-fields-or-runtime-secrets",
+    bad: "bad-store-secrets-app-management.php",
+    good: "good-store-secrets-app-management.php",
+    filePath: "/proj/app/etc/config.php",
+  },
+  {
+    ruleId: "appbuilder/auth/migrate-from-jwt-service-accounts-to-oauth-server-to-server",
+    bad: "bad-migrate-jwt-to-oauth-s2s.js",
+    good: "good-migrate-jwt-to-oauth-s2s.js",
+    filePath: "/proj/actions/auth/index.js",
+  },
+  {
+    ruleId: "appbuilder/deploy/don-t-ship-raw-namespace-namespace-adobeioruntime-net-urls-as-cu",
+    bad: "bad-raw-namespace-url-in-docs.md",
+    good: "good-raw-namespace-url-in-docs.md",
+    filePath: "/proj/README.md",
+  },
+  {
+    ruleId: "appbuilder/deploy/source-runtime-base-urls-from-config-never-hard-code-them-in-fro",
+    bad: "bad-hardcoded-runtime-url-frontend.js",
+    good: "good-hardcoded-runtime-url-frontend.js",
+    filePath: "/proj/web-src/src/config.js",
+  },
+  {
+    ruleId: "appbuilder/validation/do-not-read-params-body-for-input-validator-overwrites-it",
+    bad: "bad-params-body-input.js",
+    good: "good-params-body-input.js",
+    filePath: "/proj/actions/foo/index.js",
+  },
 ];
 
 const REPO_CASES: FixtureCase[] = [

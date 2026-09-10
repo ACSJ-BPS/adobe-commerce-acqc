@@ -106,6 +106,7 @@ export {
   meshHttpDetailsProdChecker,
   meshDevProdEndpointChecker,
   meshDiffBeforeUpdateChecker,
+  meshResolverSequentialAwaitChecker,
   meshResolverNPlusOneChecker,
   meshResolverPageSizeGuardChecker,
   meshNoDepthGuardChecker,

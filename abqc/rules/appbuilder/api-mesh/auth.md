@@ -9,7 +9,7 @@ Static API keys and bearer tokens for upstream sources belong in `operationHeade
 ```yaml
 type: builtin
 id: mesh-header-secrets
-files: ["**/meshConfig.json"]
+files: ["**/meshConfig.json", "**/mesh.json"]
 ```
 
 ### Bad

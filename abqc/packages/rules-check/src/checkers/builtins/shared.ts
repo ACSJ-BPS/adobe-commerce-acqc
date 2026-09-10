@@ -1,4 +1,5 @@
 import type { CheckHit, CheckContext } from "../../types.js";
+import { isSourceFile } from "@abqc/core";
 import {
   findFunctions,
   locStart,
@@ -180,3 +181,49 @@ export function complexityHits(
 }
 
 export { maxNestingDepth };
+
+// ---------------------------------------------------------------------------
+// API Mesh path predicates — single canonical source. Previously duplicated
+// independently in apimesh.ts and gap-fill-mesh.ts, which is exactly how they
+// drifted: one recognized only `meshConfig.json` (missing Adobe's own
+// `mesh.json` scaffolding default) and both matched "resolver"/"hook" as a
+// bare substring anywhere in the path (flagging unrelated files — an I/O
+// Events publisher, or a React `useXxx` data hook — that merely contain that
+// English word).
+// ---------------------------------------------------------------------------
+
+/** Adobe API Mesh's own scaffolding names this `mesh.json`; older docs/templates call it
+ * `meshConfig.json` — accept either, plus env-suffixed variants (`mesh.prod.json`). */
+export function isMeshConfigPath(p: string): boolean {
+  return /(^|\/)(?:meshConfig|mesh)(\..+)?\.json$/i.test(p.replace(/\\/g, "/"));
+}
+
+const REACT_HOOK_NAME_RE = /(^|\/)use[A-Z][^/]*\.[jt]sx?$/;
+
+function hasMeshPathSegment(p: string, names: string[]): boolean {
+  const norm = p.replace(/\\/g, "/");
+  const segments = norm.split("/");
+  const base = (segments[segments.length - 1] ?? "").replace(/\.[jt]sx?$/i, "");
+  return segments.some((s) => names.includes(s.toLowerCase())) || names.includes(base.toLowerCase());
+}
+
+/** A real mesh resolver or hook file — under a `resolvers/`/`hooks/` directory, or
+ * named `resolver.js`/`hook.js` outright. Excludes React-hook-named files (`useXxx.js`)
+ * so client-side data-fetching hooks are never mistaken for API Mesh hooks. */
+export function isResolverOrHookPath(p: string): boolean {
+  return (
+    !REACT_HOOK_NAME_RE.test(p.replace(/\\/g, "/")) &&
+    isSourceFile(p) &&
+    hasMeshPathSegment(p, ["resolver", "resolvers", "hook", "hooks"])
+  );
+}
+
+export function isHookPath(p: string): boolean {
+  return (
+    !REACT_HOOK_NAME_RE.test(p.replace(/\\/g, "/")) && isSourceFile(p) && hasMeshPathSegment(p, ["hook", "hooks"])
+  );
+}
+
+export function isResolverPath(p: string): boolean {
+  return isSourceFile(p) && hasMeshPathSegment(p, ["resolver", "resolvers"]);
+}
