@@ -87,7 +87,7 @@
 
 ## Non-interactive elements should not have tabIndex [warn] [a11y]
 
-`jsx-a11y/no-noninteractive-tabindex`. Adding `tabIndex={0}` to a `<div>` or `<span>` that doesn't behave like a control creates focus traps where the user lands on something they can't act on. If the element really should be focusable, give it the right role.
+`jsx-a11y/no-noninteractive-tabindex`. Adding `tabIndex={0}` to a `<div>` or `<span>` that doesn't behave like a control creates focus traps where the user lands on something they can't act on. The lint rule flags `tabIndex` on a non-interactive element even with a landmark role like `region` added — if it genuinely needs to be focusable, use an actually-interactive element (e.g. `<button>`) instead.
 
 ### Bad
 ```jsx
@@ -97,8 +97,6 @@
 ### Good
 ```jsx
 <div>{message}</div>
-// or, if it's a real focusable region:
-<div role="region" aria-label="Notifications" tabIndex={0}>{message}</div>
 ```
 
 ---

@@ -6,6 +6,13 @@
 
 Where data physically lives matters when GDPR, CCPA, HIPAA, PCI-DSS, or industry-specific frameworks apply. Adobe's storage inherits Adobe's compliance posture for default cases; non-default cases (EU-only customers, healthcare data, financial transactions) need explicit decisions documented and signed off by legal. The security.md rule covers the code pattern; this rule covers the *paper trail* compliance auditors require.
 
+### Check
+```yaml
+type: builtin
+id: data-residency-doc
+scope: repo
+```
+
 ### Bad
 ```text
 EU customer data stored in Files SDK with no documented region pinning.
@@ -34,6 +41,13 @@ Legal sign-off: D. Park, 2026-04-15. DPIA filed for EU profiles (link in `docs/c
 ## DPIA filed when handling EU PII or regulated data [error] [compliance, governance]
 
 A Data Protection Impact Assessment (DPIA) is a GDPR Article 35 requirement when processing is likely to result in high risk to data subjects — almost always true for a new B2B/B2C app handling EU profiles, locations, or behavioral data. The DPIA captures the data flow, the lawful basis, the safeguards, and the residual risk. Without a filed DPIA, you cannot demonstrate compliance to a supervisory authority. File before the data starts flowing, not after.
+
+### Check
+```yaml
+type: builtin
+id: dpia-doc
+scope: repo
+```
 
 ### Bad
 ```text

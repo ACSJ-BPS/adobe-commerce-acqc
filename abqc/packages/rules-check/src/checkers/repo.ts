@@ -39,6 +39,13 @@ function globLineMatches(globLine: string, name: string): boolean {
   return re.test(name) || re.test(`foo/${name}`);
 }
 
+// console.json (Dev Console credentials download) is checked the same way as
+// .env/.aio — an exact tracked-file name. *.pem/*.key are glob patterns, so
+// `git ls-files --error-unmatch <name>` needs an exact path per match rather
+// than the glob itself — found via ctx.allFiles, then verified individually.
+const EXACT_SECRET_NAMES = [".env", ".aio", "console.json"];
+const GLOB_SECRET_RE = /\.(pem|key)$/i;
+
 export const secretsGitChecker: RepoChecker = {
   ruleId: "appbuilder/secrets/never-commit-env-or-aio-to-git",
   kind: "repo",
@@ -46,7 +53,7 @@ export const secretsGitChecker: RepoChecker = {
     const hits: CheckHit[] = [];
     const gitignorePath = join(ctx.projectRoot, ".gitignore");
     const gitignore = await readGitignore(ctx.projectRoot);
-    for (const name of [".env", ".aio"]) {
+    for (const name of EXACT_SECRET_NAMES) {
       if (!gitignoreCovers(gitignore, name)) {
         hits.push({
           message: `${name} is not listed in .gitignore`,
@@ -65,6 +72,30 @@ export const secretsGitChecker: RepoChecker = {
             message: `${name} is tracked in git — remove and rotate credentials`,
             line: 1,
             path: join(ctx.projectRoot, name),
+          });
+        }
+      } catch {
+        // not tracked — ok
+      }
+    }
+
+    // *.pem / *.key: iterate the file list the runner already gathered (no
+    // separate directory walk) and check each match individually since git
+    // ls-files needs a concrete path, not a glob.
+    const candidates = (ctx.allFiles ?? []).filter((f) => GLOB_SECRET_RE.test(f));
+    for (const abs of candidates) {
+      const rel = relative(ctx.projectRoot, abs).replace(/\\/g, "/");
+      try {
+        const tracked = execFileSync("git", ["ls-files", "--error-unmatch", rel], {
+          cwd: ctx.projectRoot,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "ignore"],
+        });
+        if (tracked.trim()) {
+          hits.push({
+            message: `${rel} (private key file) is tracked in git — remove and rotate credentials`,
+            line: 1,
+            path: abs,
           });
         }
       } catch {

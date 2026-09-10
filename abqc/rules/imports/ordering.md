@@ -37,6 +37,13 @@ async function main (params) { /* ... */ }
 
 `import/newline-after-import`. A visual separator between the import block and the rest of the file. Subtle but readable diffs.
 
+### Check
+```yaml
+type: builtin
+id: no-blank-line-after-imports
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 const fs = require('node:fs/promises')
@@ -57,6 +64,13 @@ async function main (params) {
 ## Group imports: builtin → external → internal → parent → sibling [info] [imports, style]
 
 `import/order` with `'newlines-between': 'always'`. A consistent group order makes import blocks scannable: Node built-ins, npm packages, project absolute paths, parent dirs, sibling files.
+
+### Check
+```yaml
+type: builtin
+id: import-group-order
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js

@@ -6,6 +6,13 @@
 
 Web actions invoked synchronously by a SPA need to feel instant — humans perceive >500ms as a hitch. Set an SLO of p95 < 500ms across all sync actions and track it in your monitoring. Anything that can't meet the budget should be moved to async (fan-out, trigger, polling) instead of letting the user wait.
 
+### Check
+```yaml
+type: builtin
+id: latency-risk-action
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
+
 ### Bad
 ```js
 async function main (params) {
@@ -31,6 +38,12 @@ async function main (params) {
 ## Event processing time SLO: p95 < 1s [warn] [perf, slo]
 
 I/O Events handlers don't have a user blocking on them, but they share the namespace's concurrency budget. An event handler that takes 30s blocks 30 seconds' worth of other invocations. Keep handler time under 1s p95 by doing the minimum acknowledge-and-enqueue work synchronously and offloading heavy processing to a follow-up trigger.
+
+### Check
+```yaml
+type: builtin
+id: events-batch-vs-sync
+```
 
 ### Bad
 ```js
@@ -61,6 +74,13 @@ async function main (params) {
 ## Reuse module-scope HTTP clients and SDK instances across warm invocations [warn] [perf, cold-start]
 
 Every `new SomeClient()` inside `main` re-initializes connections, parses configs, fetches credentials. Move client construction to module scope so it persists for the lifetime of the warm container — typically minutes of reuse before recycle. Pair with lazy initialization (memoized promise) so the first cold start doesn't pay the full cost twice.
+
+### Check
+```yaml
+type: builtin
+id: no-module-scope-io
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
 
 ### Bad
 ```js

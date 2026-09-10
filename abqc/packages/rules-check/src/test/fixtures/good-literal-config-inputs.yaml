@@ -1,0 +1,4 @@
+actions:
+  myaction:
+    inputs:
+      apiKey: ${API_KEY}

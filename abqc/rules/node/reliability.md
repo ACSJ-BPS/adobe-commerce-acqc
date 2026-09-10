@@ -6,6 +6,13 @@
 
 `Promise.all` runs every item in parallel — fine for 3–5 items, but with 50+ concurrent calls to a database, external API, or `aio-lib-state`, it exhausts connection pools, triggers rate limits, and creates head-of-line blocking under backpressure. Use `p-map` (or equivalent: `p-limit`, Bottleneck, or a manual semaphore) to set an explicit concurrency ceiling. The right ceiling depends on the downstream service's limits; start at 5–10 and tune based on error rates and latency metrics.
 
+### Check
+```yaml
+type: builtin
+id: unbounded-promise-all-map
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 // fires all 200 requests at once — overwhelms downstream, triggers rate limits
@@ -25,6 +32,13 @@ const results = await pMap(items, item => api.fetch(item.id), { concurrency: 8 }
 ## Apply circuit breakers on calls to external dependencies [warn] [reliability, resilience]
 
 When an upstream service (Adobe API, database, queue) starts failing, unbounded retries amplify load and cascade the failure. A circuit breaker trips to "open" after a threshold of failures, returns fast errors immediately, and periodically tests recovery — protecting both the caller and the downstream from pile-on load. Adobe's `microservice-lib-node` ships a circuit-breaker implementation. For App Builder actions, implement a simple in-module state tracker or use `opossum`. This is especially important for actions that call real-time APIs under the 60 s/30 s timeout budget.
+
+### Check
+```yaml
+type: builtin
+id: http-timeout-retry
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js

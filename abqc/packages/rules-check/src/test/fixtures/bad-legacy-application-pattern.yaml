@@ -1,0 +1,6 @@
+application:
+  actions: actions
+  web: web-src
+productDependencies:
+  - code: COMMC
+    minVersion: 2.4.5

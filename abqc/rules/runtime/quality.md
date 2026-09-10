@@ -6,6 +6,13 @@
 
 The static rule says set `lang="en"` on `<html>`. The runtime rule says it must match what the user is actually seeing — if the SPA switches locale via `i18n.changeLanguage('fr')` and the rendered text is French but `<html lang="en">`, screen readers pronounce French text with English phonetics, search engines mis-classify the page, and hyphenation breaks. Update `document.documentElement.lang` whenever locale changes.
 
+### Check
+```yaml
+type: builtin
+id: locale-lang-sync
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
+
 ### Bad
 ```jsx
 function App () {
@@ -29,6 +36,13 @@ function App () {
 ## Zero `console.error` calls on the golden-path traversal [error] [debug, observability, runtime]
 
 `console.error` in production indicates either an unhandled exception or a developer-emitted error that nobody acted on. Either way, real users hit it. A golden-path smoke test (login → primary action → logout) should produce zero console errors. Anything else means the deploy ships a known broken state.
+
+### Check
+```yaml
+type: builtin
+id: golden-path-risk-factors
+scope: repo
+```
 
 ### Bad
 ```text

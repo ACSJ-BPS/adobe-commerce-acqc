@@ -91,12 +91,19 @@ const ALL_FILE_RULES: Linter.RulesRecord = {
   "security/detect-possible-timing-attacks": "warn",
   "security/detect-unsafe-regex": "error",
   "security/detect-object-injection": "warn",
+  "security/detect-non-literal-fs-filename": "error",
+  "security/detect-pseudoRandomBytes": "error",
   // Node.js plugin
   "n/no-deprecated-api": "error",
   "n/no-process-exit": "warn",
   "n/no-callback-literal": "error",
-  // Import plugin
-  "import/no-duplicates": "error",
+  // Import plugin. `prefer-inline` makes `no-duplicates` also flag a
+  // `import type {X}` + `import {Y}` pair from the same specifier — the
+  // default config leaves that combination alone (they're technically legal
+  // as separate statements in TS), which missed a real duplicate-import
+  // instance in a genuine App Builder monorepo (two `@adobe/aio-lib-state`
+  // imports, one type-only) during verification.
+  "import/no-duplicates": ["error", { "prefer-inline": true }],
   "import/no-self-import": "error",
   // Promise plugin
   "promise/param-names": "error",
@@ -130,6 +137,22 @@ const JSX_RULES: Linter.RulesRecord = {
   "jsx-a11y/aria-props": "error",
   "jsx-a11y/aria-role": ["error", { ignoreNonDOM: true }],
   "jsx-a11y/aria-proptypes": "error",
+  "jsx-a11y/role-has-required-aria-props": "error",
+  "jsx-a11y/role-supports-aria-props": "error",
+  "jsx-a11y/label-has-associated-control": "error",
+  "jsx-a11y/no-aria-hidden-on-focusable": "error",
+  "jsx-a11y/anchor-is-valid": "warn",
+  "jsx-a11y/html-has-lang": "error",
+  "jsx-a11y/img-redundant-alt": "warn",
+  "jsx-a11y/click-events-have-key-events": "error",
+  "jsx-a11y/no-autofocus": "warn",
+  "jsx-a11y/tabindex-no-positive": "error",
+  "jsx-a11y/no-static-element-interactions": "error",
+  "jsx-a11y/no-noninteractive-tabindex": "warn",
+  "jsx-a11y/interactive-supports-focus": "error",
+  "jsx-a11y/media-has-caption": "warn",
+  "jsx-a11y/no-distracting-elements": "error",
+  "jsx-a11y/iframe-has-title": "error",
 };
 
 // ─── EslintRunner ────────────────────────────────────────────────────────────
@@ -275,6 +298,13 @@ function isTypeScript(filePath: string): boolean {
   return /\.tsx?$/i.test(filePath);
 }
 
+// `aio app init`'s standard scaffold and every official Adobe sample write
+// real JSX inside plain `.js` files, not `.jsx` — gating the JSX_RULES set
+// (jsx-a11y/*, react/jsx-key, react/no-array-index-key, react-hooks/*, ...)
+// on the file extension alone silently skipped that convention entirely.
+// `.ts` still must stay excluded (TS's `<T>value` generic-cast syntax is
+// ambiguous with a JSX opening tag), matching `shouldParseAsJsx` in
+// packages/rules-check/src/utils/parse.ts.
 function isJsxFile(filePath: string): boolean {
-  return /\.(jsx|tsx)$/i.test(filePath);
+  return !/\.ts$/i.test(filePath);
 }

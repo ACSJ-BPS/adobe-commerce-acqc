@@ -1,0 +1,7 @@
+{
+  "meshConfig": {
+    "sources": [
+      { "name": "Commerce", "handler": { "graphql": { "endpoint": "https://example.com/graphql" } } }
+    ]
+  }
+}

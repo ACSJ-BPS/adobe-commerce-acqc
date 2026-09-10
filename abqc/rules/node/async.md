@@ -6,6 +6,13 @@
 
 Top-level `await` runs at module-load time — i.e. on every cold start. A network call there adds its full latency to every cold invocation in the namespace. Move network setup inside `main` and cache the result in a module-scope variable for warm reuse.
 
+### Check
+```yaml
+type: builtin
+id: top-level-await-network
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 const config = await fetch('https://config.example.com').then(r => r.json())
@@ -26,6 +33,13 @@ async function main (params) {
 ## Async functions must contain await — require-await [warn] [style, bugs]
 
 An `async` function with no `await` is a code smell: either the function shouldn't be async (forces callers into unnecessary `await`/`.then`), or someone removed an await during a refactor and forgot to remove `async`.
+
+### Check
+```yaml
+type: builtin
+id: require-await
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js

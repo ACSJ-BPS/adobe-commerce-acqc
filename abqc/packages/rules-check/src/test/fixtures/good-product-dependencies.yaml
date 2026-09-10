@@ -1,0 +1,5 @@
+extensions:
+  commerce/backend-ui/1:
+    productDependencies:
+      - code: COMMC
+        minVersion: 2.4.5

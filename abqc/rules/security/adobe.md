@@ -6,6 +6,13 @@
 
 Web actions ship with `require-adobe-auth: true` for a reason: the OOTB authentication layer validates the bearer token against Adobe IMS and authorization against Adobe Exchange. Setting it to `false` exposes the action to the public internet with no auth at all. If you must disable it (e.g., for a public webhook receiver), document the threat model in code review.
 
+### Check
+```yaml
+type: builtin
+id: require-auth-false-undocumented
+files: ["**/*.yaml", "**/*.yml"]
+```
+
 ### Bad
 ```yaml
 actions:
@@ -62,6 +69,13 @@ actions:
 
 Adobe's Security Overview is explicit: "Do not store secrets using the State SDK." Use a Secret Vault (HashiCorp Vault, AWS Secrets Manager, Adobe-provisioned vault) and load values into action default params at deploy time.
 
+### Check
+```yaml
+type: builtin
+id: secret-in-state-put
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 const state = await State.init()
@@ -82,6 +96,13 @@ actions:
 
 Adobe encrypts default action params and decrypts them just before execution. Logging `params` directly leaks the decrypted secrets into the activation log, accessible to any user with namespace access. Always redact known secret keys before logging.
 
+### Check
+```yaml
+type: builtin
+id: log-raw-params
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 logger.debug('action invoked', { params })
@@ -101,6 +122,13 @@ logger.debug('action invoked', { params: redact(params) })
 
 Headless integrations with Analytics, Campaign Standard, or No-API services require the `read_organizations` scope. That scope only gets minted into your IMS token if the I/O Management API service is added to your project. Without it, the integration silently 401s on the first call.
 
+### Check
+```yaml
+type: builtin
+id: missing-io-mgmt-scope
+scope: repo
+```
+
 ### Bad
 ```yaml
 services:
@@ -119,6 +147,13 @@ services:
 ## Validate data residency for stored files — especially sensitive data [warn] [compliance, secrets]
 
 Adobe's storage inherits Adobe's compliance posture by default, but if your app stores PII, PHI, payment data, or anything regulated by GDPR, CCPA, HIPAA, or industry-specific frameworks (PCI, SOC 2), confirm where the data physically lives and whether that satisfies your compliance requirements. For data that must stay in-region, use an external store you control.
+
+### Check
+```yaml
+type: builtin
+id: data-residency-unpinned
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
 
 ### Bad
 ```js
@@ -145,6 +180,13 @@ await s3.send(new PutObjectCommand({
 A web action that returns `Access-Control-Allow-Origin: *` on authenticated endpoints is misleading: browsers won't send cookies or `Authorization` headers to a wildcard-CORS origin, so it doesn't widen the actual attack surface — but it signals "open to all" to security scanners and auditors and creates confusion. On unauthenticated endpoints that return cross-org data, `*` is a real vulnerability. Use an explicit allowlist matched against the incoming `Origin` header.
 
 **Why it was missing:** The collection had a CSP rule and an auth rule but no CORS policy rule. CORS is a separate HTTP-level control from both; its interaction with `require-adobe-auth` is non-obvious and the gap wasn't caught without a security-doc-specific sweep.
+
+### Check
+```yaml
+type: builtin
+id: cors-wildcard-authenticated
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js
@@ -188,6 +230,13 @@ Adobe I/O Runtime delivers the calling IMS organization's ID in `params.__ow_hea
 
 **Why it was missing:** Single-org App Builder apps don't need this. The multi-tenancy pattern was implicit in Adobe's architecture but never called out as a rule. OWASP IDOR applies here but the Adobe-specific header name made the connection non-obvious without reading the security doc carefully.
 
+### Check
+```yaml
+type: builtin
+id: missing-tenant-isolation
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
+
 ### Bad
 ```js
 async function main (params) {
@@ -219,6 +268,13 @@ Each scope granted to an OAuth Server-to-Server credential expands the blast rad
 
 **Why it was missing:** The scope rule was a narrow "remember to add IOManagementSDK" note (rule 9 in the previous set). Scope *minimization* — the discipline of not requesting more than you need — was the opposite but equally important concern, and it was absent.
 
+### Check
+```yaml
+type: builtin
+id: unused-oauth-scope
+scope: repo
+```
+
 ### Bad
 ```yaml
 # Developer Console project — requested all scopes "just in case"
@@ -244,6 +300,13 @@ scopes:
 
 The OAuth 2.0 implicit flow is deprecated for SPAs because access tokens land in the URL fragment and browser history. Use Authorization Code with PKCE: the browser proves possession of a code verifier at the token exchange, no client secret needed, no token in URL.
 
+### Check
+```yaml
+type: builtin
+id: implicit-flow-or-no-pkce
+files: ["**/*.{js,jsx,ts,tsx}"]
+```
+
 ### Bad
 ```js
 // implicit flow — token in #fragment
@@ -265,6 +328,13 @@ window.location = `https://ims-na1.adobelogin.com/ims/authorize/v2?response_type
 
 A `client_secret` or service account private key in a webpack bundle is harvested by anyone who opens DevTools. SPAs use PKCE for user auth; service-to-service credentials live in a Backend-for-Frontend (BFF) action.
 
+### Check
+```yaml
+type: builtin
+id: inline-secret
+files: ["**/web-src/**/*.{js,jsx,ts,tsx}", "**/src/**/*.{js,jsx,ts,tsx}"]
+```
+
 ### Bad
 ```jsx
 // in front-end bundle
@@ -285,6 +355,13 @@ const r = await fetch('/api/v1/web/get-data', { headers: { Authorization: `Beare
 ## Tokens stored in memory or BFF-managed cookies — never localStorage when avoidable [warn] [auth, xss]
 
 A single XSS that reaches `localStorage` exfiltrates every token stored there. Memory-only token storage limits exposure to the current session. For longer-lived sessions, use a BFF that issues an `HttpOnly; Secure; SameSite=Strict` session cookie — the token itself never reaches the JS layer.
+
+### Check
+```yaml
+type: builtin
+id: token-in-localstorage
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js

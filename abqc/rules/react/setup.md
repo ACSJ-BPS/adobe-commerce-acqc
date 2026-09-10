@@ -6,6 +6,13 @@
 
 Spectrum components require a `<Provider>` ancestor for theme tokens, color scheme, scale, and locale. Components rendered outside one fall back to default styles or throw at runtime. The Provider must be the outermost ancestor of any Spectrum component.
 
+### Check
+```yaml
+type: builtin
+id: no-spectrum-provider
+scope: repo
+```
+
 ### Bad
 ```jsx
 function App () {
@@ -32,6 +39,13 @@ function App () {
 
 Spectrum components ship with WAI-ARIA compliance, keyboard navigation, RTL support, and Adobe's design tokens. Re-implementing a `<Button>` or `<Picker>` means re-implementing all of that — and getting it slightly wrong each time.
 
+### Check
+```yaml
+type: builtin
+id: hand-rolled-ui-idiom
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
+
 ### Bad
 ```jsx
 function MyButton ({ onClick, children }) {
@@ -53,6 +67,13 @@ function MyButton ({ onClick, children }) {
 ## Build custom components with React Aria / React Stately hooks [info] [a11y]
 
 When Spectrum doesn't ship the component you need, don't roll a div with `onClick`. React Aria provides behavior + accessibility hooks; React Stately provides cross-platform state. You get the same a11y guarantees Spectrum has, with full control over markup.
+
+### Check
+```yaml
+type: builtin
+id: hand-rolled-ui-idiom
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
 
 ### Bad
 ```jsx
@@ -80,6 +101,13 @@ function CustomToggle (props) {
 ## Handle Unified Shell iframe constraints — resize, CSP, and shell APIs [warn] [shell, iframe]
 
 App Builder SPAs render inside an iframe within the Adobe Experience Cloud Unified Shell. That means a stricter CSP than a standalone app, no `window.top` access, restricted iframe sizing, and the parent shell controls navigation chrome. Use `@adobe/exc-app` to communicate with the shell (resize, locale, IMS profile, navigation events) instead of fighting the sandbox.
+
+### Check
+```yaml
+type: builtin
+id: no-exc-app-import
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
 
 ### Bad
 ```jsx
@@ -116,6 +144,13 @@ function App () {
 ## No native extension points for Frame.io, Acrobat, etc. — call APIs and render your own UI [info] [integration, scope]
 
 App Builder's defined extension points cover Experience Cloud, AEM, and Commerce. Frame.io, Acrobat, Photoshop, Lightroom, Express, and other Adobe products have their own extensibility models — they aren't surfaced as App Builder extension points. Build a standalone SPA that calls those products' APIs; don't expect the Unified Shell to embed inside them.
+
+### Check
+```yaml
+type: builtin
+id: extension-point-enum
+scope: repo
+```
 
 ### Bad
 ```yaml

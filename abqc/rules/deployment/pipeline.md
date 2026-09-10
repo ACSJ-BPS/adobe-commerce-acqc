@@ -6,6 +6,13 @@
 
 A deploy that bypasses any of these is a deploy that ships a regression. Every workspace beyond a developer sandbox should have a CI gate that runs the full set: code review approval, `aio app test` (unit + e2e), `npm audit --audit-level=high`, performance smoke, and updated `CHANGELOG.md` / `README.md`. The gate is the contract between dev and operations.
 
+### Check
+```yaml
+type: builtin
+id: missing-predeploy-gate
+scope: repo
+```
+
 ### Bad
 ```yaml
 # .github/workflows/deploy.yml
@@ -42,6 +49,13 @@ jobs:
 
 App Builder's `hooks` config in `app.config.yaml` runs custom scripts at lifecycle stages — `pre-app-deploy`, `post-app-deploy`, `pre-app-undeploy`, etc. Use them for post-deploy verification (smoke-ping each action, confirm gateway provisioning, post deploy notification), not for state migrations or business-logic side effects. Hooks aren't transactional with the deploy — a failed hook leaves you with deployed code and unmigrated state.
 
+### Check
+```yaml
+type: builtin
+id: deploy-hook-mutates-state
+files: ["**/post-app-deploy.js"]
+```
+
 ### Bad
 ```js
 // hooks/post-app-deploy.js — runs DB migrations as a "deployment step"
@@ -74,6 +88,13 @@ module.exports = postDeploy
 
 `aio app test` honors `app.config.yaml`'s test-path config, applies coverage thresholds set there, and respects extension scoping in multi-extension apps. CI that calls `npx jest` directly may pick up the wrong files, miss the coverage gate, or skip e2e tests entirely.
 
+### Check
+```yaml
+type: builtin
+id: raw-jest-ci
+scope: repo
+```
+
 ### Bad
 ```yaml
 - run: npx jest --coverage
@@ -90,6 +111,13 @@ module.exports = postDeploy
 ## Use aio app deploy --no-build when the build runs in a separate CI step [info] [cicd, performance]
 
 Re-running `aio app build` inside the deploy step doubles CI time and risks producing a different build than the one tested. If the pipeline already has a build job that produced a verified `dist/`, use `--no-build` so deploy uses that artifact.
+
+### Check
+```yaml
+type: builtin
+id: missing-no-build-flag
+scope: repo
+```
 
 ### Bad
 ```yaml
@@ -110,6 +138,13 @@ Re-running `aio app build` inside the deploy step doubles CI time and risks prod
 ## Each Git branch or environment maps to specific `AIO_PROJECT_*` and `AIO_RUNTIME_*` secrets — explicit, not implicit [error] [cicd, env]
 
 Implicit mapping ("main deploys to whichever workspace was last selected") creates incidents where a stage deploy lands in prod. Each branch/environment must have its own secret set, gated on the workflow trigger so the wrong combination cannot fire.
+
+### Check
+```yaml
+type: builtin
+id: ungated-shared-secrets
+scope: repo
+```
 
 ### Bad
 ```yaml

@@ -6,6 +6,13 @@
 
 Lighthouse aggregates dozens of weighted metrics (FCP, LCP, TBT, CLS, Speed Index) into a single score that correlates with real-world user experience. A score below 90 on the production build indicates at least one Core Web Vital is at-risk; below 50 means the user experience is broken on mid-tier devices. Run Lighthouse against the deployed Stage workspace, not local dev (which masks bundle-size and CDN issues).
 
+### Check
+```yaml
+type: builtin
+id: lighthouse-anti-pattern-checklist
+scope: repo
+```
+
 ### Bad
 ```text
 Lighthouse run on `localhost:9080` (aio app dev) — score 95.
@@ -31,6 +38,13 @@ node ./scripts/check-lighthouse-score.js --min 90
 ## Largest Contentful Paint < 2.5s on slow-3G [error] [perf, cwv]
 
 LCP is the timestamp of the largest visible element rendering. Google's Core Web Vitals threshold for "good" is 2.5s on a Moto G4 over slow-3G. Above 4s is "poor" and degrades search ranking. The metric is dominated by hero-image size, render-blocking JS, and origin TTFB — all of which need a real browser to observe.
+
+### Check
+```yaml
+type: builtin
+id: lcp-risk-factors
+scope: repo
+```
 
 ### Bad
 ```text
@@ -63,6 +77,13 @@ new PerformanceObserver((list) => {
 
 CLS measures unexpected layout shifts during page load — content that jumps because an image loaded late or an ad slot expanded. The "good" threshold is < 0.1. The most common causes are unsized media (`<img>` without width/height), late-loading fonts that reflow text, and ads/embeds that resize after render.
 
+### Check
+```yaml
+type: builtin
+id: cls-risk-factors
+scope: repo
+```
+
 ### Bad
 ```html
 <img src="/banner.jpg" alt="banner">   <!-- no width/height — reflows on load -->
@@ -91,6 +112,13 @@ new PerformanceObserver((list) => {
 ## Interaction to Next Paint < 200ms on primary interactions [warn] [perf, cwv]
 
 INP replaced FID in March 2024 as the responsiveness Core Web Vital. It measures the worst end-to-end delay between a user input (click, tap, key) and the next paint, across the page lifetime. The "good" threshold is < 200ms. Long INP usually traces to a blocking event handler doing synchronous work (large JSON parse, layout-forcing reads, expensive React renders).
+
+### Check
+```yaml
+type: builtin
+id: cpu-bound-sync-handler
+files: ["**/*.{js,jsx,ts,tsx}"]
+```
 
 ### Bad
 ```jsx

@@ -6,6 +6,13 @@
 
 The promise-based API is the modern default — readable async/await, no nested callbacks, identical performance to the callback API since Node 16. The `node:` prefix makes import resolution explicit (no risk of shadowing by a userland `fs` package).
 
+### Check
+```yaml
+type: builtin
+id: callback-fs
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 const fs = require('fs')
@@ -51,6 +58,13 @@ const { Buffer } = require('node:buffer')
 
 `n/no-deprecated-api`. Node deprecates APIs across major versions; `domain`, `crypto.createCredentials`, `Buffer()` constructor, `url.parse` (since 11.x). Using them produces runtime warnings, sometimes silent breakage in newer runtimes.
 
+### Check
+```yaml
+type: builtin
+id: deprecated-node-api
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 const { parse } = require('node:url')
@@ -69,6 +83,13 @@ const buf = Buffer.from(payload)
 ## Prefer global URL / Buffer / process — don't import from node: [info] [style, perf]
 
 `n/prefer-global/url`, `prefer-global/buffer`, `prefer-global/process`. These globals have been built into Node since 10.x. Importing them adds an unnecessary `require` and is slower at module-load time. Exception: when you want strict `node:` provenance for clarity, the explicit import is acceptable.
+
+### Check
+```yaml
+type: builtin
+id: redundant-global-import
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js

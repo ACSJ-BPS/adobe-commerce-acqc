@@ -8,6 +8,13 @@ Broken Object Level Authorization (OWASP API Security #1) is the most exploited 
 
 **Why it was missing:** The collection had authentication rules (IMS, bearer token, require-adobe-auth) but no authorization-at-the-resource-level rule. Authentication ≠ authorization. OWASP Web Top 10 addresses this as "Broken Access Control" but the API-specific framing (OWASP API Security Top 10 #1) maps more directly to App Builder actions than the web version.
 
+### Check
+```yaml
+type: builtin
+id: missing-tenant-isolation
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
+
 ### Bad
 ```js
 async function main (params) {
@@ -44,6 +51,13 @@ async function main (params) {
 The existing bracket-access rule (`obj[params.key]`) catches direct property assignment. A separate attack path is deep-merge: `lodash.merge({}, userInput)` or `Object.assign` with nested objects where `userInput` contains `{"__proto__": {"isAdmin": true}}`. After the merge, every plain object in the process has `isAdmin` set. Schema-validate and strip unknown keys before any merge.
 
 **Why it was missing:** The `detect-object-injection` ESLint rule and the existing bracket-access rule both catch the shallow case. Deep-merge pollution is a different code pattern (a function call, not a bracket access) requiring a separate rule. The two are often conflated but need distinct guards.
+
+### Check
+```yaml
+type: builtin
+id: unvalidated-deep-merge
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js
@@ -82,6 +96,13 @@ Server-Side Request Forgery (OWASP 2021 #10): an action that calls `fetch(params
 
 **Why it was missing:** SSRF moved from obscure to OWASP Top 10 in 2021. The collection was seeded from pre-2021 OWASP patterns and didn't include this class. It has no ESLint rule equivalent because intent (is this URL user-supplied?) can't be inferred statically.
 
+### Check
+```yaml
+type: builtin
+id: ssrf-user-url
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 async function main (params) {
@@ -116,6 +137,13 @@ async function main (params) {
 Mass assignment (OWASP API Security #6): spreading `params` or a user-supplied object directly into a DB `insert`/`update` call lets the caller set any field — including `role`, `isAdmin`, `price`, `status`, fields they have no business touching. Always enumerate the fields you accept explicitly.
 
 **Why it was missing:** The collection covered injection (SQL via string concat) but not the mass-assignment variant where a safe parameterized query is used but the set of columns being written is attacker-controlled. This is an API-specific threat model that OWASP API Security Top 10 covers but OWASP Web Top 10 doesn't surface as clearly.
+
+### Check
+```yaml
+type: builtin
+id: mass-assignment
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js

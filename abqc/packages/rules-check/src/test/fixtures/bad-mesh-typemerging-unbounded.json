@@ -1,0 +1,12 @@
+{
+  "meshConfig": {
+    "typeMerging": {
+      "resolvers": {
+        "Product": {
+          "fieldName": "reviews",
+          "selectionSet": "{ id }"
+        }
+      }
+    }
+  }
+}

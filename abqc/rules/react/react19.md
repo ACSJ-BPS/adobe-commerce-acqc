@@ -6,6 +6,13 @@
 
 React 19's `use()` reads a promise or context inside Suspense boundaries without `useEffect` plumbing. Cleaner data fetching with built-in suspense semantics. Stay on `useEffect` only when you need cleanup or imperative timing.
 
+### Check
+```yaml
+type: builtin
+id: manual-promise-to-state
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
+
 ### Bad
 ```jsx
 const Resource = ({ promise }) => {

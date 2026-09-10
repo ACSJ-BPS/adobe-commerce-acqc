@@ -149,6 +149,13 @@ actions:
 
 Returning an unwrapped error or throwing causes Runtime to record a system error and return 500 to the caller. Wrapping the response in `{ error: ... }` lets Runtime classify it as an `applicationError` with the right status code, which the activation log and the calling app both interpret correctly.
 
+### Check
+```yaml
+type: builtin
+id: error-response-shape
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
+
 ### Bad
 ```js
 if (!params.userId) return { statusCode: 400, body: 'missing userId' }
@@ -199,6 +206,13 @@ async function main (params) {
 ## Respond to 429 by backing off — Runtime throttles aggressively [warn] [runtime, retry]
 
 When Runtime returns 429 you are at the namespace's concurrent-invocation limit. Retrying immediately compounds the problem. Use exponential backoff with jitter, or stop and surface the 429 to the upstream caller.
+
+### Check
+```yaml
+type: builtin
+id: 429-backoff
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
 
 ### Bad
 ```js
@@ -297,6 +311,13 @@ actions:
 
 A sequence of 5 actions, each at p95 12s, will tail-latency-blow past the 60s cap on a bad day. The cap applies to the whole sequence, not per step. Either keep p95 << 60s/N or break the workflow into async steps with State-backed continuation.
 
+### Check
+```yaml
+type: builtin
+id: sequence-budget
+files: ["**/*.config.yaml", "**/*.config.yml", "**/app.config.yaml"]
+```
+
 ### Bad
 ```yaml
 sequences:
@@ -318,6 +339,13 @@ sequences:
 ## Wrap external HTTP calls in sequences with timeouts, retries with backoff, and circuit breakers [warn] [sequences, reliability]
 
 A sequence step that hangs on an upstream call holds the entire sequence open against the 60s cap. Bind every external call to an explicit timeout (well under remaining budget), retry with exponential backoff for transient errors, and trip a circuit breaker for sustained failures.
+
+### Check
+```yaml
+type: builtin
+id: http-timeout-retry
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js

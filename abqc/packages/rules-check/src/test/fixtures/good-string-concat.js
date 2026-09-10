@@ -1,0 +1,2 @@
+const name = 'World';
+const msg = `Hello ${name}`;

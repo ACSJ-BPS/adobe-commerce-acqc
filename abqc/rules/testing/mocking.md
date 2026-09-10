@@ -6,6 +6,13 @@
 
 Every action calls `Core.Logger('main', { ... })`. Without mocking, tests either crash on missing IMS context or pollute test output with real logs. Mock once in a `__mocks__/@adobe/aio-sdk.js` or per-test with `jest.mock`.
 
+### Check
+```yaml
+type: builtin
+id: unmocked-core-logger
+files: ["**/*.{test,spec}.{js,jsx,ts,tsx}"]
+```
+
 ### Bad
 ```js
 const action = require('../../actions/process-order')
@@ -34,6 +41,13 @@ test('processes order', async () => {
 ## Reset mocks in beforeEach — never let state leak between tests [error] [hygiene, bugs]
 
 A mock that records calls in test 1 will show those calls in test 2 unless reset. This causes baffling green-then-red cascades when test order changes. `jest.clearAllMocks()` in `beforeEach` is the safe default.
+
+### Check
+```yaml
+type: builtin
+id: missing-clear-mocks
+files: ["**/*.{test,spec}.{js,jsx,ts,tsx}"]
+```
 
 ### Bad
 ```js
@@ -68,6 +82,13 @@ test('logs twice', async () => {
 ## Mock external HTTP — never hit real APIs in unit tests [error] [hermetic, speed]
 
 A unit test that calls `fetch` against a real upstream is flaky (network), slow (latency), and dangerous (writes to prod). Use `nock`, `msw`, or `jest.mock('node:fetch')` to stub HTTP. Reserve real-network calls for the `e2eTest/` folder.
+
+### Check
+```yaml
+type: builtin
+id: unmocked-http-in-unit-test
+files: ["**/test/actions/**", "**/__tests__/**"]
+```
 
 ### Bad
 ```js

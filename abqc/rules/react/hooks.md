@@ -50,6 +50,13 @@ useEffect(() => {
 
 `React.memo` shallow-compares props by reference. An inline `{}`, `[]`, or arrow function creates a new reference every render, defeating memoization entirely.
 
+### Check
+```yaml
+type: builtin
+id: inline-prop-on-memoed
+scope: repo
+```
+
 ### Bad
 ```jsx
 const Memoed = React.memo(ExpensiveList)
@@ -69,6 +76,13 @@ function Page () { return <Memoed items={items} style={listStyle} /> }
 
 Same root cause as inline objects: a fresh function literal each render breaks `React.memo`. Wrap in `useCallback` with proper deps when passing handlers to memoed components.
 
+### Check
+```yaml
+type: builtin
+id: inline-prop-on-memoed
+scope: repo
+```
+
 ### Bad
 ```jsx
 return items.map(item => <MemoedRow key={item.id} item={item} onSelect={(id) => doThing(id)} />)
@@ -86,6 +100,13 @@ return items.map(item => <MemoedRow key={item.id} item={item} onSelect={handleSe
 
 `useMemo` adds overhead: closure cost, dep comparison every render, GC pressure on the cached value. Wrapping a `.filter()` over 5 items is net-negative. Reserve it for actual hot paths.
 
+### Check
+```yaml
+type: builtin
+id: trivial-usememo
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
+
 ### Bad
 ```jsx
 const label = useMemo(() => status.toUpperCase(), [status])
@@ -101,6 +122,13 @@ const label = status.toUpperCase()
 ## useId for SSR-safe and a11y IDs — never Math.random() [warn] [a11y, ssr]
 
 Manually generated IDs cause hydration mismatches when SSR'd and produce duplicate IDs across instances when randomized. `useId` (React 18+) gives you a stable, deterministic, unique ID without either problem.
+
+### Check
+```yaml
+type: builtin
+id: math-random-ids
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
 
 ### Bad
 ```jsx
@@ -118,6 +146,13 @@ const id = useId()
 ## No fetching in render — use useEffect, Suspense, or a query lib [error] [bugs, perf]
 
 Fetching directly in the render body fires on every render — infinite-loop risk, server thrashing, impossible to cancel cleanly.
+
+### Check
+```yaml
+type: builtin
+id: fetch-in-render
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
 
 ### Bad
 ```jsx
@@ -145,6 +180,13 @@ function UserCard ({ id }) {
 ## Code-split with lazy + Suspense for routes and heavy components [warn] [perf, bundle]
 
 Loading every route's code on initial paint balloons the bundle. `React.lazy` + `Suspense` defers per-route bundles until the route is visited, often halving first-paint cost for large App Builder SPAs.
+
+### Check
+```yaml
+type: builtin
+id: no-lazy-route
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
 
 ### Bad
 ```jsx
@@ -174,6 +216,13 @@ const Settings = lazy(() => import('./pages/Settings'))
 
 Rendering 1000 DOM nodes for a list the user can only see 20 of at a time is wasteful. Use Spectrum's `<TableView>` (which virtualizes by default) or a library like `react-window` / `@tanstack/react-virtual`.
 
+### Check
+```yaml
+type: builtin
+id: unvirtualized-list
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
+
 ### Bad
 ```jsx
 <ul>
@@ -198,6 +247,13 @@ import { TableView, TableHeader, Column, TableBody, Row, Cell } from '@adobe/rea
 ## No .bind() in JSX — use useCallback or class methods [warn] [perf, render]
 
 `react/jsx-no-bind`. `.bind()` in JSX produces a fresh function reference on every render, defeating `React.memo` shallow-prop comparison and forcing memoed children to re-render unnecessarily.
+
+### Check
+```yaml
+type: builtin
+id: bind-in-jsx
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
 
 ### Bad
 ```jsx

@@ -6,6 +6,13 @@
 
 `"strict": true` in `tsconfig.json` turns on `strictNullChecks`, `noImplicitAny`, `strictFunctionTypes`, `strictBindCallApply`, `strictPropertyInitialization`, `noImplicitThis`, `alwaysStrict`. Each one catches a real class of bug. Disabling any — even temporarily — almost always becomes permanent and erodes the rest.
 
+### Check
+```yaml
+type: builtin
+id: tsconfig-strict
+scope: repo
+```
+
 ### Bad
 ```json
 { "compilerOptions": { "strict": false, "noImplicitAny": false } }
@@ -21,6 +28,13 @@
 ## tsconfig: enable noUncheckedIndexedAccess [warn] [config, null-safety]
 
 By default, `arr[0]` is typed `T` even when `arr` may be empty — TS lies about runtime undefined-ness. `noUncheckedIndexedAccess` types it as `T | undefined`, forcing you to handle the empty case. One of the highest-value flags TS has shipped.
+
+### Check
+```yaml
+type: builtin
+id: tsconfig-unchecked-indexed-access
+scope: repo
+```
 
 ### Bad
 ```ts

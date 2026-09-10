@@ -6,6 +6,13 @@
 
 `import/no-extraneous-dependencies`. An `import` of a package that isn't declared in `package.json` works locally (because npm hoisted it from a transitive dep) and fails after a clean install. Every direct import gets a direct dep.
 
+### Check
+```yaml
+type: builtin
+id: extraneous-dependency
+scope: repo
+```
+
 ### Bad
 ```json
 // package.json — no "lodash" listed
@@ -26,6 +33,13 @@ const _ = require('lodash')
 ## Imported modules must resolve — no-unresolved [error] [imports, bugs]
 
 `import/no-unresolved`. An import path that doesn't resolve to a real file or package fails at runtime with a confusing `Cannot find module` error. The lint rule catches it at edit time.
+
+### Check
+```yaml
+type: builtin
+id: unresolved-import
+scope: repo
+```
 
 ### Bad
 ```js

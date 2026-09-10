@@ -126,12 +126,32 @@ function isRequireCall(n: AstNode | undefined): boolean {
   return !!n && n.type === "CallExpression" && identName(member(n, "callee")) === "require";
 }
 
+/** `require('dotenv').config()` — a call chained directly off a require() result, not a bare require call itself, but still import-adjacent setup. */
+function isRequireChainCall(n: AstNode | undefined): boolean {
+  if (!n || n.type !== "CallExpression") return false;
+  const callee = member(n, "callee");
+  return !!callee && callee.type === "MemberExpression" && isRequireCall(member(callee, "object"));
+}
+
+/** `jest.mock(...)` / `vi.mock(...)` / `vi.hoisted(...)` — the standard "mock before require/import" test setup idiom. */
+function isMockSetupCall(n: AstNode | undefined): boolean {
+  if (!n || n.type !== "CallExpression") return false;
+  const callee = member(n, "callee");
+  if (!callee || callee.type !== "MemberExpression") return false;
+  const objName = identName(member(callee, "object"));
+  const propName = identName(member(callee, "property"));
+  return (objName === "jest" || objName === "vi") && (propName === "mock" || propName === "hoisted");
+}
+
 function isTopLevelImport(n: AstNode): boolean {
   if (n.type === "ImportDeclaration") return true;
-  if (n.type === "ExpressionStatement") return isRequireCall(member(n, "expression"));
+  if (n.type === "ExpressionStatement") {
+    const expr = member(n, "expression");
+    return isRequireCall(expr) || isMockSetupCall(expr) || isRequireChainCall(expr);
+  }
   if (n.type === "VariableDeclaration") {
     const decls = (n as AstNode & { declarations?: AstNode[] }).declarations ?? [];
-    return decls.some((d) => isRequireCall(member(d, "init")));
+    return decls.some((d) => isRequireCall(member(d, "init")) || isMockSetupCall(member(d, "init")));
   }
   return false;
 }

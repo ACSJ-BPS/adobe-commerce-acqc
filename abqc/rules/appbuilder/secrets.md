@@ -6,6 +6,13 @@
 
 The CLI generates `AIO_*` entries in `.env` (workspace credentials, runtime auth, IMS client secrets). Manual edits silently corrupt the workspace state. Re-pull with `aio app use` instead of editing.
 
+### Check
+```yaml
+type: builtin
+id: env-partial-edit-history
+scope: repo
+```
+
 ### Bad
 ```bash
 # someone edits .env to "fix" a value

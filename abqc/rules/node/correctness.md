@@ -31,6 +31,13 @@ if (params.userId === 0) return { error: 'invalid user' }
 
 `x === NaN` is always false (NaN is the only value not equal to itself). Comparing `typeof x === 'undefined'` is correct; `typeof x === 'undefiend'` (typo) is silently always false. ESLint's `use-isnan` and `valid-typeof` catch both.
 
+### Check
+```yaml
+type: builtin
+id: isnan-typeof
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 if (price === NaN) return rejectInvalid()
@@ -59,10 +66,9 @@ const config = { timeout: 5000, retries: 3, timeout: 10000 }   // first ignored
 
 ### Good
 ```js
+const config = { timeout: 10000, retries: 3 }
 logger.info('done')
 return result
-
-const config = { timeout: 10000, retries: 3 }
 ```
 
 ---
@@ -70,6 +76,13 @@ const config = { timeout: 10000, retries: 3 }
 ## Array callbacks must return — array-callback-return [error] [bugs]
 
 `.map`, `.filter`, `.reduce`, `.find`, `.some`, `.every` all rely on the callback's return value. A callback that forgets to return produces undefined-filled arrays, always-false predicates, or dropped reducer state.
+
+### Check
+```yaml
+type: builtin
+id: array-callback-return
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js
@@ -109,6 +122,13 @@ for (let i = 0; i < lineCount; i++) { /* scoped to the loop */ }
 
 `eslint-plugin-n`'s `global-require` enforces top-level imports. Lazy `require` inside a function works but obscures dependencies, defeats Webpack tree-shaking for TS builds, and pays the resolution cost on every call instead of once.
 
+### Check
+```yaml
+type: builtin
+id: imports-top
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 async function main (params) {
@@ -143,8 +163,9 @@ async function main (params, context) {                      // context unused
 ```js
 const { Core } = require('@adobe/aio-sdk')
 async function main (params) {
-  return Core.Logger('main')
+  return Core.Logger('main').info(`order ${params.orderId}`)
 }
+exports.main = main
 ```
 
 ---
@@ -152,6 +173,13 @@ async function main (params) {
 ## No variable shadowing across scopes [warn] [bugs, style]
 
 A variable named the same as one in an enclosing scope hides the outer binding. Refactors that move code between scopes silently change which variable is read. ESLint's `no-shadow` flags it.
+
+### Check
+```yaml
+type: builtin
+id: no-shadow
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js

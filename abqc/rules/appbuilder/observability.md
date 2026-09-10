@@ -6,6 +6,13 @@
 
 I/O Runtime truncates activation logs at **10 MB** and keeps them for a fixed, non-configurable retention window. For any production or customer-facing App Builder app, relying solely on in-platform logs is insufficient. Use structured (JSON) log output so logs are queryable once forwarded, and configure log forwarding to Splunk Cloud, New Relic, or Azure Log Analytics from day one — retrofitting observability after incidents is expensive. Every log line must include a `correlationId` (activation ID or upstream request ID) so individual requests can be traced end-to-end across actions.
 
+### Check
+```yaml
+type: builtin
+id: structured-logging
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
+
 ### Bad
 ```js
 async function main (params) {

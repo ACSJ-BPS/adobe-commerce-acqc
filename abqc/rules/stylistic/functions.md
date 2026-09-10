@@ -6,6 +6,13 @@
 
 `no-param-reassign`. Mutating `params.x = newValue` inside a function changes the caller's object — surprising side-effect that's easy to miss in code review. Copy first if you need to mutate.
 
+### Check
+```yaml
+type: builtin
+id: param-reassign
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 function normalize (order) {
@@ -27,6 +34,13 @@ function normalize (order) {
 
 `prefer-arrow-callback`. Arrow functions for callbacks are shorter, don't bind their own `this`, and are the idiomatic ES6+ form.
 
+### Check
+```yaml
+type: builtin
+id: anonymous-function-callback
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 items.filter(function (item) { return item.active })
@@ -42,6 +56,13 @@ items.filter(item => item.active)
 ## No return await — return the promise directly [warn] [perf, async]
 
 `no-return-await`. `return await x` adds an unnecessary microtask tick and a stack frame. The exception is inside `try/catch`, where you genuinely need to catch the rejection — there, `return await` is correct.
+
+### Check
+```yaml
+type: builtin
+id: return-await-outside-try
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js
@@ -72,6 +93,13 @@ async function getOrderWithFallback (id) {
 
 `no-useless-catch`. `try { ... } catch (e) { throw e }` adds noise without changing behavior. Either handle the error (log, transform, suppress) or remove the try/catch. Worse: `catch (e) { throw new Error(e.message) }` discards the original stack trace.
 
+### Check
+```yaml
+type: builtin
+id: pure-rethrow-catch
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 try {
@@ -98,6 +126,13 @@ try {
 ## No restricted syntax — codify project conventions [info] [conventions]
 
 `no-restricted-syntax` lets you ban specific AST patterns project-wide (`for-in`, `with`, `delete`, etc.). Use it to encode team-specific conventions that don't have a standalone rule. Keep the list short; each entry needs a written rationale in the config.
+
+### Check
+```yaml
+type: builtin
+id: configurable-restricted-syntax
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js

@@ -6,6 +6,13 @@
 
 Adobe's **Quarry** library provides React Spectrum-based Experience Cloud patterns — standard app-shell layouts, side panels, list/detail views, toolbar placements, and other DX-wide compositions. Building these from scratch duplicates work, introduces visual inconsistency with other Adobe products, and misses accessibility fixes already in Quarry. Before writing a custom layout or panel component, check `quarry.corp.adobe.com` for an existing solution. New code should favour Quarry → React Spectrum → React Aria in that order before reaching for raw HTML or DIY components. Source: DXTS and Unified Shell internal engineering guidelines.
 
+### Check
+```yaml
+type: builtin
+id: hand-rolled-shell-layout
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
+
 ### Bad
 ```jsx
 // custom app-shell layout — duplicates Quarry's standard patterns
@@ -34,6 +41,13 @@ function MyApp () {
 ## Avoid prop drilling beyond two levels — use Context or a state library [warn] [architecture, state]
 
 Passing props through three or more intermediate components that do not use them creates tight coupling, makes refactoring expensive, and signals a missing abstraction. For shared state that multiple components need, use React Context (with `useContext`) or a lightweight state library (Zustand, Jotai). Adobe internal teams use Context for auth/user state and locale, and a store library for complex UI state. Prop drilling is acceptable for one or two levels where the data is genuinely local; anything beyond that should be lifted to a context or store.
+
+### Check
+```yaml
+type: builtin
+id: prop-drilling
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
 
 ### Bad
 ```jsx

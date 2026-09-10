@@ -23,6 +23,13 @@ return { body: { result: evaluate(params.formula) } }
 
 `child_process.exec` and `spawn({ shell: true })` interpret arguments through `/bin/sh`. Any unescaped user input is a command-injection vulnerability. When subprocesses are needed, use `spawn` with an arg array and never set `shell: true`.
 
+### Check
+```yaml
+type: builtin
+id: child-process-shell
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 const { exec } = require('node:child_process')
@@ -44,6 +51,13 @@ await new Promise((resolve, reject) => {
 
 Regexes with nested or overlapping quantifiers (`(a+)+`, `(.*)*`, `(a|a)+`) hit catastrophic backtracking on adversarial input. Inside a 60-second-capped action, a single ReDoS request stalls the whole worker. Pin user-input regexes with `safe-regex` or rewrite with non-backtracking patterns.
 
+### Check
+```yaml
+type: builtin
+id: redos-nested-quantifier
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 /^([a-zA-Z0-9]+)+@example\.com$/.test(params.email)
@@ -59,6 +73,13 @@ Regexes with nested or overlapping quantifiers (`(a+)+`, `(.*)*`, `(a|a)+`) hit 
 ## No sync fs APIs in the request path [error] [perf, event-loop, bugs]
 
 `readFileSync`, `writeFileSync`, `existsSync`, and friends block the event loop. In a single-threaded worker servicing many concurrent requests, one slow disk read becomes a latency spike for every other in-flight invocation in the container.
+
+### Check
+```yaml
+type: builtin
+id: sync-fs-in-handler
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js
@@ -127,6 +148,13 @@ buf.write(payload)
 
 A 200ms JSON.parse, sync hash, or large array `.sort()` blocks every concurrent request landing in the same container. For large transforms, use `worker_threads`, fan out via Runtime triggers, or stream the work.
 
+### Check
+```yaml
+type: builtin
+id: cpu-bound-sync-handler
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 const giant = await fetchPayload()
@@ -149,6 +177,13 @@ const sorted = await new Promise((resolve, reject) => {
 
 `fetch` and `http.request` default to no timeout. A slow upstream can hold an action open until the 60s web-action cap kills it, by which time you've already returned 504 to the client and burned the warm container.
 
+### Check
+```yaml
+type: builtin
+id: http-timeout-retry
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 const res = await fetch('https://upstream.example.com/data')
@@ -166,6 +201,13 @@ const res = await fetch('https://upstream.example.com/data', {
 ## Validate inputs at the boundary with a schema library [warn] [validation, bugs]
 
 `checkMissingRequestInputs` (appbuilder.md) handles presence; for shape validation use Zod, Joi, or AJV at the top of `main`. Catching a malformed payload here means the rest of the action body can rely on types and avoid a ladder of defensive checks.
+
+### Check
+```yaml
+type: builtin
+id: schema-validate-boundary
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js

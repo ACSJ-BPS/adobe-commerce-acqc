@@ -6,6 +6,13 @@
 
 Who can read which data, who can mutate which records, who can mint tokens — these answers must be written down and approved by the security team before production traffic, not retrofitted after an incident. App Builder workspaces give you environment isolation; RBAC inside the application (admin vs editor vs viewer) is your responsibility. Capture the matrix in `docs/security/rbac.md` and require security sign-off as a launch gate.
 
+### Check
+```yaml
+type: builtin
+id: rbac-doc
+scope: repo
+```
+
 ### Bad
 ```text
 Launch readiness review:
@@ -33,6 +40,13 @@ Security review: M. Chen, 2026-04-25. Re-review on any role change.
 ## GenAI usage policy: no proprietary code or customer data submitted to public AI tools [error] [governance, ai]
 
 Pasting customer PII or proprietary code into a public LLM exposes it to that vendor's training set, support staff, and (in some breach scenarios) the open internet. Every team needs a written policy: which AI tools are approved, what categories of data may flow through them, and what review process applies to AI-generated code merged into the repo. Adobe's own employee policy is the floor.
+
+### Check
+```yaml
+type: builtin
+id: genai-policy-doc
+scope: repo
+```
 
 ### Bad
 ```text
@@ -72,6 +86,13 @@ and may surface in future model updates.
 ## Vendor and SaaS dependency list reviewed by procurement and security [warn] [supply-chain, governance]
 
 Every third-party SDK, API, or SaaS your app integrates is a vendor relationship — with terms, a security posture, and a renewal cycle. Procurement needs the list for cost tracking; security needs it for risk review (data flow, breach notification clauses, sub-processor list). Without a list, vendors get added by individual engineers and disappear from organizational memory until the renewal email lands.
+
+### Check
+```yaml
+type: builtin
+id: vendor-list-doc
+scope: repo
+```
 
 ### Bad
 ```text

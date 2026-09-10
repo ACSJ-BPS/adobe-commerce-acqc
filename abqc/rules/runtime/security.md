@@ -6,6 +6,13 @@
 
 A static-analysis rule can verify the `Content-Security-Policy` header is set; only a real browser can verify the policy actually permits the resources the page tries to load. `Refused to load the script` / `Refused to apply inline style` console errors mean either the CSP is too strict (functionality broken) or too loose (genuine XSS attempts not blocked). Either way the deploy is broken — fix before promotion.
 
+### Check
+```yaml
+type: builtin
+id: csp-uncovered-resource
+scope: repo
+```
+
 ### Bad
 ```text
 DevTools console on Stage:
@@ -41,6 +48,13 @@ if (violations.length) {
 
 A page served over HTTPS that loads any subresource over HTTP triggers a Mixed Content warning, downgrades the lock icon, and (for active mixed content like scripts) is blocked entirely by modern browsers. Always-on HTTPS is the static rule; this rule verifies it actually held in the browser.
 
+### Check
+```yaml
+type: builtin
+id: mixed-content
+scope: repo
+```
+
 ### Bad
 ```text
 Page: https://my-app.adobeio-static.net/dashboard
@@ -68,6 +82,13 @@ fi
 ## Authenticated routes carry the expected Authorization header at runtime [warn] [auth, runtime]
 
 A static rule can verify your fetch wrapper attaches `Authorization`. Only a runtime check confirms it actually fired — token refresh races, missing await, conditionally-skipped headers all bypass the static rule. Verify via DevTools Network tab on the golden path: every call to `/api/*` carries `Authorization: Bearer ...`.
+
+### Check
+```yaml
+type: builtin
+id: missing-auth-header-fetch
+files: ["**/*.{js,jsx,ts,tsx}"]
+```
 
 ### Bad
 ```text

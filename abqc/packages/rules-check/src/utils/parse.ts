@@ -18,9 +18,19 @@ export type ParsedSource = {
   lines: string[];
 };
 
+// `aio app init`'s standard App Builder/Admin-UI-SDK scaffold, and every
+// official Adobe sample, ships real JSX inside plain `.js` files (not `.jsx`).
+// Only `.ts` needs JSX parsing OFF — TS's `<T>value` generic-cast syntax is
+// ambiguous with a JSX opening tag, which is exactly why `.tsx` exists as a
+// distinct extension. `.js`/`.jsx`/`.mjs`/`.cjs` have no such ambiguity, so
+// enabling the (purely additive) JSX grammar for them is always safe.
+function shouldParseAsJsx(filePath: string): boolean {
+  return !/\.ts$/.test(filePath);
+}
+
 export function parseSource(content: string, filePath: string): ParsedSource | null {
   try {
-    const isJsx = /\.(jsx|tsx)$/.test(filePath);
+    const isJsx = shouldParseAsJsx(filePath);
     const ast = parse(content, {
       ecmaVersion: "latest",
       sourceType: "module",
@@ -199,7 +209,7 @@ const FUNCTION_TYPES = new Set([
  * `maxNestingDepth` and `cyclomaticComplexity` so a function's score reflects
  * its OWN branching, not the branching of every callback/closure it contains.
  */
-function walkWithinFunction(root: AstNode, visit: (n: AstNode) => void): void {
+export function walkWithinFunction(root: AstNode, visit: (n: AstNode) => void): void {
   const go = (n: AstNode) => {
     visit(n);
     for (const key of Object.keys(n)) {

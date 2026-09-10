@@ -6,6 +6,13 @@
 
 `dangerouslySetInnerHTML` bypasses React's automatic escaping — the only legitimate XSS vector in a React app. Sanitize with DOMPurify first, or render plain text and skip the API.
 
+### Check
+```yaml
+type: builtin
+id: sanitize-dangerously-set-inner-html
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
+
 ### Bad
 ```jsx
 <div dangerouslySetInnerHTML={{ __html: userHtml }} />
@@ -23,6 +30,13 @@ return <div dangerouslySetInnerHTML={{ __html: safe }} />
 ## Prefer Fragment shorthand over wrapping div when no styling needed [info] [style, perf]
 
 Wrapping children in a `<div>` when the parent doesn't need a DOM node adds a useless element to the tree (CSS layout impact, accessibility tree noise). Use `<>...</>` or `<Fragment>`.
+
+### Check
+```yaml
+type: builtin
+id: unnecessary-wrapping-div
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
 
 ### Bad
 ```jsx
@@ -52,6 +66,13 @@ function Group ({ items }) {
 
 `react/jsx-no-target-blank`. Opening a link in a new tab without `rel="noopener"` gives the new page partial access to `window.opener` — a tabnabbing attack vector. Modern browsers default to `noopener`, but explicit is safer and ESLint enforces it.
 
+### Check
+```yaml
+type: builtin
+id: target-blank-rel
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
+
 ### Bad
 ```jsx
 <a href={user.website} target="_blank">{user.name}</a>
@@ -67,6 +88,13 @@ function Group ({ items }) {
 ## No useless fragments — <></> with one child [info] [style]
 
 `react/jsx-no-useless-fragment`. Wrapping a single element in `<>...</>` adds no semantic meaning and clutters the JSX. Either drop the fragment or use it only when actually rendering multiple siblings.
+
+### Check
+```yaml
+type: builtin
+id: single-child-fragment
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
 
 ### Bad
 ```jsx
@@ -96,6 +124,13 @@ function CardWithSubtitle ({ title, subtitle }) {
 
 `react/self-closing-comp`. `<div></div>` and `<Spectrum.Divider></Spectrum.Divider>` are noisy when they have no children. Self-close them.
 
+### Check
+```yaml
+type: builtin
+id: non-self-closing-empty-tag
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
+
 ### Bad
 ```jsx
 <Divider></Divider>
@@ -115,6 +150,13 @@ function CardWithSubtitle ({ title, subtitle }) {
 ## Every <button> needs an explicit type attribute [warn] [bugs, forms]
 
 `react/button-has-type`. The default for `<button>` inside a form is `type="submit"` — clicking it submits the form, often by accident. Make `type="button"` (or `type="reset"`) explicit on every button that isn't the form's submit action.
+
+### Check
+```yaml
+type: builtin
+id: button-missing-type
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
 
 ### Bad
 ```jsx
@@ -140,6 +182,13 @@ function CardWithSubtitle ({ title, subtitle }) {
 
 `react/no-direct-mutation-state`. Mutating `state.items.push(x)` (or class `this.state.x = y`) doesn't trigger a re-render, leaves React's internal state out of sync, and breaks time-travel debugging. Always use the setter with a new reference.
 
+### Check
+```yaml
+type: builtin
+id: direct-state-mutation
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
+
 ### Bad
 ```jsx
 const [items, setItems] = useState([])
@@ -162,6 +211,13 @@ function addItem (item) {
 ## Void DOM elements (img, br, input) cannot have children [error] [bugs, dom]
 
 `react/void-dom-elements-no-children`. The HTML spec forbids children on `<img>`, `<br>`, `<hr>`, `<input>`, `<meta>`, `<link>`, etc. React allows the JSX, but the rendered DOM is invalid and the children are silently dropped.
+
+### Check
+```yaml
+type: builtin
+id: void-element-children
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
 
 ### Bad
 ```jsx

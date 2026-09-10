@@ -6,6 +6,13 @@
 
 In the Node runtime Adobe deploys, an `unhandledRejection` event terminates the process. Worse, the warm-container slot is invalidated, so the *next* invocation pays a cold-start tax. Every async call must be awaited inside try/catch or have an explicit `.catch()`.
 
+### Check
+```yaml
+type: builtin
+id: floating-promise
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 async function main (params) {
@@ -27,6 +34,13 @@ async function main (params) {
 ## No unnecessary catch-and-rethrow [warn] [style, errors]
 
 A `try { ... } catch (e) { throw e }` block adds noise without changing behavior. Either handle the error (log, transform, suppress) or remove the try/catch. Worse: `catch (e) { throw new Error(e.message) }` discards the original stack trace.
+
+### Check
+```yaml
+type: builtin
+id: pure-rethrow-catch
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js
@@ -80,6 +94,13 @@ async function main (params) {
 
 `n/handle-callback-err`. Every Node error-first callback `(err, result) => ...` must check or propagate `err`. Ignoring it silently drops failures — the most common source of "the function returned but nothing happened" bugs in callback-style code.
 
+### Check
+```yaml
+type: builtin
+id: unused-err-param
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 fs.readFile('./config.json', 'utf8', (err, contents) => {
@@ -127,6 +148,13 @@ function load (id, callback) {
 
 Throwing raw `Error` objects forces every call site to guess the intended HTTP status and error code. Define a typed error hierarchy — at minimum `AppError` with `status` and `code` fields — and map it centrally to responses. This prevents stack traces and internal details leaking to clients (only `code` and a safe message go out), keeps status-code assignment in one place, and makes error handling in tests explicit and readable. Source: Adobe internal `microservice-base-node` / `microservice-lib-node` patterns.
 
+### Check
+```yaml
+type: builtin
+id: typed-error-classes
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 async function getUser (id) {
@@ -167,6 +195,13 @@ function handleError (err, res) {
 ## Register `unhandledRejection` and `uncaughtException` handlers that exit the process [error] [reliability, async]
 
 A Node process that swallows an unhandled rejection or uncaught exception can remain alive but in an undefined state — connections may be leaked, in-flight work corrupted, and errors silently lost. The correct response is to log the error and call `process.exit(1)`, relying on Kubernetes, Ethos, or I/O Runtime to restart the container. This is the industry-standard Node reliability pattern and is required by Adobe's cloud-native service standards. Do not attempt to "keep limping" — fail fast and let orchestration recover.
+
+### Check
+```yaml
+type: builtin
+id: process-crash-handlers
+scope: repo
+```
 
 ### Bad
 ```js

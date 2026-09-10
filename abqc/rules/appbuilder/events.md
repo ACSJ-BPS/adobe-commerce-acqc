@@ -6,6 +6,12 @@
 
 Webhook subscriptions to Adobe I/O Events require the action to echo back the `challenge` query parameter during registration. An action that doesn't do this fails the verification step and never receives events — silently.
 
+### Check
+```yaml
+type: builtin
+id: events-challenge-response
+```
+
 ### Bad
 ```js
 async function main (params) {
@@ -32,6 +38,12 @@ async function main (params) {
 Adobe I/O Events signs every webhook payload with a digital signature delivered in the `x-adobe-signature` header (HMAC-SHA256, keyed with your client secret). An action that skips this check processes unauthenticated payloads — anyone who discovers the action URL can forge events. The challenge/response rule handles *registration*; this rule handles *every subsequent event delivery*.
 
 **Why it was missing:** The challenge/response rule (webhook registration) was present, but the per-payload integrity check required for ongoing event processing was omitted. They look similar but serve different purposes.
+
+### Check
+```yaml
+type: builtin
+id: events-hmac-verify
+```
 
 ### Bad
 ```js
@@ -73,6 +85,13 @@ async function main (params) {
 
 Polling actions on `every-1-minute` triggers cost money for every empty poll, add latency, and fall behind on bursts. If the upstream system supports I/O Events (Adobe Experience Platform, Commerce, AEM, Workfront), subscribe instead. Events are push-based, billed per delivered event, and reach your handler within seconds.
 
+### Check
+```yaml
+type: builtin
+id: events-vs-polling
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
+
 ### Bad
 ```js
 // scheduled trigger fires every minute, fetches new orders
@@ -97,6 +116,12 @@ exports.main = async (params) => {
 
 Adobe I/O Events posts a challenge request when registering an event provider, expects a specific echo response, and signs subsequent payloads with HMAC. Pointing a 3rd-party webhook URL (Slack, GitHub, Stripe) directly at the I/O Events endpoint fails the challenge and bypasses HMAC verification. Always proxy through a runtime action that performs both.
 
+### Check
+```yaml
+type: builtin
+id: webhook-proxy
+```
+
 ### Bad
 ```text
 3rd-party-system → webhook → Slack incoming-webhook URL
@@ -119,6 +144,12 @@ exports.main = async (params) => {
 ## I/O Events handlers must be idempotent — keyed by event ID [error] [events, reliability]
 
 Adobe I/O Events guarantees at-least-once delivery, not exactly-once. The same event may arrive twice on retries. Handlers that mutate state (create order, send email, charge card) must dedupe by event ID — typically using State SDK with a TTL.
+
+### Check
+```yaml
+type: builtin
+id: events-idempotent
+```
 
 ### Bad
 ```js
@@ -145,6 +176,12 @@ exports.main = async (event) => {
 ## Batch high-volume event streams via journaling, not per-event sync handlers [warn] [events, performance]
 
 Per-event synchronous actions on high-volume streams (Commerce order events at peak, AEP segmentation results) drive up GB-seconds cost and risk hitting the 60s cap. Use the I/O Events journaling API to consume events in batches, process N at a time in a single invocation.
+
+### Check
+```yaml
+type: builtin
+id: events-batch-vs-sync
+```
 
 ### Bad
 ```yaml

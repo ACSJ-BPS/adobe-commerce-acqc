@@ -6,6 +6,13 @@
 
 Adobe's hosted Runtime won't block a deploy with vulnerable dependencies, but a critical CVE in a transitive dep is your namespace's risk. Run `npm audit --audit-level=high` in CI; document expirable exceptions for unfixable transitive issues.
 
+### Check
+```yaml
+type: builtin
+id: npm-audit
+scope: repo
+```
+
 ### Bad
 ```bash
 npm install   # 12 high, 3 critical advisories
@@ -48,6 +55,13 @@ const stripe = require('stripe')(process.env.STRIPE_KEY)
 
 Custom App Builder apps in an enterprise IMS organization require an Adobe org admin to approve them before they're available to end users. This is governance built into the platform. Plan for it: surface a clear description of the app's purpose, scopes, and data access at submission time, and don't promise stakeholders an availability date that doesn't account for the approval window.
 
+### Check
+```yaml
+type: builtin
+id: release-approval-doc
+scope: repo
+```
+
 ### Bad
 ```text
 Project plan: dev complete Friday, GA Monday.
@@ -68,6 +82,13 @@ Project plan:
 ## Document what data your app accesses or stores — review-ready data sheet [info] [governance, compliance]
 
 When stakeholders or admins review the app, they need a single document that explains: which Adobe APIs are called, what user data flows through actions, what gets persisted (Files / State / external DB), retention/TTL, and which third-party services are involved. Keep this in `docs/data-access.md` (or similar) and update it on every PR that changes the data shape.
+
+### Check
+```yaml
+type: builtin
+id: data-access-doc
+scope: repo
+```
 
 ### Bad
 ```text
@@ -94,6 +115,13 @@ docs/data-access.md:
 The existing logging rules say what *not* to log (secrets, raw params). This rule covers what you *must* log for security observability: authentication failures, authorization denials, high-privilege operations, and unexpected input patterns. Without this audit trail, you can't detect brute-force attempts, credential stuffing, or privilege escalation in post-incident review.
 
 **Why it was missing:** "Security logging failures" is OWASP Top 10 2021 #9. The collection covered operational logging (Core.Logger pattern) and redaction (secrets), but had no positive requirement for what to log. The two concerns look similar but are orthogonal.
+
+### Check
+```yaml
+type: builtin
+id: unlogged-auth-denial
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
 
 ### Bad
 ```js
@@ -132,6 +160,13 @@ async function main (params) {
 Query parameters appear in: server access logs, CDN edge logs, browser history, `Referer` headers on outbound links, and Analytics/RUM tools. A token in `?api_key=sk_live_xxx` is a credential that logs itself. Always transmit secrets in request headers (`Authorization`, `X-Api-Key`). This is separate from the "no hardcoded keys" rule — here the key may be loaded from a vault but still leaked by being placed in the URL.
 
 **Why it was missing:** The "no hardcoded keys" rule covers keys in source code. URL-based key leakage is a runtime data-flow problem, invisible to static analysis. It required explicit OWASP treatment to surface as a distinct rule.
+
+### Check
+```yaml
+type: builtin
+id: secret-in-url-query
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js

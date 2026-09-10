@@ -6,6 +6,13 @@
 
 `aio app undeploy` removes the action from Runtime entirely. Any caller still pointing at it gets 404. Use versioned action names (`process-order-v2`) and route traffic via the API gateway when changing behavior; deprecate the old action with a sunset header before deleting.
 
+### Check
+```yaml
+type: builtin
+id: undeploy-prod-action
+scope: repo
+```
+
 ### Bad
 ```bash
 # breaking change to process-order — undeploy, then deploy new version
@@ -41,6 +48,13 @@ return {
 ## Tag and document every prod release — single source of truth [info] [release, ops]
 
 Every Production deploy should produce: a git tag, a changelog entry, a release notes doc (Slack / Confluence / GitHub Release), and a link to the activation dashboard for that deploy. When something breaks, the next on-call needs to know what changed without digging through commits.
+
+### Check
+```yaml
+type: builtin
+id: untagged-prod-deploy
+scope: repo
+```
 
 ### Bad
 ```text

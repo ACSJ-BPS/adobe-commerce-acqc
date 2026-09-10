@@ -5,6 +5,12 @@
 ## Use @adobe/uix-guest register/attach — never hand-roll postMessage between iframe and admin shell [error] [integration, contracts]
 The Admin UI SDK provides `@adobe/uix-guest` for all iframe-to-shell communication. Hand-rolling `window.postMessage` calls couples your app to undocumented internals, breaks across Commerce versions, and bypasses the SDK's origin-validation logic. Always use `register()` and `attach()`.
 
+### Check
+```yaml
+type: builtin
+id: no-hand-rolled-postmessage
+```
+
 ### Bad
 ```js
 window.parent.postMessage({ type: 'getSelectedIds' }, '*');
@@ -20,6 +26,13 @@ const selected = await ctx.get('selectedIds');
 
 ## Set explicit sandbox attributes on extension points that need browser capabilities [warn] [iframe, sandbox]
 The Admin UI SDK iframe is sandboxed by default. Operations like `window.print()`, opening popups, or showing modal dialogs require opt-in via the `sandbox` property on the extension point declaration. Without it, those APIs throw "document is sandboxed" errors with no obvious cause.
+
+### Check
+```yaml
+type: builtin
+id: extension-sandbox-attr
+files: ["**/*.{js,jsx,ts,tsx}"]
+```
 
 ### Bad
 ```js
@@ -38,6 +51,12 @@ menuItems: [{
 
 ## Call Commerce REST/GraphQL from backend runtime actions — not directly from the SPA [error] [auth, security]
 Direct browser calls to Commerce admin REST/GraphQL leak admin credentials to the browser, run into CORS restrictions, and bypass Adobe's IMS-based auth flow. The pattern is: SPA → IMS-authenticated runtime action → Commerce. The action holds the Commerce token (obtained from IMS); the browser never sees it.
+
+### Check
+```yaml
+type: builtin
+id: no-commerce-admin-from-spa
+```
 
 ### Bad
 ```jsx

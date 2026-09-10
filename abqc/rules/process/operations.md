@@ -6,6 +6,13 @@
 
 A runbook tells the on-call who to page, where the dashboards are, how to roll back, and what counts as a Sev-1. Without one, the first Sev-1 produces 30 minutes of confusion before anyone touches the rollback. The deployment.md rule covers the rollback *mechanism*; this rule covers the *human process* around it.
 
+### Check
+```yaml
+type: builtin
+id: runbook-doc
+scope: repo
+```
+
 ### Bad
 ```text
 Sev-1 at 3am:
@@ -46,6 +53,13 @@ Sev-1 at 3am:
 ## Post-go-live monitoring dashboards reviewed in week 1 and month 1 [warn] [ops]
 
 The week-1 review catches deployment-induced regressions before they become quarterly tech debt; the month-1 review catches slow drifts (memory leak, cache hit ratio decay, error budget burn). Without scheduled reviews, drift is detected only when a customer complains. Put both reviews on the calendar at GA, not "we'll get to it."
+
+### Check
+```yaml
+type: builtin
+id: review-log-doc
+scope: repo
+```
 
 ### Bad
 ```text

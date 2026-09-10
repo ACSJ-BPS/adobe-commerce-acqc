@@ -6,6 +6,13 @@
 
 Runtime invokes only `module.exports.main`. The default Jest scaffold from `aio app init` includes a "main is a function" smoke test for a reason — actions that compile but don't export `main` deploy and silently 404. Keep this test on every action.
 
+### Check
+```yaml
+type: builtin
+id: missing-main-export-test
+files: ["**/*.{test,spec}.{js,jsx,ts,tsx}"]
+```
+
 ### Bad
 ```js
 // no smoke test — refactor renames main → handler, deploy passes, prod fails
@@ -25,6 +32,13 @@ test('main is a function', () => {
 ## Test the missing-input → 400 path [error] [validation]
 
 An action without input validation tests is one refactor away from leaking 500s on any malformed request. Every required input deserves a test that omits it and asserts the 400 response shape.
+
+### Check
+```yaml
+type: builtin
+id: missing-400-path-test
+files: ["**/test/actions/**"]
+```
 
 ### Bad
 ```js
@@ -50,6 +64,13 @@ test('returns 400 when orderId missing', async () => {
 
 The wrapped error shape (appbuilder.md rule on error responses) is part of the action's contract with Runtime and with callers. Asserting it in tests catches regressions where someone refactors `return { statusCode: 500 }` and breaks the activation log classification.
 
+### Check
+```yaml
+type: builtin
+id: missing-error-shape-test
+files: ["**/test/actions/**"]
+```
+
 ### Bad
 ```js
 test('handles failure', async () => {
@@ -74,6 +95,13 @@ test('handles failure', async () => {
 
 The `e2eTest` path in `app.config.yaml` is for tests that exercise multiple actions together, the SPA mounted in the Unified Shell, or the deployed action endpoint. These tests are slow and need real credentials — keep them out of `test/` (which runs on every commit).
 
+### Check
+```yaml
+type: builtin
+id: e2etest-folder
+scope: repo
+```
+
 ### Bad
 ```text
 test/
@@ -93,6 +121,13 @@ e2eTest/full-checkout-flow.test.js   // slow, run pre-release
 ## Separate smoke tests from e2e — smoke verifies deploy, e2e verifies flow [info] [smoke, e2e]
 
 Smoke and e2e are different tools for different questions. **Smoke** answers "did the deploy succeed?" — fast, narrow, runs after every deploy, hits one endpoint per action with a known-good fixture, expects HTTP 200. **E2E** answers "does the user journey work end-to-end?" — slower, broader, runs pre-release, drives the SPA, validates business outcomes. Mixing them means smoke tests take 10 minutes and you stop running them after deploys.
+
+### Check
+```yaml
+type: builtin
+id: smoke-e2e-separation
+scope: repo
+```
 
 ### Bad
 ```text

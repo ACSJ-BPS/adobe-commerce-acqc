@@ -5,6 +5,13 @@
 ## Map Dev Console workspaces to environments (dev/stage/prod) [error] [governance, env]
 A mesh is created per workspace. Without a clean dev/stage/prod workspace mapping, schema changes leak across environments and rollback is ambiguous. Each environment gets its own workspace, its own meshConfig path-or-overlay, and its own CI deploy job.
 
+### Check
+```yaml
+type: builtin
+id: workspace-env-mapping
+scope: repo
+```
+
 ### Bad
 ```text
 one workspace ("default") serving both stage and prod traffic
@@ -20,6 +27,13 @@ each with its own meshConfig overlay and Dev Console secrets
 
 ## Never point a dev mesh at production Commerce or AEM endpoints [error] [security, env]
 A developer running `aio api-mesh:run` locally — or a dev workspace mesh — pointed at production data risks accidental writes (test mutations) and PII exposure to a less-secured environment. Dev mesh sources must be dev or sandbox upstreams.
+
+### Check
+```yaml
+type: builtin
+id: mesh-dev-prod-endpoint
+scope: repo
+```
 
 ### Bad
 ```json
@@ -38,6 +52,13 @@ A developer running `aio api-mesh:run` locally — or a dev workspace mesh — p
 ## Use aio api-mesh:get to diff deployed config vs local before update [info] [ops, drift]
 If someone edited the mesh in console out-of-band, `aio api-mesh:update` overwrites that change silently. Run `aio api-mesh:get` first and diff against local to catch drift before deploying.
 
+### Check
+```yaml
+type: builtin
+id: mesh-diff-before-update
+scope: repo
+```
+
 ### Bad
 ```bash
 # blind update from CI
@@ -53,6 +74,13 @@ aio api-mesh:update meshConfig.json
 
 ## Use aio api-mesh:run for local dev with GraphiQL and httpDetails [info] [tooling, local-dev]
 Local mesh runner spins up a dev GraphQL endpoint with full GraphiQL and `httpDetails` for debugging. Faster feedback than deploying to a dev workspace for every change.
+
+### Check
+```yaml
+type: builtin
+id: mesh-local-dev-doc
+scope: repo
+```
 
 ### Bad
 ```bash

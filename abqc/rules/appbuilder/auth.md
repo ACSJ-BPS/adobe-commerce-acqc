@@ -6,6 +6,13 @@
 
 If a web action mints IMS or service-to-service tokens, anyone on the public internet can call it and harvest tokens. Adobe's Security Overview explicitly says token generation should "not be a web action to prevent unauthorized access." Mark non-web and invoke from another action via OpenWhisk's internal client.
 
+### Check
+```yaml
+type: builtin
+id: token-action-not-web
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
+
 ### Bad
 
 ```yaml
@@ -32,6 +39,13 @@ actions:
 
 JWT access tokens expire in 24 hours. Manual refresh logic is the #1 source of "it worked yesterday" bugs. The `@adobe/aio-lib-ims` library handles renewal transparently when you call `getToken()` per request.
 
+### Check
+```yaml
+type: builtin
+id: ims-auto-renewal
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
+
 ### Bad
 
 ```js
@@ -56,6 +70,13 @@ async function main (params) {
 ## Bearer extraction via getBearerToken(params) utility [warn] [auth]
 
 The auto-generated `actions/utils.js` provides `getBearerToken(params)` which strips the `Bearer ` prefix from `params.__ow_headers.authorization`. Hand-rolling this is a slicing-bug magnet (case sensitivity, missing space, missing prefix).
+
+### Check
+```yaml
+type: builtin
+id: bearer-extraction
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
 
 ### Bad
 
@@ -82,6 +103,13 @@ async function main (params) {
 Adobe deprecated the JWT (Service Account) credential type in January 2024 — it will reach end-of-life in January 2025. New projects must use the **OAuth Server-to-Server** credential. Existing actions using `@adobe/aio-lib-ims` with a `jwt` flow will begin failing at EOL. Migrate by updating the IMS credential type in Developer Console and switching `getToken('jwt')` → `getToken('oauth-server-to-server')`.
 
 **Why it was missing:** The rules were authored against the pre-deprecation JWT model and didn't reflect the platform EOL announcement from early 2024.
+
+### Check
+```yaml
+type: regex
+pattern: "getToken\\(\\s*['\"]jwt['\"]"
+files: ["**/*.{js,cjs,mjs,ts}"]
+```
 
 ### Bad
 

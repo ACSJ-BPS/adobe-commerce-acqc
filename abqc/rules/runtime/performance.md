@@ -6,6 +6,13 @@
 
 Flash of Invisible Text (FOIT) happens when the browser hides text until the web font finishes loading — up to 3 seconds of blank content on slow connections. The fix is `font-display: swap` (show fallback immediately, swap in the web font when ready) or `optional` (use the web font only if it loads in <100ms). The default `block` value is what causes the bug.
 
+### Check
+```yaml
+type: builtin
+id: font-display-missing
+files: ["**/*.css"]
+```
+
 ### Bad
 ```css
 @font-face {
@@ -29,6 +36,13 @@ Flash of Invisible Text (FOIT) happens when the browser hides text until the web
 ## No detached DOM nodes after navigation [warn] [perf, memory, runtime]
 
 Detached DOM nodes are elements removed from the document but still referenced by JS — typically by an event listener that never got cleaned up, a `useEffect` without a teardown, or a closure capturing a node. Over a long session they leak memory and degrade interaction responsiveness. Only visible via DevTools Memory tab → Heap snapshot → "Detached".
+
+### Check
+```yaml
+type: builtin
+id: missing-effect-cleanup
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
 
 ### Bad
 ```jsx
@@ -59,6 +73,13 @@ useEffect(() => {
 
 The Performance flame chart shows synchronous layout/recalc-style work as purple blocks. A single block over ~16ms drops a frame; cumulative purple exceeding 50ms per interaction means the page is layout-thrashing — typically because JS reads a layout property (`offsetHeight`, `getBoundingClientRect`) inside a write loop, forcing the browser to reflow on every iteration.
 
+### Check
+```yaml
+type: builtin
+id: layout-thrashing
+files: ["**/*.{js,cjs,mjs,ts,tsx,jsx}"]
+```
+
 ### Bad
 ```js
 // reads offsetHeight inside a write loop → reflow per item
@@ -79,6 +100,13 @@ items.forEach((it, i) => { it.style.height = `${heights[i] + 10}px` })
 ## First-paint JS bundle < 200KB gzipped [warn] [perf, bundle]
 
 A 200KB-gzipped budget for the entry chunk is achievable with code-splitting and is what mid-tier devices over slow-3G can parse without dropping below 60fps for the rest of the page load. Once JS exceeds ~350KB gzipped, parse/compile time alone blocks the main thread enough to fail INP. Static rules cover code-splitting; this rule verifies the budget actually held against the production build.
+
+### Check
+```yaml
+type: builtin
+id: bundle-size
+scope: repo
+```
 
 ### Bad
 ```text

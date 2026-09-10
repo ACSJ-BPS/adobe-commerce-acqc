@@ -6,6 +6,13 @@
 
 Adobe I/O Events delivers payloads in [CloudEvents v1.0](https://cloudevents.io/) format: `id`, `source`, `type`, `specversion`, `data`, plus `data.@type` for Adobe-specific event categories. Hand-rolled fixtures often miss required fields; tests pass but production events with the full envelope behave differently. Use a real CloudEvents fixture and validate against the published schema.
 
+### Check
+```yaml
+type: builtin
+id: cloudevents-fixture-shape
+files: ["**/*.{test,spec}.{js,jsx,ts,tsx}"]
+```
+
 ### Bad
 ```js
 test('handles asset event', async () => {

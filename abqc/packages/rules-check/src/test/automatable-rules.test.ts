@@ -168,6 +168,12 @@ const FILE_CASES: FixtureCase[] = [
     filePath: "/proj/actions.config.yaml",
   },
   {
+    ruleId: "security/eslint-security/no-pseudorandombytes-for-security-sensitive-values",
+    bad: "bad-pseudo-random-bytes.js",
+    good: "good-pseudo-random-bytes.js",
+    filePath: "/proj/src/token.js",
+  },
+  {
     ruleId: "security/adobe/every-web-action-must-declare-require-adobe-auth",
     bad: "bad-require-auth.yaml",
     good: "good-require-auth.yaml",
@@ -270,7 +276,9 @@ describe("automatable rules — repo-scoped fixtures", () => {
   it("secrets-git passes when .env is gitignored", async () => {
     const { rule, check } = await loadRule("appbuilder/secrets/never-commit-env-or-aio-to-git");
     const root = await mkdtemp(join(tmpdir(), "abqc-repo-good-"));
-    await writeFile(join(root, ".gitignore"), ".env\n.aio\n", "utf8");
+    // console.json joined the checked-file list alongside .env/.aio (gap-fill
+    // batch item 8) — it must be gitignored too for this fixture to stay clean.
+    await writeFile(join(root, ".gitignore"), ".env\n.aio\nconsole.json\n", "utf8");
     const hits = await runTypeCheck({ rule, spec: check, repo: { projectRoot: root, allFiles: [] } });
     assert.equal(hits.length, 0);
   });

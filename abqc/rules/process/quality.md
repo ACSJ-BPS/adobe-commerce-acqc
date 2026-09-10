@@ -6,6 +6,13 @@
 
 Static a11y rules and Lighthouse catch ~30% of accessibility issues. The remaining 70% — focus order, live-region announcement timing, custom-component keyboard handling — requires a human running an actual screen reader. Block GA on a recorded SR walk-through of the top 5 user flows. Adobe's accessibility team can run this; do not skip it because "axe came back clean."
 
+### Check
+```yaml
+type: builtin
+id: a11y-signoff-doc
+scope: repo
+```
+
 ### Bad
 ```text
 Lighthouse accessibility = 100. Ship it.
@@ -36,6 +43,13 @@ Issues found: 3 (filed as PROJ-481, PROJ-482, PROJ-483). All resolved before GA.
 
 If your App Builder app exposes an admin UI to non-engineers (content authors, marketing ops, customer-success), they need written + recorded training, not just a Slack ping. Without it, the engineering team becomes the de-facto support desk for the first 6 months. Capture in `docs/training/` with screenshots or a 10-minute Loom for each high-frequency task.
 
+### Check
+```yaml
+type: builtin
+id: training-docs-dir
+scope: repo
+```
+
 ### Bad
 ```text
 Marketing ops Slack: "How do I set the campaign live date?"
@@ -62,6 +76,13 @@ On-call shadow rotation: 2 weeks post-launch.
 ## Pre-go-live load test against expected peak traffic [warn] [perf, ops]
 
 A load test that mimics realistic peak traffic (e.g., 3× your forecast peak QPS, sustained for 30 minutes) is the only way to know your I/O Runtime quotas, your downstream API rate limits, and your DB connection pools all hold under stress. App Builder's license-pack quotas mean over-design has a hard ceiling; under-design means a 429 storm at peak. Capture the test plan, the result, and the headroom in `docs/performance/load-test-2026-04.md`.
+
+### Check
+```yaml
+type: builtin
+id: load-test-doc
+scope: repo
+```
 
 ### Bad
 ```text

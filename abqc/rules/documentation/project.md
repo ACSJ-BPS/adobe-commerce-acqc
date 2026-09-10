@@ -69,6 +69,13 @@ aio runtime action invoke commerce/process-order \
 
 Mirror of the security.md rule, surfaced here because it's a documentation artifact: a `docs/data-access.md` table listing every data source, what data is read, where it's stored, retention/TTL, and third parties involved. Updated on every PR that changes data shape. This is what a security reviewer or admin asks to see before approving the app.
 
+### Check
+```yaml
+type: builtin
+id: data-access-doc
+scope: repo
+```
+
 ### Bad
 ```text
 # scattered: README says one thing, runbook says another, Confluence is six months stale

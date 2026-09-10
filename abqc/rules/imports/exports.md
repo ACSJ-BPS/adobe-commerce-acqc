@@ -6,6 +6,13 @@
 
 `import/no-anonymous-default-export`. An anonymous `export default { ... }` shows up as `default` in stack traces and React DevTools. Assigning to a named const first preserves the symbol name everywhere.
 
+### Check
+```yaml
+type: builtin
+id: anonymous-default-export
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 export default {
@@ -28,6 +35,13 @@ export default formatters
 ## Prefer named exports for utilities — default exports for "the one thing" [info] [imports, api-design]
 
 `import/prefer-default-export` is **the opposite of this rule** and should be disabled. Named exports give consumers the canonical name (refactor-safe), let multiple things ship from one file, and play well with TypeScript imports. Reserve `export default` for files where there is genuinely one entity (a React page, an action's `main`).
+
+### Check
+```yaml
+type: builtin
+id: export-style-by-path
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js
@@ -52,6 +66,13 @@ import { format } from './utils/format'
 ## Avoid namespace imports — import * as [info] [imports, bundle]
 
 `import/no-namespace`. `import * as Foo from 'foo'` pulls every export into a namespace object, defeats tree-shaking in most bundlers, and obscures which symbols are actually used. Prefer named imports.
+
+### Check
+```yaml
+type: builtin
+id: namespace-import
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js

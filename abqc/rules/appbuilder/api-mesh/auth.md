@@ -5,6 +5,13 @@
 ## Use operationHeaders / schemaHeaders for upstream credentials, sourced from env [error] [auth, secrets]
 Static API keys and bearer tokens for upstream sources belong in `operationHeaders` (sent per request) or `schemaHeaders` (sent at schema introspection). Both must come from env placeholders, not literals. Hard-coding a token also prevents per-environment rotation.
 
+### Check
+```yaml
+type: builtin
+id: mesh-header-secrets
+files: ["**/meshConfig.json"]
+```
+
 ### Bad
 ```json
 { "operationHeaders": { "Authorization": "Bearer eyJhbGc...real-token" } }
@@ -17,6 +24,13 @@ Static API keys and bearer tokens for upstream sources belong in `operationHeade
 
 ## Cache short-lived OAuth/IMS tokens in a Runtime action — don't refresh per-request [warn] [performance, auth]
 Mesh hooks fire on every incoming GraphQL query. Calling IMS to mint a fresh token on each request adds 100–300ms latency and can hit IMS rate limits. Cache tokens in a Runtime action (using State SDK with TTL slightly less than token lifetime), have the mesh hook call the action.
+
+### Check
+```yaml
+type: builtin
+id: mesh-hook-token-cache
+files: ["**/*.{js,cjs,mjs,ts}"]
+```
 
 ### Bad
 ```js
@@ -33,6 +47,12 @@ const { token } = await fetch('https://<ns>.adobeioruntime.net/api/v1/web/get-im
 
 ## Never expose IMS tokens to the browser — mesh or Runtime must hold them [error] [auth, security]
 IMS access tokens grant access to Adobe APIs at the org level. If the mesh forwards them in responses (or front-end code holds them), a browser XSS becomes an Adobe-org compromise. Mesh-to-upstream auth is server-side only; browser sees a session cookie or short-lived app token instead.
+
+### Check
+```yaml
+type: builtin
+id: no-ims-token-in-response
+```
 
 ### Bad
 ```js

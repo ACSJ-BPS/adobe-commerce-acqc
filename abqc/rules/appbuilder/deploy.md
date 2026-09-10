@@ -6,6 +6,13 @@
 
 When you add or change an `apis:` block in `app.config.yaml`, the gateway takes 5–10 minutes to provision. Calls during that window 404. Don't deploy gateway changes immediately before a release, demo, or customer-facing event.
 
+### Check
+```yaml
+type: builtin
+id: gateway-provisioning-window
+scope: repo
+```
+
 ### Bad
 
 ```yaml
@@ -38,6 +45,13 @@ apis:
 
 Once `disable-download: true` is set on an action, it cannot be reverted. The action's source can no longer be retrieved via `wsk action get --code`. This is good for protecting proprietary code but bad if you set it by accident. Treat it as a one-way door.
 
+### Check
+```yaml
+type: builtin
+id: disable-download-undocumented
+files: ["**/*.config.yaml", "**/*.config.yml"]
+```
+
 ### Bad
 
 ```yaml
@@ -64,6 +78,13 @@ actions:
 ## Know your license-pack quotas — design within them [warn] [quota, scale]
 
 Each App Builder license pack ships with hard ceilings: **6 million GB-seconds of compute per year**, **24 million custom events per year**, **10 TB of CDN egress per year**, **1 TB of file storage**, and **~900 read/write ops per second on the State key-value store**. Limits aggregate across packs. An action burning a 1 GB container for 60 s consumes ~60 GB-s — a 100k-invocation/day workload at that profile exhausts a single pack's compute in ~2.7 years before any other action runs. Monitor usage in the Adobe Developer Console; design fan-out and memory tier with the budget in mind.
+
+### Check
+```yaml
+type: builtin
+id: license-quota-doc
+scope: repo
+```
 
 ### Bad
 
@@ -93,6 +114,13 @@ async function main (params) {
 
 Raw runtime URLs leak the App Builder namespace structure, are tied to a single workspace, and cannot be migrated without a customer-visible breaking change. For any productized API surface (webhook receivers, public callbacks, partner integrations), front the runtime with a vanity domain + CDN.
 
+### Check
+```yaml
+type: regex
+pattern: "\\.adobeioruntime\\.net"
+files: ["**/*.md", "**/docs/**/*.*"]
+```
+
 ### Bad
 
 ```text
@@ -113,6 +141,13 @@ Customer integration doc:
 ## Source runtime base URLs from config — never hard-code them in front-end code [warn] [config, urls]
 
 Front-end code with `https://12345-acme-prod.adobeioruntime.net/...` baked in cannot be deployed to a different workspace, and cannot switch to a vanity domain without a code change. Inject the base URL via `app.config.yaml` inputs or env vars at build time.
+
+### Check
+```yaml
+type: regex
+pattern: "\\.adobeioruntime\\.net"
+files: ["**/web-src/**/*.{js,jsx,ts,tsx}", "**/src/**/*.{js,jsx,ts,tsx}"]
+```
 
 ### Bad
 

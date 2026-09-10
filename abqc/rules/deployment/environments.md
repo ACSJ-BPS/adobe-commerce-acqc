@@ -6,6 +6,13 @@
 
 App Builder workspaces are full environment isolation: separate namespaces, credentials, runtime, gateway. Use Stage to run smoke + e2e against the deployed artifact, not just against a sandbox copy. A "this worked in dev" deploy that goes straight to prod is the most common cause of avoidable incidents.
 
+### Check
+```yaml
+type: builtin
+id: no-stage-before-prod
+scope: repo
+```
+
 ### Bad
 ```bash
 aio app use --workspace Production
@@ -28,6 +35,13 @@ aio app deploy
 ## Use environment-specific workspaces, not branches, for env separation [error] [pipeline, config]
 
 Stage and Production should be App Builder *workspaces*, not git branches. Workspaces give you isolated namespaces, separate IMS credentials, separate Runtime quotas, separate gateway URLs. Branch-based env separation (single workspace, different code paths) loses all of that and creates cross-environment incidents.
+
+### Check
+```yaml
+type: builtin
+id: env-branching-logic
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js

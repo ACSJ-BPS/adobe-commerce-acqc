@@ -24,6 +24,14 @@
 
 `jsx-a11y/anchor-is-valid` flags `<a>` with no `href`, `href="#"`, or `href="javascript:void(0)"`. Screen readers announce links by purpose — "click here" or "read more" tells the user nothing.
 
+### Check
+```yaml
+type: builtin
+id: vague-link-text
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
+Note: this check covers only the "meaningful text" half of the rule (a denylist of vague link phrases). The structural "has href" half is enforced separately via ESLint's `jsx-a11y/anchor-is-valid`.
+
 ### Bad
 ```jsx
 <a onClick={openModal}>click here</a>

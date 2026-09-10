@@ -6,6 +6,13 @@
 
 `@typescript-eslint/no-floating-promises` catches promises that are neither `await`ed nor `.then`/`.catch`-ed. In the App Builder runtime this is fatal: an unhandled rejection kills the container (see node.md). The lint rule catches the issue at compile time.
 
+### Check
+```yaml
+type: builtin
+id: ts-floating-promise-approx
+files: ["**/*.{ts,tsx}"]
+```
+
 ### Bad
 ```ts
 async function main (params: Params) {
@@ -28,6 +35,13 @@ async function main (params: Params) {
 
 `if (asyncFn())` checks the truthiness of the Promise object (always true) — never the resolved value. Same for `while`, `forEach`, etc. `@typescript-eslint/no-misused-promises` catches these cases.
 
+### Check
+```yaml
+type: builtin
+id: ts-misused-promise-approx
+files: ["**/*.{ts,tsx}"]
+```
+
 ### Bad
 ```ts
 if (await isAuthorized(user)) { /* unrelated bug — but: */ }
@@ -48,6 +62,13 @@ await Promise.all([1,2,3].map(save))         // parallel
 
 `await x` where `x` is not a Promise wraps it and returns it unchanged — but signals to readers (incorrectly) that `x` is async. `@typescript-eslint/await-thenable` flags it. Almost always indicates a refactor that left an `await` behind.
 
+### Check
+```yaml
+type: builtin
+id: ts-await-non-promise-approx
+files: ["**/*.{ts,tsx}"]
+```
+
 ### Bad
 ```ts
 const total = await sumLines(order)   // sumLines returns number, not Promise<number>
@@ -63,6 +84,13 @@ const total = sumLines(order)
 ## Functions that return promises should be marked async [warn] [async, style]
 
 `promise-function-async` enforces this. A non-async function that returns a Promise works, but readers don't know to await it without checking the implementation. Marking it `async` makes the asynchrony visible at the signature level.
+
+### Check
+```yaml
+type: builtin
+id: ts-unmarked-async-approx
+files: ["**/*.{ts,tsx}"]
+```
 
 ### Bad
 ```ts
@@ -84,6 +112,13 @@ async function fetchOrder (id: string): Promise<Order> {
 ## Type async function return as Promise<T>, not just T [warn] [style, async]
 
 An `async` function returning `T` is implicitly `Promise<T>`, but typing it explicitly as `Promise<T>` documents asynchrony at the signature level — useful for interface declarations and JSDoc.
+
+### Check
+```yaml
+type: builtin
+id: async-return-type-not-wrapped
+files: ["**/*.{ts,tsx}"]
+```
 
 ### Bad
 ```ts

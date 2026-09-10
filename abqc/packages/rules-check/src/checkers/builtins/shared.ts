@@ -16,6 +16,86 @@ export function skipNonEntryAction(ctx: CheckContext): boolean {
   return !!entries && entries.size > 0 && !entries.has(ctx.filePath);
 }
 
+/**
+ * True when the file lives under a Commerce/synchronous `webhook` package
+ * (`actions/webhook/...`). Adobe Commerce "webhooks" are *synchronous* REST
+ * hooks that return `{ statusCode, body: <patch ops | exception> }` — a
+ * distinct contract from asynchronous Adobe I/O Events consumers. The I/O
+ * Events-specific rules (challenge-response handshake, payload-HMAC
+ * verification, idempotency keyed by CloudEvents `event_id`, journaling /
+ * batch-vs-sync) do NOT apply to synchronous Commerce webhooks, so those
+ * checkers must exclude these files to avoid false positives.
+ */
+export function isCommerceWebhookAction(ctx: CheckContext): boolean {
+  const p = ctx.filePath.replace(/\\/g, "/");
+  return /(^|\/)actions\/webhook\//i.test(p);
+}
+
+/**
+ * True when the file returns an HTTP response object (`return { statusCode:
+ * ... }`) — the shape of a synchronous web action / Commerce REST webhook,
+ * as opposed to an asynchronous I/O Events consumer whose result is not an
+ * HTTP envelope. Purely static (regex over source, no execution).
+ */
+export function returnsHttpEnvelope(content: string): boolean {
+  return /\breturn\s*\{[\s\S]{0,400}?\bstatusCode\s*:/.test(content);
+}
+
+/**
+ * True when the file reads the Adobe I/O Events / CloudEvents envelope id
+ * (`params.event_id`, `params.eventid`, or bracket access). Only asynchronous
+ * I/O Events delivery populates this field, so it is a reliable positive
+ * signal that the action is an I/O Events consumer — unlike `params.data` /
+ * `params.type`, which synchronous Commerce webhooks also read.
+ */
+export function readsIoEventEnvelope(content: string): boolean {
+  return /params\s*(?:\.\s*event_?id\b|\[\s*['"]event_?id['"]\s*\])/i.test(content);
+}
+
+/**
+ * Classify a file as a genuine asynchronous Adobe I/O Events consumer:
+ * an action entry file (when config is in scope) that is NOT a synchronous
+ * Commerce webhook and shows positive evidence of reading the I/O Events
+ * envelope id. Conservative by design — under-flagging an exotic layout is
+ * preferred over the false positives the old path-only heuristic produced.
+ */
+export function isIoEventsConsumer(ctx: CheckContext): boolean {
+  if (skipNonEntryAction(ctx)) return false;
+  const p = ctx.filePath.replace(/\\/g, "/");
+  if (!/(^|\/)actions\//.test(p)) return false;
+  if (isCommerceWebhookAction(ctx)) return false;
+  const eventPath = /(^|\/)(events?|consumer|subscriber)(?:[/_.-]|$)/i.test(p);
+  return readsIoEventEnvelope(ctx.content) || eventPath;
+}
+
+/**
+ * Positive evidence that an action receives a RAW third-party webhook (Slack,
+ * GitHub, Stripe, …) and therefore must implement its own challenge-response
+ * handshake and HMAC signature verification. Keyed on the provider signature
+ * headers those integrations send or an explicit `params.challenge` read.
+ */
+export function isRawWebhookReceiver(ctx: CheckContext): boolean {
+  if (skipNonEntryAction(ctx)) return false;
+  const c = ctx.content;
+  return (
+    /x-slack-signature|x-hub-signature|stripe-signature|x-webhook-signature|verification[_-]?token/i.test(c) ||
+    /params\s*(?:\.\s*challenge\b|\[\s*['"]challenge['"]\s*\])/i.test(c)
+  );
+}
+
+/**
+ * Files that may contain JSX. `aio app init`'s standard scaffold and every
+ * official Adobe sample write JSX inside plain `.js` files, not `.jsx` — a
+ * `.jsx`/`.tsx`-only extension check (the historical convention this codebase
+ * used to follow) misses the majority of real App Builder/Admin-UI-SDK
+ * component files. Kept in sync with `shouldParseAsJsx` in `utils/parse.ts`.
+ */
+export const JSX_CAPABLE_FILE_RE = /\.(jsx|tsx|js|mjs|cjs)$/i;
+
+export function isJsxCapableFile(filePath: string): boolean {
+  return JSX_CAPABLE_FILE_RE.test(filePath);
+}
+
 export function requireParsed(ctx: CheckContext): ParsedSource | CheckHit[] {
   const parsed = parseSource(ctx.content, ctx.filePath);
   if (!parsed) {

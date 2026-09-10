@@ -6,6 +6,13 @@
 
 Standard JS naming. Constants only get `UPPER_SNAKE` if they are module-level immutable primitives — not arbitrary `const`s. Mixing styles within a file makes diffs harder to scan.
 
+### Check
+```yaml
+type: builtin
+id: naming-convention
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 const Max_Retries = 3
@@ -25,6 +32,13 @@ class OrderProcessor { }
 ## Prefer named exports for utilities — default exports for pages/components [info] [style, api-design]
 
 Named exports give consumers the canonical name (refactor-safe; renaming the export breaks all imports) and let multiple things ship from one file. Reserve `export default` for "the one thing this file is" — a React page, an action's `main`. ESLint plugin `import/prefer-default-export` is *the opposite of this rule* — disable it.
+
+### Check
+```yaml
+type: builtin
+id: export-style-by-path
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js

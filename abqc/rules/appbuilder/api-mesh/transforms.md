@@ -5,6 +5,13 @@
 ## Use filterSchema to remove admin or debug operations from the public schema [error] [security, schema]
 Upstream sources often expose mutations and queries intended for internal use (`adminDeleteUser`, `debugDumpCache`). Without explicit filtering, mesh re-exposes them. The `filterSchema` transform removes them from the generated schema entirely.
 
+### Check
+```yaml
+type: builtin
+id: mesh-filterschema-missing
+files: ["**/meshConfig.json"]
+```
+
 ### Bad
 ```json
 { "transforms": [] }
@@ -19,6 +26,13 @@ Upstream sources often expose mutations and queries intended for internal use (`
 ## Use prefix and rename for a coherent, frontend-friendly schema [info] [schema, ux]
 Upstream type names (`commerce_v2_product_t`) leak vendor naming into your client code. The `prefix` and `rename` transforms let you present `Product` cleanly. Apply them once, version them, don't churn.
 
+### Check
+```yaml
+type: builtin
+id: mesh-raw-naming
+files: ["**/meshConfig.json"]
+```
+
 ### Bad
 ```graphql
 # client code references upstream naming directly
@@ -32,6 +46,13 @@ query { commerce_v2_product_t(id: $id) { SKU } }
 
 ## Keep additionalResolvers thin — orchestrate, don't implement business logic [warn] [architecture, separation]
 It's tempting to put business rules in resolvers ("apply 10% discount if customer.tier === 'gold'"). That logic belongs in upstream services or Runtime actions. Resolvers should validate, call 1–2 upstreams, and shape the result.
+
+### Check
+```yaml
+type: builtin
+id: mesh-resolver-thin
+files: ["**/resolvers/**"]
+```
 
 ### Bad
 ```js
@@ -53,6 +74,13 @@ resolve: (root, args, ctx) => fetch('/pricing-service/quote', {
 
 ## Use federation or type-merging only with clear data relationships [warn] [performance, schema]
 Type-merging joins types across sources by a key. Done well it's powerful; done carelessly it generates fanout (one upstream call per type instance). Only merge types with strong key alignment and bounded list sizes.
+
+### Check
+```yaml
+type: builtin
+id: mesh-typemerging-unbounded
+files: ["**/meshConfig.json"]
+```
 
 ### Bad
 ```json

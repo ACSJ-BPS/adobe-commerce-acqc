@@ -5,6 +5,13 @@
 ## Use the extensions pattern in app.config.yaml — not actions/applications [error] [config, structure]
 Admin UI SDK apps must declare `extensions:` at the top level of `app.config.yaml`, with `$include` pointing at `src/commerce-backend-ui-1/ext.config.yaml`. The legacy `actions:` / `application:` pattern at the top level is the most common review-failure cause and produces apps that simply don't show up in Commerce admin.
 
+### Check
+```yaml
+type: builtin
+id: legacy-application-pattern
+files: ["**/app.config.yaml"]
+```
+
 ### Bad
 ```yaml
 # app.config.yaml — legacy pattern, app won't register
@@ -27,6 +34,13 @@ productDependencies:
 ## Place all Admin UI SDK code under src/commerce-backend-ui-1/ — not at repo root [error] [structure, layout]
 The Admin UI SDK extension layout requires `actions/` and `web-src/` to live under `src/commerce-backend-ui-1/`, not at the repo root. Putting them at the root means the `$include` in `app.config.yaml` won't resolve and the registration action won't deploy.
 
+### Check
+```yaml
+type: builtin
+id: admin-ui-code-location
+scope: repo
+```
+
 ### Bad
 ```text
 my-app/
@@ -48,6 +62,13 @@ my-app/
 
 ## Application block belongs in ext.config.yaml, not app.config.yaml [error] [config, structure]
 The `application:` block (with `web.root`, `web.dist`, `entryFile`) lives in `src/commerce-backend-ui-1/ext.config.yaml`, alongside the `actions:` block for the registration runtime. Putting it in `app.config.yaml` works for plain App Builder apps but breaks the Admin UI SDK extension lifecycle.
+
+### Check
+```yaml
+type: builtin
+id: application-block-location
+files: ["**/app.config.yaml"]
+```
 
 ### Bad
 ```yaml

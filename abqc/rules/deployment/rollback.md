@@ -6,6 +6,13 @@
 
 Adobe Developer Console exposes per-action activation metrics: success/failure counts, p50/p95/p99 latency, 429 throttling, container reuse. Wire these to your monitoring (New Relic, Datadog, Grafana via API export) and alert on a sustained error-rate spike or latency drift after every deploy. A deploy that succeeds in CI but breaks 10% of real traffic is invisible without this.
 
+### Check
+```yaml
+type: builtin
+id: missing-post-deploy-monitoring
+scope: repo
+```
+
 ### Bad
 ```text
 # deploy succeeded → close PR → walk away
@@ -26,6 +33,13 @@ post-deploy automation:
 ## Have a one-command rollback — never "redeploy the previous commit" under pressure [error] [rollback, safety]
 
 A real incident is the worst time to discover that "rollback" means cherry-picking commits, rebuilding, and re-deploying. Tag every prod deploy (`prod-2026-04-29-1430`), keep the previous artifact retrievable, and have a single command (or button) that restores it. `aio app deploy --workspace Production` from a known-good tag is acceptable; building from main is not.
+
+### Check
+```yaml
+type: builtin
+id: missing-rollback-script
+scope: repo
+```
 
 ### Bad
 ```bash

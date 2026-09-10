@@ -6,6 +6,13 @@
 
 I/O Runtime is built for high-fan-out parallelism. A 1000-item batch processed serially in one action will time out; the same 1000 items dispatched as 1000 individual triggers process in seconds. Use `Promise.all` for IO-bound parallelism and OpenWhisk triggers for cross-action fan-out.
 
+### Check
+```yaml
+type: builtin
+id: serial-await-in-loop
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
+
 ### Bad
 ```js
 for (const id of params.orderIds) await syncOrder(id)
@@ -23,6 +30,13 @@ await Promise.all(params.orderIds.map(id =>
 ## Defer all I/O and heavy imports out of module scope to avoid cold-start latency [warn] [performance, cold-start]
 
 I/O Runtime creates a new container (cold start) whenever no warm container is available. Synchronous I/O, large `require` chains, or blocking setup at module load time adds latency directly before `main()` is called. Keep the module-load path lean — only configure constants and set up the logger. Defer all network calls, file reads, and optional SDK initializations into `main()` or into a lazy-singleton pattern. Warm containers reuse the already-initialized singleton on subsequent invocations, so this pattern is both a correctness and performance win.
+
+### Check
+```yaml
+type: builtin
+id: no-module-scope-io
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
 
 ### Bad
 ```js
@@ -58,6 +72,13 @@ async function main (params) {
 
 `aio-lib-state` defaults to a **1 GB storage cap** and **1 MB per value**, but burst read/write bandwidth is also rate-limited at the namespace level. Applications that fan out parallel writes — bulk event ingestion, concurrent action invocations — can hit bandwidth throttling even when well under storage quota. Identify heavy-state workflows during design, estimate peak throughput, and file an IOEXT quota-increase request before going to production. For high-throughput workloads, consider whether `aio-lib-files` (object storage, 1 TB cap, no per-request rate limits) is a better fit than State.
 
+### Check
+```yaml
+type: builtin
+id: state-write-concurrency
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
+
 ### Bad
 ```js
 // 200 concurrent actions each writing to aio-lib-state with no throttle
@@ -79,6 +100,13 @@ await pMap(events, ev => stateLib.put(ev.id, ev.payload), { concurrency: 10 })
 ## Pagination loops need an explicit max-pages safety limit [error] [performance, reliability]
 
 A naive `while (hasNext)` paging loop will run until either the upstream returns no more data or the action hits the 60s cap and dies mid-page. Always cap the loop with an explicit max iteration count, and persist a checkpoint so a follow-up invocation can resume.
+
+### Check
+```yaml
+type: builtin
+id: pagination-max-pages
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
 
 ### Bad
 ```js
@@ -106,6 +134,13 @@ if (response.has_next) {
 ## Chunk large jobs across invocations with State checkpoints [warn] [performance, batch]
 
 Bulk jobs (full Commerce export, AEP backfill) routinely exceed the 60s cap when run as a single invocation. Split the work: each invocation processes one chunk, writes a "last processed ID" checkpoint to State, and either re-invokes itself or returns "more pending" to the caller.
+
+### Check
+```yaml
+type: builtin
+id: chunk-checkpoints
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
 
 ### Bad
 ```js
@@ -135,6 +170,12 @@ exports.main = async ({ chunkSize = 500 }) => {
 
 Returning a 50 MB JSON response from an action burns memory, blows past the action response size limit, and forces clients to hold the whole payload in memory. Stream the result into Files SDK and return a presigned URL.
 
+### Check
+```yaml
+type: builtin
+id: bulk-export-files-sdk
+```
+
 ### Bad
 ```js
 exports.main = async () => {
@@ -160,6 +201,13 @@ exports.main = async () => {
 
 Per-action GB-seconds is the dominant cost driver. Actions that process 10KB events at 1024MB cost 4× what they should. Set memory and `container concurrency` per action based on actual workload — small handlers at 256MB, heavy transforms at 1024MB, fan-out coordinators at 512MB with high concurrency.
 
+### Check
+```yaml
+type: builtin
+id: uniform-memory-concurrency
+scope: repo
+```
+
 ### Bad
 ```yaml
 # every action at default
@@ -181,6 +229,12 @@ actions:
 ## Prefer batch processing over per-event sync HTTP for high-volume streams [warn] [cost, performance]
 
 A per-event sync handler at 50 events/sec runs 50 concurrent invocations, each paying cold-start, container, and 256MB minimum. The same workload as a batch consumer running once per minute and processing 3000 events is 50–100× cheaper. Use journaling for high-volume streams.
+
+### Check
+```yaml
+type: builtin
+id: events-batch-vs-sync
+```
 
 ### Bad
 ```yaml

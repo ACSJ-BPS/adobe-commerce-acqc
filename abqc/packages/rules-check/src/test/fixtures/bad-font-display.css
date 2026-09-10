@@ -1,0 +1,10 @@
+@font-face {
+  font-family: 'Brand Sans';
+  src: url('/fonts/brand-sans.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Brand Mono';
+  src: url('/fonts/brand-mono.woff2') format('woff2');
+  font-display: block;
+}

@@ -6,6 +6,13 @@
 
 `import/no-cycle`. A module that imports another which (transitively) imports back creates a runtime initialization-order bug: at least one side sees `undefined` for the imports during module load. The fix is almost always to extract the shared part into a third module that both depend on.
 
+### Check
+```yaml
+type: builtin
+id: circular-import
+scope: repo
+```
+
 ### Bad
 ```js
 // orders.js

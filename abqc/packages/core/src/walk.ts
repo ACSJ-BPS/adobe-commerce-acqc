@@ -97,38 +97,47 @@ export async function walkDirectory(
   skipDirs: Set<string> = DEFAULT_SKIP_DIRS,
   cap = MAX_WALK_FILES,
   logPrefix = "[abqc]",
-  count = { n: 0, warned: false },
 ): Promise<string[]> {
   const out: string[] = [];
-  let entries;
-  try {
-    entries = await readdir(dir, { withFileTypes: true });
-  } catch {
-    return out;
-  }
-  // readdir's order is filesystem-dependent (not alphabetical on every OS/FS) —
-  // sorting makes which files survive the `cap` truncation below deterministic
-  // and reproducible across machines/CI runners, instead of varying by
-  // directory-entry order on disk.
-  entries = entries.slice().sort((a, b) => a.name.localeCompare(b.name));
-  for (const e of entries) {
-    if (count.n >= cap) {
-      if (!count.warned) {
-        process.stderr.write(
-          `${logPrefix} walk capped at ${cap} files — pass specific paths to review more\n`,
-        );
-        count.warned = true;
-      }
-      break;
+  let warned = false;
+  // Breadth-first, not depth-first: a single alphabetically-early subtree
+  // (e.g. a vendored/unrelated directory with tens of thousands of files)
+  // must not exhaust the whole `cap` before sibling directories are ever
+  // visited. A FIFO queue naturally processes the tree level-by-level, so
+  // every directory gets a shallow pass before any one of them is walked
+  // deeply — depth-first recursion gave earlier siblings no such guarantee.
+  const queue: string[] = [dir];
+  while (queue.length > 0 && out.length < cap) {
+    const current = queue.shift() as string;
+    let entries;
+    try {
+      entries = await readdir(current, { withFileTypes: true });
+    } catch {
+      continue;
     }
-    const isDotDir = e.isDirectory() && e.name.startsWith(".");
-    if ((isDotDir && !ALLOWED_DOT_DIRS.has(e.name)) || skipDirs.has(e.name)) continue;
-    const full = join(dir, e.name);
-    if (e.isDirectory()) {
-      out.push(...(await walkDirectory(full, skipDirs, cap, logPrefix, count)));
-    } else if (e.isFile() && !isGeneratedFile(e.name) && !isUnreviewableFile(e.name)) {
-      out.push(full);
-      count.n++;
+    // readdir's order is filesystem-dependent (not alphabetical on every OS/FS) —
+    // sorting makes which files survive the `cap` truncation below deterministic
+    // and reproducible across machines/CI runners, instead of varying by
+    // directory-entry order on disk.
+    entries = entries.slice().sort((a, b) => a.name.localeCompare(b.name));
+    for (const e of entries) {
+      const isDotDir = e.isDirectory() && e.name.startsWith(".");
+      if ((isDotDir && !ALLOWED_DOT_DIRS.has(e.name)) || skipDirs.has(e.name)) continue;
+      const full = join(current, e.name);
+      if (e.isDirectory()) {
+        queue.push(full);
+      } else if (e.isFile() && !isGeneratedFile(e.name) && !isUnreviewableFile(e.name)) {
+        if (out.length >= cap) {
+          if (!warned) {
+            process.stderr.write(
+              `${logPrefix} walk capped at ${cap} files — pass specific paths to review more\n`,
+            );
+            warned = true;
+          }
+          break;
+        }
+        out.push(full);
+      }
     }
   }
   return out;

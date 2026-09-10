@@ -8,6 +8,13 @@ A secret committed to git is compromised the moment the commit lands — even on
 
 **Why it was missing:** The "no hardcoded keys" security rule was a code-quality judgment. The enforcement mechanism — a pre-commit scanner that makes the rule automatic — belongs in the deployment/pipeline layer, not the security layer, and was missing from both. OWASP SCA methodology specifically calls out pre-commit as the earliest possible intervention point in the SDLC.
 
+### Check
+```yaml
+type: builtin
+id: missing-precommit-secrets-scan
+scope: repo
+```
+
 ### Bad
 ```bash
 # no pre-commit hook — relies entirely on developer discipline and code review
@@ -56,6 +63,13 @@ pre-commit install
 
 Long-lived JWT private keys or static runtime auth tokens in CI secrets are a credential-leak risk and force manual rotation. Adobe's `aio-apps-action oauth_sts` exchanges an OAuth S2S client credential for a short-lived runtime token at deploy time — the static credential never touches a long-lived form factor.
 
+### Check
+```yaml
+type: builtin
+id: static-ci-token
+scope: repo
+```
+
 ### Bad
 ```yaml
 env:
@@ -82,6 +96,13 @@ env:
 ## Never check in console.json, private keys, or .aio credentials files [error] [secrets, git]
 
 The `console.json` downloaded from Dev Console contains the project's IMS credentials in plaintext. `.aio` and any `*.pem` private keys do too. Add them to `.gitignore` from day one and verify with a `git ls-files` check in CI; one accidental commit means full credential rotation.
+
+### Check
+```yaml
+type: builtin
+id: secrets-git
+scope: repo
+```
 
 ### Bad
 ```text

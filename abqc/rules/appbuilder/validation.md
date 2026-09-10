@@ -6,6 +6,13 @@
 
 The auto-generated `actions/utils.js` ships with `checkMissingRequestInputs(params, requiredParams, requiredHeaders)`. Calling it first means SDK clients never see missing credentials and you return a clean 400 instead of a stack trace from deep inside an Adobe SDK call.
 
+### Check
+```yaml
+type: builtin
+id: check-missing-inputs-first
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
+
 ### Bad
 ```js
 async function main (params) {
@@ -32,6 +39,13 @@ async function main (params) {
 
 Adobe's Security Overview is explicit: "Parameters sent to actions are not sanitized by the Runtime system." Any value reachable from `params` — including `params.__ow_headers`, `params.__ow_query`, and your own action inputs — must be treated as adversarial input.
 
+### Check
+```yaml
+type: builtin
+id: params-to-sql-eval-shell
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
+
 ### Bad
 ```js
 async function main (params) {
@@ -51,6 +65,14 @@ async function main (params) {
 ## Do not read params.body for input — validator overwrites it [error] [runtime, gotcha]
 
 The Runtime validator always passes `"body": { "message": "validation success" }` during validation invocations. An action that reads `params.body` for real input data will silently behave differently between validation and production — a bug class that's nearly impossible to reproduce locally.
+
+### Check
+```yaml
+type: regex
+pattern: "params\\.body\\b"
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+strip: [strings, comments]
+```
 
 ### Bad
 ```js
@@ -75,6 +97,13 @@ async function main (params) {
 `openwhisk().actions.invoke({ name: params.actionName })` is the I/O Runtime equivalent of `eval`: an attacker who controls `params.actionName` can invoke any action in your namespace, including admin-only or token-minting actions. Always use a hard-coded name or a lookup table with a fixed allow-set.
 
 **Why it was missing:** Command injection in Node.js was covered (child_process), but the equivalent pattern at the OpenWhisk API level was not — it requires knowing the App Builder invocation model specifically.
+
+### Check
+```yaml
+type: builtin
+id: no-dynamic-action-invoke-name
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
 
 ### Bad
 ```js

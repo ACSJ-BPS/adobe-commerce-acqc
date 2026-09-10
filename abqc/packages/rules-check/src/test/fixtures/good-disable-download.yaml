@@ -1,0 +1,4 @@
+actions:
+  myaction:
+    # reviewed and approved: ticket ABC-123
+    disable-download: true

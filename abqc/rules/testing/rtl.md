@@ -6,6 +6,13 @@
 
 React Testing Library queries by role/text/label encourage testing what users see rather than implementation details. Enzyme (deprecated for React 19) and raw `container.querySelector` couple tests to the DOM tree, breaking on safe refactors.
 
+### Check
+```yaml
+type: builtin
+id: enzyme-import
+files: ["**/*.{test,spec}.{js,jsx,ts,tsx}"]
+```
+
 ### Bad
 ```js
 const wrapper = mount(<OrderRow order={fixture} />)
@@ -24,6 +31,13 @@ expect(getByText(fixture.customer)).toBeInTheDocument()
 ## Test user behavior, not implementation details [warn] [react, philosophy]
 
 Asserting "useState was called with X" or "this private method ran" couples tests to implementation. If you refactor the component to use `useReducer` or move logic to a custom hook, the test breaks even though the behavior is unchanged. Test the visible effect: clicking a button shows a confirmation, typing in a field updates the displayed value.
+
+### Check
+```yaml
+type: builtin
+id: implementation-detail-test
+files: ["**/*.{test,spec}.{js,jsx,ts,tsx}"]
+```
 
 ### Bad
 ```js
@@ -51,6 +65,13 @@ test('increments count', async () => {
 ## Use waitFor / findBy for async UI — never raw setTimeout [error] [async, flaky]
 
 `setTimeout(() => expect(...), 1000)` makes tests slow (always waits the full timeout) and flaky (asserts before the UI is ready on slow machines). `findBy*` queries and `waitFor` retry until the condition holds or the test times out.
+
+### Check
+```yaml
+type: builtin
+id: raw-settimeout-in-test
+files: ["**/*.{test,spec}.{js,jsx,ts,tsx}"]
+```
 
 ### Bad
 ```js

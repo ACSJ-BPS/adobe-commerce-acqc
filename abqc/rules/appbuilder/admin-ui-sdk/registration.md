@@ -5,6 +5,13 @@
 ## Use a vendor-prefixed extension ID consistently across register(), attach(), and the registration payload [error] [contracts, registration]
 The extension ID is the join key between three places: the `register({ id })` call in the SPA entry, the `attach({ id })` call from any sub-page that needs shared context, and the registration action's response payload (used in `actionId`, menu item IDs, etc.). A mismatch silently breaks `attach()` and shared-context retrieval. Always vendor-prefix to avoid collisions (`acme_tax`, not `tax`).
 
+### Check
+```yaml
+type: builtin
+id: extension-id-consistency
+scope: repo
+```
+
 ### Bad
 ```js
 // SPA entry
@@ -23,6 +30,13 @@ await attach({ id: EXTENSION_ID });
 
 ## One menu entry per app — use SPA internal routing for multiple screens [warn] [ux, registration]
 Admin UI SDK currently has limited support for multi-menu per app. The recommended pattern is one top-level menu item that opens an SPA with internal routes/tabs. Trying to declare two menus that route to different HTML pages produces inconsistent behavior across Commerce versions.
+
+### Check
+```yaml
+type: builtin
+id: one-menu-entry
+files: ["**/app.config.yaml", "**/ext.config.yaml"]
+```
 
 ### Bad
 ```js
@@ -43,6 +57,13 @@ menuItems: [
 
 ## Keep the registration payload small and stable — Commerce caches it as configuration [warn] [performance, registration]
 Commerce caches the registration response server-side and in `sessionStorage`. The action is not called per page load — treat it like configuration, not a data feed. Computing heavy data inside `registration` (DB queries, third-party API calls) wastes invocations and risks stale results due to caching.
+
+### Check
+```yaml
+type: builtin
+id: registration-payload-pure
+files: ["**/actions/**registration**"]
+```
 
 ### Bad
 ```js

@@ -4,7 +4,13 @@
 
 ## No bracket access on user-controlled keys — object injection [error] [injection]
 
-`obj[params.key] = params.value` lets an attacker write to any property — including `__proto__`, `constructor`, `prototype`. This is the prototype-pollution attack class. `eslint-plugin-security`'s `detect-object-injection` flags it.
+`obj[params.key] = params.value` lets an attacker write to any property — including `__proto__`, `constructor`, `prototype`. This is the prototype-pollution attack class. `eslint-plugin-security`'s `detect-object-injection` only recognizes a bare identifier as the bracket key and misses this exact `obj[params.key]` shape, so this uses a dedicated AST check instead.
+
+### Check
+```yaml
+type: builtin
+id: object-injection-member-key
+```
 
 ### Bad
 ```js
@@ -88,7 +94,14 @@ const data = await fs.readFile(target, 'utf8')
 
 ## No pseudoRandomBytes for security-sensitive values [error] [crypto, randomness]
 
-`crypto.pseudoRandomBytes` is non-cryptographic — predictable from a known seed. `eslint-plugin-security`'s `detect-pseudoRandomBytes`. Always use `crypto.randomBytes` or `crypto.randomUUID` for tokens, salts, IVs.
+`crypto.pseudoRandomBytes` is non-cryptographic — predictable from a known seed. `eslint-plugin-security`'s `detect-pseudoRandomBytes` only pattern-matches a `<identifier>.pseudoRandomBytes(...)` member call — it misses the equally common destructured form (`const { pseudoRandomBytes } = require('node:crypto')`). This regex catches the call by name regardless of how it was imported.
+
+### Check
+```yaml
+type: regex
+pattern: "\\bpseudoRandomBytes\\s*\\("
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js
@@ -107,6 +120,13 @@ const sessionId = randomBytes(16).toString('hex')
 ## Use crypto.timingSafeEqual for token / HMAC comparison [warn] [crypto, timing]
 
 Comparing tokens with `===` or `Buffer.compare` short-circuits on the first mismatched byte. `eslint-plugin-security`'s `detect-possible-timing-attacks`. The timing leak lets an attacker brute-force one byte at a time. Use `crypto.timingSafeEqual` for any secret-equality check.
+
+### Check
+```yaml
+type: builtin
+id: timing-unsafe-compare
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js
@@ -127,6 +147,13 @@ return reject()
 ## Reject Unicode bidi characters in source — trojan source attack [error] [supply-chain]
 
 Bidi control characters (U+202A–U+202E, U+2066–U+2069) reorder how source code is rendered without changing the bytes — letting attackers hide malicious code in plain sight. `eslint-plugin-security`'s `detect-bidi-characters`. CI should reject any commit containing them.
+
+### Check
+```yaml
+type: builtin
+id: bidi-chars
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js

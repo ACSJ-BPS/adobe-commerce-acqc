@@ -5,6 +5,13 @@
 ## Avoid N+1 in additionalResolvers — batch upstream calls or add bulk endpoints [error] [performance, n+1]
 A naive resolver that calls a REST endpoint per item turns a 50-item list query into 50 upstream HTTP calls. Either batch with `dataloader`-style aggregation, add a bulk endpoint upstream, or denormalize the relationship at ingest.
 
+### Check
+```yaml
+type: builtin
+id: mesh-resolver-n-plus-1
+files: ["**/resolvers/**", "**/resolvers.js", "**/resolvers.ts"]
+```
+
 ### Bad
 ```js
 resolve: async (root) => Promise.all(root.products.map(p => fetch(`/pricing/${p.id}`)))
@@ -17,6 +24,13 @@ resolve: async (root) => fetch('/pricing/bulk', { method: 'POST', body: JSON.str
 
 ## Validate args in resolvers — reject extreme pageSize/limit [warn] [performance, validation]
 A query like `products(pageSize: 100000)` can OOM the mesh worker or hammer upstream. Resolvers must validate args (e.g., `pageSize <= 100`) and reject early. Mesh does not enforce this for you.
+
+### Check
+```yaml
+type: builtin
+id: mesh-resolver-pagesize-guard
+files: ["**/resolvers/**", "**/resolvers.js", "**/resolvers.ts"]
+```
 
 ### Bad
 ```js
@@ -34,6 +48,13 @@ resolve: (_, args) => {
 ## Design queries to complete well under the 60s edge timeout [warn] [performance, timeout]
 API Mesh enforces a hard ~60s timeout at the edge. Sequence steps and slow upstreams that consume even half of that leave no headroom for retries or spikes. Target a p95 well under 5s for storefront queries.
 
+### Check
+```yaml
+type: builtin
+id: sequence-budget
+files: ["**/*.config.yaml", "**/*.config.yml", "**/app.config.yaml"]
+```
+
 ### Bad
 ```js
 // resolver does three sequential 10s upstream calls
@@ -48,6 +69,13 @@ const c = await fetchC(a, b); // only chain when there's a real dependency
 
 ## Don't rely on mesh for query depth or cost limits — they aren't enforced today [warn] [security, limits]
 Adobe's API Mesh roadmap lists query depth limits, cost analysis, and persisted queries as not-yet-implemented. Don't assume they'll catch a malicious deep nested query. Implement at the resolver layer or with operation allowlisting in your client.
+
+### Check
+```yaml
+type: builtin
+id: mesh-no-depth-guard
+files: ["**/resolvers/**", "**/resolvers.js", "**/resolvers.ts"]
+```
 
 ### Bad
 ```graphql
@@ -64,6 +92,13 @@ if (depth(info) > 5) throw new GraphQLError('Query too deep');
 ## Don't rely on mesh for per-tenant rate limiting — enforce upstream [warn] [reliability, rate-limit]
 Cloudflare WAF protects mesh against DDoS, but per-tenant or per-customer rate limits are not exposed to mesh customers today. Enforce at the upstream service or via a Runtime action with State-backed counters.
 
+### Check
+```yaml
+type: builtin
+id: mesh-no-ratelimit-guard
+files: ["**/resolvers/**", "**/resolvers.js", "**/resolvers.ts", "**/hooks/**"]
+```
+
 ### Bad
 ```text
 // assume mesh will throttle a noisy tenant — it won't
@@ -79,6 +114,13 @@ await state.put(`rate:${tenantId}`, count + 1, { ttl: 60 });
 
 ## Hooks run per-request — keep fast and deterministic; no slow external calls [warn] [performance, hooks]
 `beforeAll` and similar hooks fire on the hot path of every GraphQL request. Doing token-mint, DB lookups, or feature-flag fetches there adds latency to every query. Pre-cache; defer to async paths where possible.
+
+### Check
+```yaml
+type: builtin
+id: mesh-hook-slow-call
+files: ["**/hooks/**"]
+```
 
 ### Bad
 ```js

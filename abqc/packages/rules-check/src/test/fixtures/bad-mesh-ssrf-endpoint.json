@@ -1,0 +1,10 @@
+{
+  "meshConfig": {
+    "sources": [
+      {
+        "name": "Proxy",
+        "handler": { "graphql": { "endpoint": "https://{{headers.x-target-host}}/graphql" } }
+      }
+    ]
+  }
+}

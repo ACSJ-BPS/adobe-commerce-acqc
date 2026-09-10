@@ -6,6 +6,13 @@
 
 A single uncaught render-time error in any descendant unmounts the entire React tree by default (React 19 behavior). Wrap each route in an Error Boundary with a fallback UI to localize blast radius.
 
+### Check
+```yaml
+type: builtin
+id: route-no-error-boundary
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
+
 ### Bad
 ```jsx
 <Routes>
@@ -29,6 +36,13 @@ A single uncaught render-time error in any descendant unmounts the entire React 
 ## Iframes must specify a sandbox attribute [error] [security, iframe]
 
 `react/iframe-missing-sandbox`. An unsandboxed iframe can run arbitrary JS, navigate the parent, and access cookies. Always specify `sandbox` with the minimum permissions the embedded content needs (`allow-scripts`, `allow-same-origin`, etc.).
+
+### Check
+```yaml
+type: builtin
+id: iframe-no-sandbox
+files: ["**/*.{jsx,tsx,js,mjs,cjs}"]
+```
 
 ### Bad
 ```jsx

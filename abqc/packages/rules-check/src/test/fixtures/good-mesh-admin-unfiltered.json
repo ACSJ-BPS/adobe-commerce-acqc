@@ -1,0 +1,17 @@
+{
+  "meshConfig": {
+    "sources": [
+      {
+        "name": "AdminBackofficeAPI",
+        "handler": {
+          "graphql": {
+            "endpoint": "https://internal.example.com/graphql"
+          }
+        }
+      }
+    ],
+    "transforms": [
+      { "filterSchema": { "filters": ["Query.!{adminListUsers}"] } }
+    ]
+  }
+}

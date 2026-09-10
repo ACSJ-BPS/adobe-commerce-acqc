@@ -6,6 +6,13 @@
 
 `no-magic-numbers`. A literal `86400` in code tells the reader nothing; `SECONDS_PER_DAY = 86400` does. Make the meaning explicit so the reviewer doesn't have to guess and the next maintainer doesn't have to grep.
 
+### Check
+```yaml
+type: builtin
+id: magic-number
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
+
 ### Bad
 ```js
 if (Date.now() - lastSeen > 86400 * 7 * 1000) markInactive()
@@ -46,6 +53,13 @@ const count = Number(params.count)
 ## Prefer numeric separators on long literals [info] [readability]
 
 `prefer-numeric-literals` plus modern numeric separator. `1000000` is hard to scan; `1_000_000` is unambiguous. Supported in Node 12.5+ and all modern browsers.
+
+### Check
+```yaml
+type: builtin
+id: numeric-separator
+files: ["**/*.{js,cjs,mjs,ts,tsx}"]
+```
 
 ### Bad
 ```js

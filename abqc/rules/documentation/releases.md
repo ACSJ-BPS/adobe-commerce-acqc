@@ -6,6 +6,13 @@
 
 A `CHANGELOG.md` at project root, written manually (or via `conventional-changelog`), is the single place to read "what changed between v1.4.2 and v1.5.0." Keep [Keep a Changelog](https://keepachangelog.com/) format: grouped by Added / Changed / Deprecated / Removed / Fixed / Security. Bump versions per [SemVer](https://semver.org/).
 
+### Check
+```yaml
+type: builtin
+id: changelog-format
+scope: repo
+```
+
 ### Bad
 ```text
 # no changelog
@@ -44,6 +51,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Document action contracts — schema for inputs, outputs, errors [info] [contracts, schema]
 
 Beyond the README narrative, machine-readable schemas (JSON Schema, Zod, OpenAPI) for action inputs and outputs let you generate validation, types, and API docs from one source. Especially valuable when a SPA on the Unified Shell calls many actions — the schema becomes the API surface.
+
+### Check
+```yaml
+type: builtin
+id: action-no-schema
+files: ["**/actions/**/*.{js,cjs,mjs,ts}"]
+```
 
 ### Bad
 ```js
@@ -87,6 +101,13 @@ module.exports = { main, InputSchema, OutputSchema }
 ## Sample request / response in every API doc — copy-pasteable [info] [api-docs, examples]
 
 Action documentation that says "POST `/orders/process` with an order body" is useless without a real example. Every documented action surface gets a literal `curl` (or `aio runtime action invoke`) snippet plus the actual JSON response, so a new integrator can be productive in 60 seconds.
+
+### Check
+```yaml
+type: builtin
+id: api-doc-missing-sample
+scope: repo
+```
 
 ### Bad
 ```markdown
