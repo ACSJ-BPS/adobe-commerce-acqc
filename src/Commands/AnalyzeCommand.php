@@ -6,6 +6,8 @@ namespace ACQC\Commands;
 
 use ACQC\Core\AnalyzerRegistry;
 use ACQC\Core\Config\ConfigManager;
+use ACQC\Core\Platform\PlatformDetector;
+use ACQC\Core\Platform\PlatformRegistry;
 use ACQC\Core\Scanner\ScannerEngine;
 use ACQC\Core\Scanner\ScanContext;
 use ACQC\Core\AutoFix\FixScriptGenerator;
@@ -155,7 +157,7 @@ class AnalyzeCommand extends Command
             }
 
             // Get analyzers to run
-            $analyzers = $this->getAnalyzersToRun($input, $io);
+            $analyzers = $this->getAnalyzersToRun($input, $io, $target);
 
             if (empty($analyzers)) {
                 $io->error('No analyzers selected. Use --list-analyzers to see available options.');
@@ -320,10 +322,10 @@ class AnalyzeCommand extends Command
         }
     }
 
-    private function getAnalyzersToRun(InputInterface $input, SymfonyStyle $io): array
+    private function getAnalyzersToRun(InputInterface $input, SymfonyStyle $io, string $target): array
     {
         // Priority order: specific analyzers -> use case -> category -> all
-        
+
         if ($analyzers = $input->getOption('analyzers')) {
             $analyzerIds = [];
             foreach ($analyzers as $analyzerList) {
@@ -345,7 +347,34 @@ class AnalyzeCommand extends Command
             return $this->analyzerRegistry->getAnalyzersByUseCase('magento-basic');
         }
 
-        return $this->analyzerRegistry->getAllAnalyzers();
+        $all = $this->analyzerRegistry->getAllAnalyzers();
+
+        // An App Builder / Node.js project (not also Magento) has no PHP modules or
+        // web pages of its own — the magento-backend and frontend/SEO analyzers only
+        // ever find incidental .php/.js files and report noise against them (e.g.
+        // "missing meta description" on a CLI script). Restrict the default set to
+        // abqc (+ any explicitly enabled generic php-quality tools) for such projects,
+        // same rationale as ReportCommand's Magento PHP/XML scan skip.
+        if (is_dir($target) && $this->isAppBuilderOnly($target)) {
+            return array_filter(
+                $all,
+                fn ($id) => !in_array($this->analyzerRegistry->getCategoryOf($id), ['magento-backend', 'frontend'], true),
+                ARRAY_FILTER_USE_KEY
+            );
+        }
+
+        return $all;
+    }
+
+    private function isAppBuilderOnly(string $target): bool
+    {
+        $platforms = array_map(
+            static fn ($p) => $p->id,
+            (new PlatformDetector(new PlatformRegistry(\ACQC\Core\AcqcPaths::resourceRoot())))->detect($target)
+        );
+
+        return array_intersect(['app-builder', 'nodejs'], $platforms) !== []
+            && !in_array('adobe-commerce', $platforms, true);
     }
 
     private function buildAnalysisOptions(InputInterface $input): array

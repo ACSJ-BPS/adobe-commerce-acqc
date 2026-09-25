@@ -1,0 +1,11 @@
+{
+  "meshConfig": {
+    "sources": [
+      { "name": "Commerce", "handler": { "graphql": { "endpoint": "https://example.com/graphql" } } }
+    ],
+    "additionalTypeDefs": "type commerce_v2_product_t { SKU: String }",
+    "transforms": [
+      { "rename": { "renames": [{ "from": { "type": "commerce_v2_product_t" }, "to": { "type": "Product" } }] } }
+    ]
+  }
+}

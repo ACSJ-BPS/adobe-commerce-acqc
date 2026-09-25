@@ -1,0 +1,5 @@
+extensions:
+  commerce/backend-ui/1:
+    menuItems:
+      - id: menu-1
+        title: "Catalog Sync"

@@ -1,0 +1,10 @@
+{
+  "meshConfig": {
+    "sources": [
+      {
+        "name": "Local",
+        "handler": { "graphql": { "endpoint": "https://api.example.com/graphql" } }
+      }
+    ]
+  }
+}

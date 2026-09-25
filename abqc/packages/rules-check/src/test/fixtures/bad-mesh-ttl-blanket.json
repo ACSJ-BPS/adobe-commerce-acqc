@@ -1,0 +1,9 @@
+{
+  "meshConfig": {
+    "cache": [
+      { "field": "Query.storeConfig", "invalidate": { "ttl": 60 } },
+      { "field": "Query.countries", "invalidate": { "ttl": 60 } },
+      { "field": "Query.categoryNav", "invalidate": { "ttl": 60 } }
+    ]
+  }
+}

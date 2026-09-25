@@ -55,6 +55,7 @@ composer.lock
 /var/
 /tmp/
 /.cache/
+/.scout/
 
 # Reports
 /reports/

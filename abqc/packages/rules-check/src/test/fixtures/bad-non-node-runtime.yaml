@@ -1,0 +1,5 @@
+application:
+  actions:
+    myaction:
+      function: index.js
+      runtime: python:3.9

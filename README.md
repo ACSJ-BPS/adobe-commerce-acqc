@@ -20,6 +20,7 @@ ACQC is a static analysis and reporting platform that enforces the [Magento 2 co
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Pre-commit Quality Gate (git hook)](#pre-commit-quality-gate-git-hook)
 - [Analysis Commands](#analysis-commands)
   - [scan](#1-scan)
   - [analyze](#2-analyze)
@@ -196,6 +197,98 @@ php /path/to/acqc/bin/acqc audit app/code --severity=error
 
 ---
 
+## Pre-commit Quality Gate (git hook)
+
+Stop low-quality code **before it is committed**. Once installed in a target repository, every
+`git commit` audits the **staged** content of the changed files and **blocks the commit** when it
+contains `blocker`, `critical` or `error` issues. Warnings and info are reported as a count but never block.
+
+### Install (once per repository clone)
+
+```bash
+cd /path/to/your-magento-project
+php /path/to/acqc/bin/acqc hooks:install     # writes .git/hooks/pre-commit
+php /path/to/acqc/bin/acqc hooks:status      # verify: "installed and healthy"
+```
+
+That's it — now just commit as usual:
+
+```text
+$ git commit -m "Add product importer"
+ACQC: 1 file(s) checked (staged), fail on: blocker, critical, error
+  app/code/Vendor/Module/Model/Importer.php:42  ERROR  [object_manager_usage] Direct ObjectManager usage is discouraged. Use dependency injection instead.
+BLOCKED: 1 error (2 non-blocking issue(s) not shown).
+Fix the issues above and re-stage, or bypass once with: git commit --no-verify
+```
+
+Fix the code, `git add` it again, and commit — it passes with `PASSED: no blocking issues.`
+
+### What exactly is checked
+
+| Aspect          | Behaviour                                                                                                                                                                                                                                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Files           | Only files**staged** for this commit (added/copied/modified/renamed): `.php`, `.phtml`, `.xml`, `.graphqls`, plus — when the repo is detected as App Builder / Node.js — `.js/.mjs/.cjs/.jsx/.ts/.tsx`, `package.json`, `app.config.yaml` and other YAML (from `config/platforms/*.yaml`)  |
+| App Builder     | Changed JS/TS/config files are checked by abqc against the**staged** snapshot (unchanged `package.json`, `app.config.yaml`, ESLint config are copied in as context). Requires Node.js and a built `abqc/`; if either is missing the audit exits `2` (hook warns, `ACQC_STRICT=1` blocks, CI fails) |
+| Content         | The**staged version** (git index), not your working copy — partial staging (`git add -p`) is handled correctly                                                                                                                                                                                            |
+| Existing code   | Untouched files are not checked, so legacy issues elsewhere in the repo never block your commit                                                                                                                                                                                                                    |
+| Rules / profile | Profile`pre-commit` (`config/profiles/pre-commit.yaml`); override per project with `.acqc/profiles/pre-commit.yaml`                                                                                                                                                                                          |
+| Personal rules  | Ignored — every developer gets the same result                                                                                                                                                                                                                                                                    |
+| Network         | None — the check is fully local                                                                                                                                                                                                                                                                                   |
+| Speed           | Typically well under 1 second for a normal commit                                                                                                                                                                                                                                                                  |
+
+### Per-commit controls (environment variables)
+
+| Variable                  | Effect                                                             |
+| ------------------------- | ------------------------------------------------------------------ |
+| `ACQC_SKIP=1`           | Skip the ACQC check for this commit (other hooks still run)        |
+| `ACQC_FAIL_ON=critical` | Override the blocking severities for this commit (comma-separated) |
+| `ACQC_PROFILE=ci`       | Run with a different profile                                       |
+| `ACQC_STRICT=1`         | Also block when ACQC itself cannot run (default: warn and allow)   |
+| `ACQC_BIN=/path/acqc`   | Use a different ACQC binary                                        |
+| `ACQC_PHP=/path/php`    | Use a different PHP binary                                         |
+
+`git commit --no-verify` skips **all** hooks, including ACQC.
+
+### How the hook finds ACQC
+
+`$ACQC_BIN` → `<repo>/vendor/bin/acqc` (if ACQC is a Composer dev dependency) → the absolute path
+recorded by `hooks:install`. If none is found, or ACQC crashes (exit code 2), the hook prints
+`ACQC WARNING …` and **allows** the commit so a broken tool never blocks work (use `ACQC_STRICT=1` to block instead).
+To make the hook **fail closed** by default, install it with `acqc hooks:install --strict`
+(a one-off `ACQC_STRICT=0 git commit …` still overrides).
+
+Scoped audits also lint staged `*.min.js` files and names that are case-variants of the usual
+extensions (`Bad.PHP`), and flag hard-coded credentials (AWS/GitHub/Slack/Google keys, private keys)
+in changed App Builder YAML such as `manifest.yml` and `app.config.yaml`. `.env` files are not scanned.
+
+### Existing hooks, `core.hooksPath`, worktrees
+
+- An existing non-ACQC `pre-commit` hook is preserved as `pre-commit.local` and **runs first**; if it fails, the commit is blocked.
+- `hooks:uninstall` removes only the ACQC hook and restores `pre-commit.local`.
+- `core.hooksPath` (e.g. Husky-style `.githooks/`) and git worktrees are respected.
+- Re-running `hooks:install` updates the hook in place (e.g. after moving ACQC).
+
+### Hook commands
+
+| Command                                                                                              | Purpose                                                 |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `acqc hooks:install [path] [--profile=pre-commit] [--acqc-bin=…] [--php=…] [--force] [--strict]` | Install or update the hook                              |
+| `acqc hooks:status [path]`                                                                         | Show hook details; exit 0 only if installed and healthy |
+| `acqc hooks:uninstall [path]`                                                                      | Remove the ACQC hook, restore a preserved hook          |
+
+### Run the same check manually
+
+```bash
+acqc audit --staged --profile=pre-commit          # exactly what the hook runs
+acqc audit . --diff-from=origin/main              # everything changed on your branch
+acqc audit . --files=app/code/Vendor/Module/Model/A.php,app/code/Vendor/Module/etc/di.xml
+```
+
+> **Note:** a local hook gives fast feedback but can be bypassed (`--no-verify`). To *enforce*
+> quality, also run `acqc audit --diff-from=<base> --fail-on=critical,error` in CI.
+
+---
+
 ## Analysis Commands
 
 ### 1. `scan`
@@ -305,14 +398,28 @@ php bin/acqc audit <path> [options]
 
 **Options:**
 
-| Option          | Description                                   | Default             |
-| --------------- | --------------------------------------------- | ------------------- |
-| `--format`    | Output format:`console`, `json`, `html` | `console`         |
-| `--output`    | Output file path                              | stdout / auto-named |
-| `--severity`  | Minimum severity                              | `warning`         |
-| `--profile`   | Role profile                                  | project default     |
-| `--fail-on`   | Exit non-zero if this severity is found       | —                  |
-| `--threshold` | Fail if quality score is below this value     | —                  |
+| Option           | Description                                                                                                                            | Default            |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| `--format`     | Output format:`console`, `json`, `html`, `compact` (one line per blocking issue, for hooks), `sarif` (SARIF 2.1.0 on stdout) | profile default    |
+| `--sarif-file` | Also write SARIF 2.1.0 to this file, whatever`--format` is                                                                           | —                 |
+| `--severity`   | Minimum severity                                                                                                                       | profile default    |
+| `--profile`    | Role profile:`developer`, `tech-lead`, `architect`, `executive`, `ci`, `pre-commit`                                        | `developer`      |
+| `--fail-on`    | Comma-separated severities that fail the gate, e.g.`critical,error` (overrides profile `fail_on`)                                  | profile`fail_on` |
+| `--staged`     | Audit only the staged content of changed files (what the next commit contains)                                                         | —                 |
+| `--diff-from`  | Audit only files changed vs a branch, commit or range (`main`, `origin/main..HEAD`)                                                | —                 |
+| `--files`      | Audit only these files (comma-separated or repeated, relative to`<path>`)                                                            | —                 |
+| `--exclude`    | Paths to exclude                                                                                                                       | —                 |
+
+`--staged`, `--diff-from` and `--files` are mutually exclusive. If the selected scope has no
+auditable files, the audit passes.
+
+**Exit codes:**
+
+| Code  | Meaning                                                             |
+| ----- | ------------------------------------------------------------------- |
+| `0` | Gate passed (no issue with a failing severity, or nothing to check) |
+| `1` | Gate failed, or invalid usage (unknown profile/format/severity)     |
+| `2` | ACQC runtime error (e.g. not a git repository, unknown git ref)     |
 
 **Examples:**
 
@@ -320,18 +427,65 @@ php bin/acqc audit <path> [options]
 # Full audit with console output
 php bin/acqc audit app/code
 
-# Fail CI if quality score drops below 70
-php bin/acqc audit app/code --threshold=70
-
 # Fail if any critical violation found
 php bin/acqc audit app/code --fail-on=critical
 
-# Generate HTML audit report
-php bin/acqc audit app/code --format=html --output=audit.html
+# Only what you are about to commit (used by the pre-commit hook)
+php bin/acqc audit --staged --profile=pre-commit
+
+# Only files changed on your branch
+php bin/acqc audit . --diff-from=origin/main --fail-on=critical,error
 
 # JSON for programmatic processing
-php bin/acqc audit app/code --format=json --output=audit.json
+php bin/acqc audit app/code --format=json > audit.json
+
+# SARIF for GitHub code scanning / VS Code SARIF Viewer (changed files only)
+php bin/acqc audit . --diff-from=origin/main --format=sarif > acqc.sarif
 ```
+
+**SARIF output** (`--format=sarif` or `--sarif-file=…`):
+
+- Paths are repo-relative (`SRCROOT`), also for `--staged` — temporary snapshot paths never appear.
+- Each result has `partialFingerprints["acqcFingerprint/v1"]` = hash of rule + path + the flagged
+  line's text, so an alert keeps its identity when code above it moves and closes only when the code is fixed.
+- Levels: `blocker`/`critical`/`error` → `error`, `warning` → `warning`, `info`/`minor` → `note`.
+  Security rules also get `security-severity` (critical 9.0, error 7.5, …) for GitHub's severity buckets.
+- Exit codes are unchanged (0/1/2). On a tool error stdout stays empty and the message goes to stderr,
+  so a redirected `.sarif` file is never half-written.
+- The file contains paths, line numbers and messages — no source code.
+
+GitHub Actions — upload the findings **and** enforce the gate as separate steps, so alerts are
+published even when the gate fails, and the job still goes red (requires `security-events: write`
+and a checkout with history, e.g. `fetch-depth: 0`):
+
+```yaml
+- name: ACQC audit (SARIF)
+  id: acqc
+  run: |
+    set +e
+    php acqc/bin/acqc audit . --diff-from="origin/${{ github.base_ref }}" --format=sarif > acqc.sarif
+    echo "exit=$?" >> "$GITHUB_OUTPUT"
+
+# Exit 0/1 = valid SARIF was produced; exit 2 = tool error, acqc.sarif is empty — skip the upload.
+- name: Upload SARIF
+  if: always() && (steps.acqc.outputs.exit == '0' || steps.acqc.outputs.exit == '1')
+  uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: acqc.sarif
+    category: acqc
+
+- name: Enforce ACQC quality gate
+  if: always() && steps.acqc.outputs.exit != '0'
+  run: |
+    case "${{ steps.acqc.outputs.exit }}" in
+      1) echo "::error::ACQC quality gate failed — see the Code scanning alerts on this PR." ;;
+      *) echo "::error::ACQC could not run (exit ${{ steps.acqc.outputs.exit }}) — check the audit step log." ;;
+    esac
+    exit 1
+```
+
+In CI a tool error (exit 2) also fails the job — unlike the local pre-commit hook, which allows the
+commit unless `ACQC_STRICT=1`.
 
 ---
 
@@ -619,15 +773,15 @@ php bin/acqc checklist <role> [path] [options]
 
 `role` is required: `junior-developer`, `senior-developer`, or `architect`. `path` is optional (defaults to the current directory).
 
-| Option           | Description                                              | Default |
-| ---------------- | ---------------------------------------------------------| ------- |
-| `--format`     | Output format: `table`, `json`, `xml`, `html`     | `table` |
-| `--category`   | Restrict to a specific rule category                      | —       |
-| `--severity`   | Minimum severity: `info`, `warning`, `error`, `critical` | `info`  |
-| `--output`     | Output file path                                          | stdout  |
-| `--detailed`   | Show detailed checklist items                             | —       |
-| `--tools-only` | Show only tool recommendations                             | —       |
-| `--summary`    | Show summary only                                          | —       |
+| Option           | Description                                                     | Default   |
+| ---------------- | --------------------------------------------------------------- | --------- |
+| `--format`     | Output format:`table`, `json`, `xml`, `html`            | `table` |
+| `--category`   | Restrict to a specific rule category                            | —        |
+| `--severity`   | Minimum severity:`info`, `warning`, `error`, `critical` | `info`  |
+| `--output`     | Output file path                                                | stdout    |
+| `--detailed`   | Show detailed checklist items                                   | —        |
+| `--tools-only` | Show only tool recommendations                                  | —        |
+| `--summary`    | Show summary only                                               | —        |
 
 ---
 
@@ -641,13 +795,13 @@ php bin/acqc tech-spec <role> [options]
 
 `role` is required: `junior-developer`, `senior-developer`, or `architect`.
 
-| Option                 | Description                                     | Default    |
-| ---------------------- | ------------------------------------------------ | ---------- |
-| `--format`           | `markdown`, `json`, `yaml`, `html`         | `markdown` |
-| `--output`           | Output file path                                  | stdout     |
-| `--include-tools`    | Include tool configurations                        | —          |
-| `--include-examples` | Include code examples                              | —          |
-| `--include-metrics`  | Include quality metrics and thresholds             | —          |
+| Option                 | Description                                | Default      |
+| ---------------------- | ------------------------------------------ | ------------ |
+| `--format`           | `markdown`, `json`, `yaml`, `html` | `markdown` |
+| `--output`           | Output file path                           | stdout       |
+| `--include-tools`    | Include tool configurations                | —           |
+| `--include-examples` | Include code examples                      | —           |
+| `--include-metrics`  | Include quality metrics and thresholds     | —           |
 
 ---
 

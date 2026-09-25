@@ -1,0 +1,10 @@
+{
+  "meshConfig": {
+    "sources": [
+      { "name": "Commerce", "handler": { "graphql": { "endpoint": "https://example.com/graphql" } } }
+    ],
+    "responseConfig": {
+      "headers": { "Cache-Control": "public, max-age=600" }
+    }
+  }
+}

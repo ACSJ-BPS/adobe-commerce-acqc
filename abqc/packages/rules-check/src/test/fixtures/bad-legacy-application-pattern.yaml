@@ -1,0 +1,11 @@
+application:
+  actions: actions
+  web: web-src
+productDependencies:
+  - code: COMMC
+    minVersion: 2.4.5
+# Migration in progress: an ext.config.yaml already exists for the Admin UI SDK
+# extension, but app.config.yaml hasn't been switched over to the `extensions:`
+# pattern yet — still using the legacy application/actions block above.
+uiExtension:
+  $include: ./ext.config.yaml

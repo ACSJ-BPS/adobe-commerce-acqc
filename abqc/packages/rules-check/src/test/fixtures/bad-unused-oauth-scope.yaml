@@ -1,0 +1,4 @@
+scopes:
+  - openid
+  - read_organizations
+  - write_organizations

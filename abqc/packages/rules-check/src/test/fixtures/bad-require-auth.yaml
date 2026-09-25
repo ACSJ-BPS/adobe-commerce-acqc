@@ -1,0 +1,6 @@
+packages:
+  sample:
+    actions:
+      get-orders:
+        function: actions/get-orders/index.js
+        web: 'yes'

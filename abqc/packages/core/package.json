@@ -1,0 +1,50 @@
+{
+  "name": "@abqc/core",
+  "version": "0.1.0",
+  "description": "Engine for appbuilder-quality-check: rule loading, file routing, ESLint static analysis, SARIF emission, LLM judgment.",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./walk": {
+      "import": "./dist/walk.js",
+      "types": "./dist/walk.d.ts"
+    },
+    "./rules-dir": {
+      "import": "./dist/rules-dir.js",
+      "types": "./dist/rules-dir.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "test": "node dist/self-test/run.js && node --experimental-test-coverage --test dist/test/*.test.js",
+    "self-test": "node dist/self-test/run.js"
+  },
+  "optionalDependencies": {
+    "@abqc/rules-check": "*"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.91.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.1",
+    "@typescript-eslint/parser": "^8.59.1",
+    "eslint": "^8.57.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-n": "^17.17.0",
+    "eslint-plugin-promise": "^7.2.1",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-security": "^3.0.1",
+    "openai": "^6.35.0"
+  },
+  "devDependencies": {
+    "@types/eslint": "^8.56.0",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.4.0"
+  }
+}

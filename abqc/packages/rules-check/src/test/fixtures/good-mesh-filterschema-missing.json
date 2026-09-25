@@ -1,0 +1,14 @@
+{
+  "meshConfig": {
+    "additionalTypeDefs": "type DebugStats { totalRequests: Int }",
+    "sources": [
+      {
+        "name": "CommerceGraphQL",
+        "handler": { "graphql": { "endpoint": "https://api.example.com/graphql" } }
+      }
+    ],
+    "transforms": [
+      { "filterSchema": { "filters": ["Query.!{debugStats}"] } }
+    ]
+  }
+}

@@ -25,6 +25,7 @@ use ACQC\Analyzers\PHP\PHPMDAnalyzer;
 use ACQC\Analyzers\PHP\PHPStanAnalyzer;
 use ACQC\Analyzers\PHP\PHPCPDAnalyzer;
 use ACQC\Analyzers\PHP\SonarAnalyzer;
+use ACQC\Analyzers\AppBuilder\AbqcAnalyzer;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
@@ -201,6 +202,16 @@ class AnalyzerRegistry
                 'SonarQube integration for comprehensive code analysis'
             );
         }
+
+        // App Builder / Node.js — vendored abqc engine (ESLint-backed). Available
+        // whenever `node` is resolvable (AbstractExternalToolAnalyzer::isAvailable),
+        // same optional-external-tool contract as the PHP analyzers above.
+        $this->registerAnalyzer(
+            'appbuilder-abqc',
+            new AbqcAnalyzer(),
+            'appbuilder',
+            'abqc — ESLint-backed App Builder / Node.js code-quality checks (mechanical + security rules)'
+        );
     }
 
     /**
@@ -227,6 +238,14 @@ class AnalyzerRegistry
     public function getAnalyzer(string $id): ?object
     {
         return $this->analyzers[$id]['analyzer'] ?? null;
+    }
+
+    /**
+     * Get the category a registered analyzer id belongs to
+     */
+    public function getCategoryOf(string $id): ?string
+    {
+        return $this->analyzers[$id]['category'] ?? null;
     }
 
     /**

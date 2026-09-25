@@ -1,0 +1,23 @@
+{
+  "name": "@abqc/mcp",
+  "version": "0.1.0",
+  "description": "MCP server for appbuilder-quality-check. Exposes review_code, list_rules, get_rule.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "abqc-mcp": "dist/server.js"
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "test": "node --experimental-test-coverage --test dist/test/*.test.js"
+  },
+  "dependencies": {
+    "@abqc/core": "*",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.25.0 || ^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.4.0"
+  }
+}

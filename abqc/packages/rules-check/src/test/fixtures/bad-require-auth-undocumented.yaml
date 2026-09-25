@@ -1,0 +1,6 @@
+actions:
+  webhook-receiver:
+    function: actions/webhook-receiver/index.js
+    web: 'yes'
+    annotations:
+      require-adobe-auth: false

@@ -1,0 +1,5 @@
+sequences:
+  my-sequence:
+    actions:
+      - validate # avgDurationMs: 10000
+      - process # avgDurationMs: 20000

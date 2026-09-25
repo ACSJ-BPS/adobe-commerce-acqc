@@ -1,0 +1,2 @@
+runtimeManifest:
+  $include: ./fragments/manifest.yaml

@@ -1,0 +1,10 @@
+{
+  "meshConfig": {
+    "responseConfig": {
+      "cache": {
+        "ttl": 3600,
+        "customerOrders": true
+      }
+    }
+  }
+}

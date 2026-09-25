@@ -1,0 +1,30 @@
+# Platform plugin manifest: Adobe Commerce / Magento 2
+# See docs/extending.md — "Adding a platform". Detection is data-driven; adding a
+# new language/app is a matter of dropping a manifest like this next to it.
+platform:
+  id: adobe-commerce
+  name: "Adobe Commerce / Magento 2"
+  # A project matches this platform if ANY detect signal below is satisfied.
+  detect:
+    files:
+      - "bin/magento"
+      - "app/etc/di.xml"
+    composer_json_requires:
+      - "magento/*"
+  # Rule bundle directories under config/rules/ activated for this platform.
+  rule_bundles:
+    - adobe-commerce
+  # File patterns scanned for this platform (union with other detected platforms).
+  include_patterns:
+    - "*.php"
+    - "*.phtml"
+    - "*.graphqls"
+    - "*.xml"
+  # Analyzer ids (registered in AnalyzerRegistry) enabled for this platform.
+  analyzers:
+    - magento-structure
+    - magento-di
+    - magento-plugins
+  # Version-feed key (optional) and guardrail .mdc domain (optional, export-only).
+  version_feed: adobe-commerce
+  guardrail_domain: adobe-commerce

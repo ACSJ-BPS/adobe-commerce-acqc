@@ -1,0 +1,4 @@
+actions:
+  myaction:
+    inputs:
+      apiKey: hardcoded-literal-value

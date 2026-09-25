@@ -9,6 +9,9 @@ use ACQC\Analyzers\MagentoSpecificAnalyzer;
 use ACQC\Analyzers\SecurityAnalyzer;
 use ACQC\Analyzers\PerformanceAnalyzer;
 use ACQC\Analyzers\CodeQualityAnalyzer;
+use ACQC\Analyzers\AppBuilder\AbqcAnalyzer;
+use ACQC\Core\Platform\PlatformDetector;
+use ACQC\Core\Platform\PlatformRegistry;
 use ACQC\Utils\FileScanner;
 use Symfony\Component\Finder\Finder;
 
@@ -41,12 +44,42 @@ class CodeAnalyzer
             $results['metrics'] = array_merge($results['metrics'], $analyzerResults['metrics'] ?? []);
         }
 
+        // App Builder / Node.js projects: the PHP analyzers above only ever see
+        // incidental .php files (App Builder's runtime is Node.js-only), so fold in
+        // abqc's ESLint-backed findings against the real JS/TS source. Same rationale
+        // as ReportCommand's abqc integration.
+        if (is_dir($target) && $this->isAppBuilderProject($target)) {
+            $abqcResult = (new AbqcAnalyzer())->analyze([], ['project_path' => $target]);
+            $results['issues'] = array_merge($results['issues'], $this->normalizeAbqcIssues($abqcResult['issues'] ?? []));
+        }
+
         // Apply auto-fixes if requested
         if ($options['fix'] ?? false) {
             $this->applyAutoFixes($results['issues']);
         }
 
         return $results;
+    }
+
+    private function isAppBuilderProject(string $target): bool
+    {
+        $platforms = array_map(
+            static fn ($p) => $p->id,
+            (new PlatformDetector(new PlatformRegistry(AcqcPaths::resourceRoot())))->detect($target)
+        );
+
+        return array_intersect(['app-builder', 'nodejs'], $platforms) !== [];
+    }
+
+    /** AbqcAnalyzer emits 'rule_id'; the rest of this codebase's issue arrays use 'rule'. */
+    private function normalizeAbqcIssues(array $issues): array
+    {
+        return array_map(static function (array $issue): array {
+            if (!isset($issue['rule']) && isset($issue['rule_id'])) {
+                $issue['rule'] = $issue['rule_id'];
+            }
+            return $issue;
+        }, $issues);
     }
 
     private function countLines(array $files): int

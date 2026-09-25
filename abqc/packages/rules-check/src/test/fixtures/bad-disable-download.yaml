@@ -1,0 +1,3 @@
+actions:
+  myaction:
+    disable-download: true

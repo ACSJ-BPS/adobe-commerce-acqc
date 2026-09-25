@@ -1,0 +1,21 @@
+{
+  "name": "abqc",
+  "version": "0.1.0",
+  "description": "CLI for appbuilder-quality-check.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "abqc": "dist/bin.js"
+  },
+  "scripts": {
+    "build": "tsc -b tsconfig.json"
+  },
+  "dependencies": {
+    "@abqc/core": "*",
+    "@abqc/rules-check": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.4.0"
+  }
+}

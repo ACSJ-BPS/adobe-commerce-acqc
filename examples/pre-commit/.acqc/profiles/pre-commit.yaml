@@ -1,0 +1,19 @@
+# Sample project override for the ACQC pre-commit gate.
+# Copy to <your-repo>/.acqc/profiles/pre-commit.yaml and commit it so the
+# whole team shares the same gate. It replaces the built-in profile of the
+# same name (lookup order: ~/.acqc/profiles -> <repo>/.acqc/profiles -> built-in).
+name: pre-commit
+description: "Team pre-commit gate"
+tiers: [1, 2]
+min_severity: error
+categories: []
+format: compact
+# Severities that block a commit. Loosen to [blocker, critical] while adopting on legacy code.
+fail_on: [blocker, critical, error]
+personal_rules: false
+hide_file_paths: false
+hide_line_numbers: false
+hide_rule_ids: false
+tier2_as_warnings: false
+secondary_format: null
+severity_labels: {}

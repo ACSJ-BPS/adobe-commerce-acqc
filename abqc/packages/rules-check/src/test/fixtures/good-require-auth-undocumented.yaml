@@ -1,0 +1,7 @@
+actions:
+  webhook-receiver:
+    function: actions/webhook-receiver/index.js
+    web: 'yes'
+    annotations:
+      # Reviewed and approved in ticket SEC-1234 — public webhook receiver validates its own HMAC signature.
+      require-adobe-auth: false

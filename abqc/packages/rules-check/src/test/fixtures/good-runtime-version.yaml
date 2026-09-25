@@ -1,0 +1,6 @@
+packages:
+  sample:
+    actions:
+      process-order:
+        function: actions/process-order/index.js
+        runtime: nodejs:22

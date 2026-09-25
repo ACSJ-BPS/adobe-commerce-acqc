@@ -192,7 +192,7 @@ use Symfony\Component\Process\Process;
 
 // Run scan programmatically
 $process = new Process([
-    'm2-quality', 'scan', '/path/to/code',
+    'php', 'bin/acqc', 'scan', '/path/to/code',
     '--format=json',
     '--output=/tmp/results.json'
 ]);

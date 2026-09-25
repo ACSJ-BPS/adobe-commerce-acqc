@@ -1,0 +1,11 @@
+packages:
+  sample:
+    actions:
+      webhook-receiver:
+        function: actions/webhook-receiver/index.js
+        web: 'yes'
+        annotations:
+          require-adobe-auth: false
+          allowedHosts:
+            - 'hooks.slack.com'
+            - 'api.github.com'

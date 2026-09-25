@@ -1,0 +1,3 @@
+services:
+  - code: AnalyticsAPI
+  - code: IOManagementSDK

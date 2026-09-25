@@ -1,0 +1,8 @@
+packages:
+  sample:
+    actions:
+      process-payment:
+        function: actions/process-payment/index.js
+        web: 'yes'
+        annotations:
+          final: true

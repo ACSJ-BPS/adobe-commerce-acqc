@@ -1,0 +1,5 @@
+packages:
+  sample:
+    actions:
+      process:
+        function: actions/process/index.js

@@ -1,0 +1,29 @@
+{
+  "name": "appbuilder-quality-check",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Code-quality review tooling for Adobe App Builder projects (engine + CLI + MCP server + GitHub Action + aio CLI plugin).",
+  "workspaces": [
+    "packages/core",
+    "packages/rules-check",
+    "packages/cli",
+    "packages/mcp",
+    "packages/action",
+    "packages/aio-plugin"
+  ],
+  "scripts": {
+    "build": "tsc -b tsconfig.json && npm run build --workspace=packages/action --workspace=packages/aio-plugin --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:self-test": "node packages/core/dist/self-test/run.js",
+    "lint": "eslint packages",
+    "clean": "rimraf packages/*/dist"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

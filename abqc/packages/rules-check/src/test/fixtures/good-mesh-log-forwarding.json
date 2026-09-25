@@ -1,0 +1,13 @@
+{
+  "meshConfig": {
+    "sources": [
+      {
+        "name": "CommerceGraphQL",
+        "handler": { "graphql": { "endpoint": "https://api.example.com/graphql" } }
+      }
+    ],
+    "logForwarding": {
+      "newRelic": { "apiKey": "{{env.NEW_RELIC_LICENSE_KEY}}" }
+    }
+  }
+}

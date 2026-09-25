@@ -1,0 +1,14 @@
+{
+  "meshConfig": {
+    "sources": [
+      {
+        "name": "AdminBackofficeAPI",
+        "handler": {
+          "graphql": {
+            "endpoint": "https://internal.example.com/graphql"
+          }
+        }
+      }
+    ]
+  }
+}

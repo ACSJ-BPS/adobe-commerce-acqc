@@ -5,6 +5,24 @@ All notable changes to ACQC (Adobe Commerce Quality Control) will be documented 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `audit --staged | --diff-from=<ref> | --files=<list>` scoped audits and `--fail-on=<severities>`.
+- `audit --format=compact` and the `pre-commit` profile; `hooks:install`, `hooks:status`, `hooks:uninstall` (git pre-commit gate).
+- `audit --format=sarif` and `--sarif-file=<path>` (SARIF 2.1.0 with stable `partialFingerprints`).
+- Scoped audits include App Builder / Node.js files (JS/TS, `package.json`, `app.config.yaml`, YAML) when the platform is detected; abqc checks the staged snapshot.
+
+### Changed
+- **`audit` exit codes are now a contract:** `0` gate passed, `1` gate failed or invalid usage, `2` ACQC runtime error (git failure, Node.js/abqc unavailable in a scoped audit). Previously only `0`/`1`.
+- **Default audited file types are now `*.php`, `*.phtml`, `*.graphqls`, `*.xml`** (previously `*.php` only — the intended XML/GraphQL default in `AuditEngine` was never applied because `ConfigLoader` always supplied `*.php`). Full-audit `files_analyzed`, issue counts and scores for Commerce projects will change; templates are now checked for unescaped output. To keep the old behaviour, set `"include_patterns": ["*.php"]` in `acqc.json`.
+- `audit` console output: "Audit completed." plus a quality-gate verdict block; JSON output gains `scope`, `fail_on`, `gate`, `critical`.
+- `audit --output` is now an alias of `--format` (it was previously undefined for `audit`).
+
+### Fixed
+- SARIF output: issues were lost (summary keys treated as results), `file:////` source root, invalid empty `fixes`, missing rule ids.
+- `scripts/build.sh` and `docs/api.md` referenced a non-existent `m2-quality` binary; now `bin/acqc`.
+
 ## [3.1.0] - 2026-04-27
 
 ### Fixed
