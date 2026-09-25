@@ -6,8 +6,11 @@ namespace ACQC\Utils;
 
 class ConfigLoader
 {
+    /** Commerce file types audited by default (templates, DI/layout/db_schema XML, GraphQL schemas). */
+    public const DEFAULT_INCLUDE_PATTERNS = ['*.php', '*.phtml', '*.graphqls', '*.xml'];
+
     private array $defaultConfig = [
-        'include_patterns' => ['*.php'],
+        'include_patterns' => self::DEFAULT_INCLUDE_PATTERNS,
         'exclude_paths' => ['vendor', 'var', 'generated'],
         'analyzers' => [
             'magento' => ['enabled' => true],

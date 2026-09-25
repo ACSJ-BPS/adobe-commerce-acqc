@@ -1,0 +1,14 @@
+name: pre-commit
+description: "Git pre-commit gate: compact output, block commit on critical/error (and blocker), no personal rules"
+tiers: [1, 2]
+min_severity: error
+categories: []
+format: compact
+fail_on: [blocker, critical, error]
+personal_rules: false
+hide_file_paths: false
+hide_line_numbers: false
+hide_rule_ids: false
+tier2_as_warnings: false
+secondary_format: null
+severity_labels: {}

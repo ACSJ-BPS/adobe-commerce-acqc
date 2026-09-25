@@ -183,9 +183,9 @@ run_quality_checks() {
     composer validate --strict
     
     # Run self-analysis if binary exists
-    if [[ -f "bin/m2-quality" ]]; then
+    if [[ -f "bin/acqc" ]]; then
         log "Running self-analysis..."
-        php bin/m2-quality scan . \
+        php bin/acqc scan . \
             --config=examples/configurations/production-config.json \
             --format=json \
             --output=build-quality.json \

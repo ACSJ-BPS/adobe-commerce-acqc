@@ -100,6 +100,84 @@ class FileScanner
     }
 
     /**
+     * Filter an explicit list of files (e.g. from git) using the same include
+     * patterns, default excludes and skip-extensions as scanProject().
+     *
+     * Exclude rules mirror Symfony Finder semantics: a pattern without "/"
+     * matches a directory name at any depth; a pattern with "/" matches a
+     * prefix of the path relative to $baseDir.
+     *
+     * @param string[] $files absolute or $baseDir-relative paths
+     * @return string[] absolute real paths
+     */
+    public function filterFiles(
+        array $files,
+        string $baseDir,
+        array $includePatterns = ['*.php'],
+        array $excludePaths = [],
+        bool $prioritySort = true
+    ): array {
+        $baseDir     = rtrim(realpath($baseDir) ?: $baseDir, '/');
+        $allExcludes = array_unique(array_merge(self::DEFAULT_EXCLUDES, $excludePaths));
+        $result      = [];
+
+        foreach ($files as $file) {
+            $candidate = str_starts_with($file, '/') ? $file : $baseDir . '/' . $file;
+            $real      = realpath($candidate);
+            if ($real === false || !is_file($real)) {
+                continue;
+            }
+
+            if (in_array(strtolower(pathinfo($real, PATHINFO_EXTENSION)), self::DEFAULT_SKIP_EXTENSIONS, true)) {
+                continue;
+            }
+
+            $basename = basename($real);
+            $included = false;
+            foreach ($includePatterns as $pattern) {
+                // Case-insensitive: Bad.PHP must not bypass a scoped gate (QJ-1).
+                if (fnmatch($pattern, $basename, FNM_CASEFOLD)) {
+                    $included = true;
+                    break;
+                }
+            }
+            if (!$included) {
+                continue;
+            }
+
+            $relative = str_starts_with($real, $baseDir . '/') ? substr($real, strlen($baseDir) + 1) : $real;
+            if ($this->isExcluded($relative, $allExcludes)) {
+                continue;
+            }
+
+            $result[$real] = $real;
+        }
+
+        $result = array_values($result);
+        return $prioritySort ? $this->sortByPriority($result) : $result;
+    }
+
+    /** @param string[] $excludes */
+    private function isExcluded(string $relative, array $excludes): bool
+    {
+        $segments = explode('/', dirname($relative));
+        foreach ($excludes as $exclude) {
+            $exclude = trim((string) $exclude, '/');
+            if ($exclude === '') {
+                continue;
+            }
+            if (str_contains($exclude, '/')) {
+                if (str_starts_with($relative, $exclude . '/')) {
+                    return true;
+                }
+            } elseif (in_array($exclude, $segments, true)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Sort files so high-priority paths (Controllers, Plugins, Cron, API)
      * appear first in the results, surfacing critical issues at the top of reports.
      */

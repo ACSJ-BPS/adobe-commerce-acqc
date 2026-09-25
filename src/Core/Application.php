@@ -41,6 +41,9 @@ use ACQC\Commands\Version\PathCommand as VersionPathCommand;
 use ACQC\Commands\Version\AdvisoriesCommand as VersionAdvisoriesCommand;
 use ACQC\Commands\Version\DownloadCommand as VersionDownloadCommand;
 use ACQC\Commands\AppBuilder\LintCommand as AppBuilderLintCommand;
+use ACQC\Commands\Hooks\InstallCommand as HooksInstallCommand;
+use ACQC\Commands\Hooks\UninstallCommand as HooksUninstallCommand;
+use ACQC\Commands\Hooks\StatusCommand as HooksStatusCommand;
 use Symfony\Component\Console\Application as ConsoleApplication;
 
 class Application extends ConsoleApplication
@@ -90,6 +93,9 @@ class Application extends ConsoleApplication
             new VersionAdvisoriesCommand(),
             new VersionDownloadCommand(),
             new AppBuilderLintCommand(),
+            new HooksInstallCommand(),
+            new HooksUninstallCommand(),
+            new HooksStatusCommand(),
         ]);
     }
 }
