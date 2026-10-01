@@ -11,7 +11,7 @@
     ],
     "require": {
         "php": ">=8.1",
-        "magento/magento-coding-standard": "^5.0",
+        "magento/magento-coding-standard": "^41.0",
         "nikic/php-parser": "^4.15|^5.0",
         "phpmd/phpmd": "^2.13",
         "phpoffice/phpspreadsheet": "^5.1",
@@ -59,6 +59,10 @@
                 "PKSA-sf9j-1gs7-xzvx",
                 "PKSA-7h5p-prw9-w5nr"
             ]
+        },
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true,
+            "phpcsstandards/composer-installer": true
         }
     },
     "minimum-stability": "stable",
