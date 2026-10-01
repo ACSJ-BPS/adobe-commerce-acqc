@@ -350,7 +350,50 @@ php bin/acqc scan . --exclude-paths="*/Test/*,*/tests/*"
 
 ---
 
-### 2. `analyze`
+### 2. `phpcs:report`
+
+Run **only** PHP CodeSniffer against one or more directories and render the result as ACQC's
+**rich HTML summary report** (the same layout as `report` — hero, readiness badge, 8 score
+rings, and a filterable violations table). Useful when you want a presentable, standards-only
+report without running the full analyzer/orchestrator suite.
+
+```bash
+php bin/acqc phpcs:report <target...> [options]
+```
+
+**Options:**
+
+| Option             | Description                                                              | Default                              |
+| ------------------ | ----------------------------------------------------------------------- | ------------------------------------ |
+| `--severity`, `-s` | PHPCS minimum severity (0–8)                                            | `5`                                  |
+| `--standard`     | PHPCS coding standard                                                    | `Magento2`                           |
+| `--extensions`   | Comma-separated file extensions to scan                                  | `php,phtml`                          |
+| `--output`, `-o`   | Output HTML file path                                                    | `reports/<name>-phpcs-report.html`   |
+| `--project-name` | Project name shown in the report                                        | auto-detected from target            |
+| `--role`, `-r`     | Report role (`developer`, `lead`, `architect`, `manager`, `executive`) | `developer`                          |
+
+**Examples:**
+
+```bash
+# Single directory (auto-named report in reports/)
+php bin/acqc phpcs:report vendor/casio-us
+
+# Multiple directories into one report, severity 8
+php bin/acqc phpcs:report vendor/casio vendor/casio-common vendor/casio-uk vendor/casio-us \
+  --severity=8 --project-name="Casio UK — vendor/casio*" \
+  --output=reports/casio-phpcs.html
+
+# Scan your own modules
+php bin/acqc phpcs:report app/code --severity=5
+```
+
+> The bundled `Magento2` standard is auto-registered when ACQC is installed with Composer
+> (the project enables `allow-plugins` for the PHP_CodeSniffer installer). ACQC's bundled
+> `phpcs` binary is used automatically, so `phpcs` does not need to be on your `PATH`.
+
+---
+
+### 3. `analyze`
 
 Deep, file-level analysis with full violation context. Intended for module-by-module investigation.
 

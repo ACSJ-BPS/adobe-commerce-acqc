@@ -25,6 +25,7 @@ use ACQC\Commands\ExportCommand;
 use ACQC\Commands\InitCommand;
 use ACQC\Commands\DoctorCommand;
 use ACQC\Commands\ScanCommand;
+use ACQC\Commands\PhpcsReportCommand;
 use ACQC\Commands\ValidateCommand;
 use ACQC\Commands\Rules\ListCommand as RulesListCommand;
 use ACQC\Commands\Rules\SuppressCommand;
@@ -77,6 +78,7 @@ class Application extends ConsoleApplication
             new InitCommand(),
             new DoctorCommand(),
             new ScanCommand(),
+            new PhpcsReportCommand(),
             new ValidateCommand(),
             new RulesListCommand(),
             new SuppressCommand(),

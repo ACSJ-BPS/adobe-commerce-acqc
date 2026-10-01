@@ -439,35 +439,37 @@ class AnalyzeCommand extends Command
 
         // Display summary (suppress when piping machine-readable output)
         if (!$machineReadable) {
-            if ($totalViolations === 0) {
+            if ($totalViolations === 0 && !$outputFile) {
                 $io->success('🎉 No issues found! Your code quality looks great.');
                 return Command::SUCCESS;
             }
 
-            $io->warning(sprintf('Found %d total violations', $totalViolations));
+            if ($totalViolations > 0) {
+                $io->warning(sprintf('Found %d total violations', $totalViolations));
 
-            $io->definitionList(
-                ['Blocker' => $severityBreakdown['blocker']],
-                ['Critical' => $severityBreakdown['critical']],
-                ['Errors' => $severityBreakdown['error']],
-                ['Warnings' => $severityBreakdown['warning']],
-                ['Info' => $severityBreakdown['info']],
-                ['Minor' => $severityBreakdown['minor']]
-            );
+                $io->definitionList(
+                    ['Blocker' => $severityBreakdown['blocker']],
+                    ['Critical' => $severityBreakdown['critical']],
+                    ['Errors' => $severityBreakdown['error']],
+                    ['Warnings' => $severityBreakdown['warning']],
+                    ['Info' => $severityBreakdown['info']],
+                    ['Minor' => $severityBreakdown['minor']]
+                );
 
-            if ($io->isVerbose()) {
-                $io->section('Analyzer Summary');
-                $summaryRows = [];
-                foreach ($results['summary'] as $summary) {
-                    $executionTime = number_format($summary['execution_time'], 3);
-                    $summaryRows[] = [
-                        $summary['analyzer'],
-                        $summary['violations'],
-                        $executionTime . 's',
-                        isset($summary['error']) ? '❌ ' . $summary['error'] : '✅'
-                    ];
+                if ($io->isVerbose()) {
+                    $io->section('Analyzer Summary');
+                    $summaryRows = [];
+                    foreach ($results['summary'] as $summary) {
+                        $executionTime = number_format($summary['execution_time'], 3);
+                        $summaryRows[] = [
+                            $summary['analyzer'],
+                            $summary['violations'],
+                            $executionTime . 's',
+                            isset($summary['error']) ? '❌ ' . $summary['error'] : '✅'
+                        ];
+                    }
+                    $io->table(['Analyzer', 'Violations', 'Time', 'Status'], $summaryRows);
                 }
-                $io->table(['Analyzer', 'Violations', 'Time', 'Status'], $summaryRows);
             }
         } elseif ($totalViolations === 0 && !$outputFile) {
             // Machine-readable empty result
