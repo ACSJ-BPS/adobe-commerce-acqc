@@ -391,6 +391,10 @@ php bin/acqc phpcs:report app/code --severity=5
 > (the project enables `allow-plugins` for the PHP_CodeSniffer installer). ACQC's bundled
 > `phpcs` binary is used automatically, so `phpcs` does not need to be on your `PATH`.
 
+> **Casio team:** see [docs/casio-usage.md](docs/casio-usage.md) for project-specific
+> guidelines (scanning `vendor/casio*`, running via the Warden PHP 8.3 container, and
+> recommended severity levels).
+
 ---
 
 ### 3. `analyze`
