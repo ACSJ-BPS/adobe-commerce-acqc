@@ -41,21 +41,15 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        // Vite 8 (Rolldown) requires manualChunks to be a function
-        manualChunks(id: string) {
-          if (!id.includes('node_modules')) return undefined;
-          const chunks: Record<string, string[]> = {
-            vendor: ['/react/', '/react-dom/', '/scheduler/'],
-            ui: ['/@mui/material/', '/@mui/icons-material/'],
-            charts: ['/recharts/', '/chart.js/', '/react-chartjs-2/'],
-            utils: ['/lodash/', '/date-fns/', '/axios/']
-          };
-          for (const [name, pkgs] of Object.entries(chunks)) {
-            if (pkgs.some((p) => id.includes(`/node_modules${p}`))) return name;
-          }
-          return undefined;
+        codeSplitting: {
+          groups: [
+            { name: 'vendor', test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/, priority: 20 },
+            { name: 'utils', test: /[\\/]node_modules[\\/](lodash|date-fns|axios)[\\/]/, priority: 15 },
+            { name: 'ui', test: /[\\/]node_modules[\\/](@mui[\\/]material|@mui[\\/]icons-material)[\\/]/, priority: 10 },
+            { name: 'charts', test: /[\\/]node_modules[\\/](recharts|chart\.js|react-chartjs-2)[\\/]/, priority: 10 }
+          ]
         }
       }
     }
