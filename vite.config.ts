@@ -1,9 +1,17 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  test: {
+    // Only the dashboard; abqc/ and mcp/ have their own test runners
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    exclude: ['**/node_modules/**', 'abqc/**', 'mcp/**', 'vendor/**', 'server/**', 'var/**'],
+    environment: 'jsdom',
+    passWithNoTests: true
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
@@ -35,11 +43,19 @@ export default defineConfig({
     sourcemap: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          ui: ['@mui/material', '@mui/icons-material'],
-          charts: ['recharts', 'chart.js', 'react-chartjs-2'],
-          utils: ['lodash', 'date-fns', 'axios']
+        // Vite 8 (Rolldown) requires manualChunks to be a function
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return undefined;
+          const chunks: Record<string, string[]> = {
+            vendor: ['/react/', '/react-dom/', '/scheduler/'],
+            ui: ['/@mui/material/', '/@mui/icons-material/'],
+            charts: ['/recharts/', '/chart.js/', '/react-chartjs-2/'],
+            utils: ['/lodash/', '/date-fns/', '/axios/']
+          };
+          for (const [name, pkgs] of Object.entries(chunks)) {
+            if (pkgs.some((p) => id.includes(`/node_modules${p}`))) return name;
+          }
+          return undefined;
         }
       }
     }

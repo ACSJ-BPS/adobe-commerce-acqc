@@ -22,13 +22,13 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.28.0",
-    "zod": "^4.3.6"
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
     "typescript": "^6.0.2",
-    "vitest": "^4.1.1"
+    "vitest": "^5.0.5"
   },
   "bin": {
     "m2-quality-mcp-server": "dist/index.js"
