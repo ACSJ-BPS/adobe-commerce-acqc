@@ -113,5 +113,10 @@
     "analytics"
   ],
   "author": "Adobe Commerce Quality Control Team",
-  "license": "MIT"
+  "license": "MIT",
+  "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.1"
+    }
+  }
 }
