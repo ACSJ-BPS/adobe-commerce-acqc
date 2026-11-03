@@ -1,0 +1,17 @@
+version: 2
+updates:
+  # GitHub Actions workflows
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Root Composer (open-pull-requests-limit: 0 because Renovate manages PRs;
+  # exclude-paths prevents Dependabot alerts on intentional legacy Magento test fixtures)
+  - package-ecosystem: composer
+    directory: /
+    open-pull-requests-limit: 0
+    exclude-paths:
+      - "tests/Fixtures/**"
+    schedule:
+      interval: weekly

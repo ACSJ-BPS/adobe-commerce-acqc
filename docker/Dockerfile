@@ -4,7 +4,7 @@
 # ================================
 # BUILD STAGE
 # ================================
-FROM php:8.1-cli-alpine AS builder
+FROM php:8.3.36-cli-alpine AS builder
 
 # Build arguments
 ARG VERSION=dev
@@ -60,7 +60,7 @@ RUN if [ -f scripts/build.sh ]; then \
 # ================================
 # RUNTIME STAGE
 # ================================
-FROM php:8.1-cli-alpine AS runtime
+FROM php:8.3.36-cli-alpine AS runtime
 
 # Metadata
 LABEL maintainer="M2-Quality Team <team@m2quality.dev>"
@@ -215,7 +215,7 @@ CMD ["php", "run-tests.php"]
 # ================================
 # MINIMAL STAGE (smallest possible image)
 # ================================
-FROM php:8.1-cli-alpine AS minimal
+FROM php:8.3.36-cli-alpine AS minimal
 
 # Install only essential runtime dependencies
 RUN apk add --no-cache \

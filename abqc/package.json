@@ -16,11 +16,10 @@
     "test": "npm run test --workspaces --if-present",
     "test:self-test": "node packages/core/dist/self-test/run.js",
     "lint": "eslint packages",
-    "clean": "rimraf packages/*/dist"
+    "clean": "node -e \"const fs=require('fs');for(const d of fs.readdirSync('packages',{withFileTypes:true}))if(d.isDirectory())for(const t of ['dist','tsconfig.tsbuildinfo'])fs.rmSync('packages/'+d.name+'/'+t,{recursive:true,force:true})\""
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
-    "rimraf": "^5.0.5",
     "typescript": "^5.4.0"
   },
   "engines": {

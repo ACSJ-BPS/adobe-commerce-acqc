@@ -1,9 +1,17 @@
+/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  test: {
+    // Only the dashboard; abqc/ and mcp/ have their own test runners
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    exclude: ['**/node_modules/**', 'abqc/**', 'mcp/**', 'vendor/**', 'server/**', 'var/**'],
+    environment: 'jsdom',
+    passWithNoTests: true
+  },
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
@@ -33,13 +41,15 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          ui: ['@mui/material', '@mui/icons-material'],
-          charts: ['recharts', 'chart.js', 'react-chartjs-2'],
-          utils: ['lodash', 'date-fns', 'axios']
+        codeSplitting: {
+          groups: [
+            { name: 'vendor', test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/, priority: 20 },
+            { name: 'utils', test: /[\\/]node_modules[\\/](lodash|date-fns|axios)[\\/]/, priority: 15 },
+            { name: 'ui', test: /[\\/]node_modules[\\/](@mui[\\/]material|@mui[\\/]icons-material)[\\/]/, priority: 10 },
+            { name: 'charts', test: /[\\/]node_modules[\\/](recharts|chart\.js|react-chartjs-2)[\\/]/, priority: 10 }
+          ]
         }
       }
     }

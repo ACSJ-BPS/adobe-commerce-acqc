@@ -1,0 +1,54 @@
+name: Dependency audit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  npm:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        dir: [., mcp, abqc]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      # Install from the lockfile first: proves the lock is in sync and every
+      # tarball (incl. the xlsx CDN URL) resolves with a matching integrity hash
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: ${{ matrix.dir }}
+      - run: npx -y npm@11 audit --audit-level=high --omit=optional
+        working-directory: ${{ matrix.dir }}
+
+  composer:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # php = lowest supported runtime, must match config.platform.php in that composer.json
+        include:
+          - dir: .
+            php: '8.2'
+          - dir: server
+            php: '8.3'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: ctype, dom, fileinfo, gd, iconv, mbstring, simplexml, tokenizer, xml, xmlreader, xmlwriter, zip
+          tools: composer:v2
+      # audit does not check PHP versions; this fails if the lock needs a newer PHP than the floor
+      - run: composer check-platform-reqs --lock
+        working-directory: ${{ matrix.dir }}
+      - run: composer audit --locked --abandoned=report
+        working-directory: ${{ matrix.dir }}
