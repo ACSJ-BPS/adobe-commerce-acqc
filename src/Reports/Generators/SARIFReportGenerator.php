@@ -162,10 +162,11 @@ class SARIFReportGenerator extends AbstractReportGenerator
                 ],
             ],
             'properties' => [
-                'score'         => $data['score'] ?? null,
-                'filesAnalyzed' => $data['files_analyzed'] ?? 0,
+                'score'         => $data['score'] ?? $data['scores']['overall'] ?? $data['metrics']['quality_score'] ?? null,
+                'readiness'     => $data['scores']['readiness']['verdict'] ?? null,
+                'filesAnalyzed' => $data['files_analyzed'] ?? $data['code_size']['file_count'] ?? $data['total_files'] ?? $data['metrics']['total_files'] ?? 0,
                 'scope'         => $data['scope'] ?? 'project',
-                'gate'          => $data['gate'] ?? null,
+                'gate'          => $data['gate'] ?? $data['scores']['readiness']['gate'] ?? null,
                 'failOn'        => $data['fail_on'] ?? null,
             ],
         ];

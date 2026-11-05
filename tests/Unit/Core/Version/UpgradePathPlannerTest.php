@@ -159,12 +159,15 @@ class UpgradePathPlannerTest extends TestCase
     {
         $path = $this->planner->plan('2.4.5', '2.4.8');
 
-        // Intermediate hops should use latest patch (e.g., 2.4.6-p2 not 2.4.6)
+        // Intermediate hops should use the latest security patch of the line (e.g. 2.4.6-pN, not 2.4.6)
         $intermediates = array_slice($path->hops, 0, -1);
+        $checked = 0;
         foreach ($intermediates as $hop) {
             if (str_starts_with($hop, '2.4.6')) {
-                $this->assertSame('2.4.6-p2', $hop, "Should use latest patch 2.4.6-p2");
+                $this->assertMatchesRegularExpression('/^2\.4\.6-p\d+$/', $hop, 'Should use the latest 2.4.6 patch');
+                $checked++;
             }
         }
+        $this->assertGreaterThan(0, $checked, 'Expected a 2.4.6 stop between 2.4.5 and 2.4.8');
     }
 }

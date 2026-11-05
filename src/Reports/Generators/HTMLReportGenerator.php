@@ -616,11 +616,11 @@ class HTMLReportGenerator extends AbstractReportGenerator
         return trim($html);
     }
 
-    // Helper calculation methods
+    // Helper calculation methods (0-100 scale)
     private function calculateHealthScore(array $data): float
     {
-        $score = $data['quality_score'] ?? 5.0;
-        return min(100, max(0, $score * 10));
+        $score = (float) ($data['scores']['overall'] ?? $data['metrics']['quality_score'] ?? $data['quality_score'] ?? 100.0);
+        return min(100.0, max(0.0, $score));
     }
 
     private function identifyImprovementAreas(array $data): array

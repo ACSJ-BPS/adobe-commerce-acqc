@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace ACQC\Commands;
 
 use ACQC\Core\AuditEngine;
+use ACQC\Core\Config\ProjectConfigLocator;
 use ACQC\Core\Git\GitDiffResolver;
 use ACQC\Core\Git\ScopePatterns;
 use ACQC\Core\Git\StagedSnapshot;
 use ACQC\Core\Profiles\ProfileConfig;
 use ACQC\Core\Profiles\ProfileResolver;
+use ACQC\Core\Scoring\ScoreCalculator;
+use ACQC\Core\Scoring\ScoringConfigLoader;
 use ACQC\Reports\Exporters\CompactTextExporter;
 use ACQC\Reports\Generators\SARIFReportGenerator;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -252,18 +255,17 @@ HELP);
             }
 
             if ($jsonMode) {
-                $grade = match(true) {
-                    $result['score'] >= 95 => 'A+',
-                    $result['score'] >= 85 => 'A',
-                    $result['score'] >= 75 => 'B',
-                    $result['score'] >= 65 => 'C',
-                    $result['score'] >= 50 => 'D',
-                    default                => 'F',
-                };
+                $scoringCfg = (new ScoringConfigLoader())->load($scope['project_root'] ?? $path);
+                $gradeInfo = isset($result['grade'], $result['grade_label'])
+                    ? ['grade' => (string) $result['grade'], 'label' => (string) $result['grade_label']]
+                    : (new ScoreCalculator())->resolveGrade((float) ($result['score'] ?? 0), $scoringCfg->getGrades());
+                $grade = $gradeInfo['grade'];
 
                 $output->writeln(json_encode([
                     'score'          => $result['score'],
                     'grade'          => $grade,
+                    'grade_label'    => $gradeInfo['label'],
+                    'caps_applied'   => $result['caps_applied'] ?? [],
                     'profile'        => $profileName,
                     'scope'          => $scope['mode'] ?? 'project',
                     'fail_on'        => $failOn,
@@ -271,6 +273,7 @@ HELP);
                     'files_analyzed' => $result['files_analyzed'],
                     'total_lines'    => $result['total_lines'] ?? 0,
                     'issues_found'   => $result['issues_found'],
+                    'blockers'       => $result['blockers'] ?? $this->countSeverity($result, 'blocker'),
                     'critical'       => $result['critical'] ?? $this->countSeverity($result, 'critical'),
                     'errors'         => $result['errors'],
                     'warnings'       => $result['warnings'],
@@ -294,7 +297,7 @@ HELP);
                     ['Issues Found', $result['issues_found'], number_format($result['issues_found'] / max(1, $result['files_analyzed']), 2)],
                     ['Errors',   sprintf('<fg=red>%d</>',    $result['errors']),   sprintf('<fg=red>%s</>',    $errorsPerFile)],
                     ['Warnings', sprintf('<fg=yellow>%d</>', $result['warnings']), sprintf('<fg=yellow>%s</>', $warningsPerFile)],
-                    ['Score', $this->formatScore($result['score']), '-'],
+                    ['Score', $this->formatScore($result['score'], $result['grade_label'] ?? null, $result['grade'] ?? null), '-'],
                 ]
             );
 
@@ -566,7 +569,9 @@ HELP);
     private function resolveProfile(string $name): ProfileConfig
     {
         $acqcRoot = dirname(__DIR__, 2);
-        return (new ProfileResolver($acqcRoot, (string) getcwd()))->resolve($name);
+        $located = (new ProjectConfigLocator())->loadNearest((string) getcwd());
+        $projectRoot = $located['project_root'] ?? (string) getcwd();
+        return (new ProfileResolver($acqcRoot, $projectRoot))->resolve($name);
     }
 
     private function applyProfileToIssues(array $issues, ProfileConfig $profile): array
@@ -630,17 +635,23 @@ HELP);
         return $info;
     }
 
-    private function formatScore(int $score): string
+    private function formatScore(int $score, ?string $label = null, ?string $grade = null): string
     {
-        if ($score >= 80) {
-            return sprintf('<fg=green;options=bold>%d/100 (Excellent)</>', $score);
-        } elseif ($score >= 60) {
-            return sprintf('<fg=yellow;options=bold>%d/100 (Good)</>', $score);
-        } elseif ($score >= 40) {
-            return sprintf('<fg=yellow>%d/100 (Fair)</>', $score);
-        } else {
-            return sprintf('<fg=red;options=bold>%d/100 (Needs Improvement)</>', $score);
+        if ($label === null || $grade === null) {
+            $gradeInfo = (new ScoreCalculator())->resolveGrade((float) $score, (new ScoringConfigLoader())->load()->getGrades());
+            $label ??= $gradeInfo['label'];
+            $grade ??= $gradeInfo['grade'];
         }
+
+        $display = sprintf('%d/100 (%s, %s)', $score, $grade, $label);
+        if ($score >= 75) {
+            return sprintf('<fg=green;options=bold>%s</>', $display);
+        } elseif ($score >= 65) {
+            return sprintf('<fg=yellow;options=bold>%s</>', $display);
+        } elseif ($score >= 50) {
+            return sprintf('<fg=yellow>%s</>', $display);
+        }
+        return sprintf('<fg=red;options=bold>%s</>', $display);
     }
 
     private function displayScoreInterpretation(SymfonyStyle $io, int $score, array $result): void
@@ -648,25 +659,28 @@ HELP);
         $io->writeln('');
         $io->section('Score Interpretation');
 
-        if ($score >= 80) {
+        $label = $result['grade_label'] ?? (new ScoreCalculator())->resolveGrade((float) $score, (new ScoringConfigLoader())->load()->getGrades())['label'];
+
+        if ($label === 'Excellent') {
             $io->writeln('<fg=green>✓ Excellent quality! Code meets high standards.</>');
-        } elseif ($score >= 60) {
+        } elseif ($label === 'Good') {
             $io->writeln('<fg=yellow>→ Good quality with room for improvement.</>');
             $io->note('Focus on resolving errors and reducing warnings.');
-        } elseif ($score >= 40) {
-            $io->writeln('<fg=yellow>⚠ Fair quality. Several issues need attention.</>');
+        } elseif ($label === 'Fair' || $label === 'Poor') {
+            $io->writeln(sprintf('<fg=yellow>⚠ %s quality. Several issues need attention.</>', $label));
             $io->warning('Prioritize fixing errors to improve code quality.');
         } else {
             $io->writeln('<fg=red>✗ Needs significant improvement.</>');
             $io->error('Multiple critical issues detected. Immediate action recommended.');
         }
 
+        if (!empty($result['caps_applied'])) {
+            $io->writeln('  <fg=yellow>Caps applied:</> ' . implode('; ', (array) $result['caps_applied']));
+        }
+
         $io->writeln('');
         $io->writeln('<comment>Score Calculation Formula:</comment>');
-        $io->writeln('  • Base Score: 100 points');
-        $io->writeln('  • Error Impact: Based on errors per file ratio (max -50 pts)');
-        $io->writeln('  • Warning Impact: Based on warnings per file ratio (max -30 pts)');
-        $io->writeln('  • Final Score: Scales proportionally with issue density');
+        $io->writeln('  • ' . ($result['formula_description'] ?? '100 -10pt per error/file (max -50), -5pt per warning/file (max -30)'));
     }
 
     private function displayScopeSummary(SymfonyStyle $io, array $pathInfo, array $result): void

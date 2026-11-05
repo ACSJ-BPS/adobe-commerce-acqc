@@ -103,6 +103,18 @@ class TestEnvironment
             if (error_reporting() === 0) {
                 return false;
             }
+
+            // Deprecations are reported by PHPUnit, not turned into test errors. Throwing here also
+            // aborted file loading mid-way (e.g. CacheManager.php, then "FileCacheBackend not found").
+            if ($severity === E_DEPRECATED || $severity === E_USER_DEPRECATED) {
+                return false;
+            }
+
+            // Only test code is strict. Warnings raised inside src/ or vendor/ keep PHP's normal
+            // behaviour (PHPUnit reports them); throwing would change the code under test.
+            if (!str_starts_with($file, ACQC_TEST_ROOT . DIRECTORY_SEPARATOR)) {
+                return false;
+            }
             
             throw new \ErrorException($message, 0, $severity, $file, $line);
         });

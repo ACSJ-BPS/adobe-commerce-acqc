@@ -218,7 +218,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica N
 {% set total      = violations.total_count|default(0) %}
 {% set by_sev     = violations.by_severity|default({}) %}
 {% set by_cat     = violations.by_category|default({}) %}
-{% set score      = (data.metrics.quality_score|default(data.score|default(0)))|round %}
+{% set sc         = data.scores|default(null) %}
+{% set band_healthy   = sc.bands.healthy|default(80) %}
+{% set band_attention = sc.bands.attention|default(60) %}
+{% set score      = sc is not null and sc.overall_rounded is defined
+    ? sc.overall_rounded
+    : (data.metrics.quality_score|default(data.score|default(total == 0 ? 100 : 0)))|round %}
 {% set all_v_raw  = violations.violations|default(violations.all|default(violations.top_violations|default([]))) %}
 {% set max_display = 500 %}
 {% set all_v      = all_v_raw|slice(0, max_display) %}
@@ -265,29 +270,37 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica N
 {% set api_pct   = (api_issues    / t * 100) %}
 {% set logic_pct = ((logic_issues + (warnings // 2)|round) / t * 100) %}
 
-{# Reliability — all density-based so large codebases get fair scores #}
-{% set reliability_score     = max(0,  min(100, (100 - (crit_pct * 8) - (err_pct * 2) - (blk_pct * 15))|round)) %}
-{# Security — smaller per-issue penalty so 8 vulns ≠ instant 0 (8×8=64→36) #}
-{% set security_score        = max(0,  min(100, (100 - (sec_issues * 8))|round)) %}
-{# Performance — density-based, floor 15 (code still runs, just slow) #}
-{% set performance_score     = max(15, min(100, (100 - (perf_pct * 2.5))|round)) %}
-{# Maintainability — density-based, floor 25 (baseline messiness is normal) #}
-{% set maintainability_score = max(25, min(100, (100 - (maint_pct * 2))|round)) %}
-{# Compliance — density-based, hard 0 ok (deprecated APIs = hard fail) #}
-{% set compliance_score      = max(0,  min(100, (100 - (dep_pct * 5))|round)) %}
-{# API Quality — density-based, floor 20 #}
-{% set api_score             = max(20, min(100, (100 - (api_pct * 3))|round)) %}
-{# Code Quality — logic + warning density, floor 20 #}
-{% set code_quality_score    = max(20, min(100, (100 - (logic_pct * 1.5))|round)) %}
+{# Reliability — config-driven when data.scores is present, with legacy fallback #}
+{% set reliability_score     = sc.dimensions.reliability.score|default(max(0,  min(100, (100 - (crit_pct * 8) - (err_pct * 2) - (blk_pct * 15))|round))) %}
+{# Security #}
+{% set security_score        = sc.dimensions.security.score|default(max(0,  min(100, (100 - (sec_issues * 8))|round))) %}
+{# Performance #}
+{% set performance_score     = sc.dimensions.performance.score|default(max(15, min(100, (100 - (perf_pct * 2.5))|round))) %}
+{# Maintainability #}
+{% set maintainability_score = sc.dimensions.maintainability.score|default(max(25, min(100, (100 - (maint_pct * 2))|round))) %}
+{# Compliance #}
+{% set compliance_score      = sc.dimensions.compliance.score|default(max(0,  min(100, (100 - (dep_pct * 5))|round))) %}
+{# API Quality #}
+{% set api_score             = sc.dimensions.api_quality.score|default(max(20, min(100, (100 - (api_pct * 3))|round))) %}
+{# Code Quality #}
+{% set code_quality_score    = sc.dimensions.code_quality.score|default(max(20, min(100, (100 - (logic_pct * 1.5))|round))) %}
 
 {# Release readiness #}
-{% if blockers > 0 %}
-  {% set readiness = 'BLOCKED' %}{% set r_cls = 'r-blocked' %}{% set r_ico = '✗' %}
+{% if sc is not null and sc.readiness is defined %}
+  {% set readiness = sc.readiness.verdict %}
+  {% set r_cls     = sc.readiness.css_class %}
+  {% set r_ico     = sc.readiness.icon %}
+  {% set r_gate    = sc.readiness.gate|default('PASS') %}
+  {% set r_summary = sc.readiness.summary|default('') %}
+  {% set r_reason  = sc.readiness.reason|default('') %}
+{% elseif blockers > 0 %}
+  {% set readiness = 'BLOCKED' %}{% set r_cls = 'r-blocked' %}{% set r_ico = '✗' %}{% set r_gate = 'FAIL' %}{% set r_summary = 'Block merge and notify team lead' %}{% set r_reason = 'blocker > 0' %}
 {% elseif criticals > 0 or score < 65 %}
-  {% set readiness = 'RISKY' %}{% set r_cls = 'r-risky' %}{% set r_ico = '⚠' %}
+  {% set readiness = 'RISKY' %}{% set r_cls = 'r-risky' %}{% set r_ico = '⚠' %}{% set r_gate = 'WARN' %}{% set r_summary = 'Proceed with mandatory review gate' %}{% set r_reason = 'critical > 0 or overall < 65' %}
 {% else %}
-  {% set readiness = 'READY TO SHIP' %}{% set r_cls = 'r-ready' %}{% set r_ico = '✓' %}
+  {% set readiness = 'READY TO SHIP' %}{% set r_cls = 'r-ready' %}{% set r_ico = '✓' %}{% set r_gate = 'PASS' %}{% set r_summary = 'Safe to merge and deploy' %}{% set r_reason = 'All readiness thresholds met' %}
 {% endif %}
+{% set caps_applied = sc.caps_applied|default([]) %}
 
 {# Ring chart helper: r=38, circ=238.76 → per-unit=2.3876 #}
 {% set circ = 238.76 %}
@@ -351,23 +364,39 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica N
         &nbsp;·&nbsp; Role: {{ report.user_role|default('developer')|capitalize }}
       </div>
     </div>
-    <div class="readiness {{ r_cls }}">
-      <span class="rdot"></span>{{ r_ico }} {{ readiness }}
+    <div style="text-align:right">
+      <div class="readiness {{ r_cls }}" title="{{ r_reason }}">
+        <span class="rdot"></span>{{ r_ico }} {{ readiness }}
+      </div>
+      {% if caps_applied|length > 0 or (r_gate != 'PASS' and r_reason) %}
+      <div style="font-size:11px;color:rgba(255,255,255,.72);margin-top:6px">
+        {% if caps_applied|length > 0 %}{{ caps_applied|join(' · ') }}{% if r_gate != 'PASS' and r_reason %} &nbsp;·&nbsp; {% endif %}{% endif %}
+        {% if r_gate != 'PASS' and r_reason %}Why: {{ r_reason }}{% endif %}
+      </div>
+      {% endif %}
     </div>
   </div>
 
   {# Score rings #}
   <div class="scores-grid">
-    {% set ring_items = [
-      {'lbl': 'Overall',         'val': score,                'sub': 'Composite',     'color': score >= 80                ? '#34d399' : (score >= 60                ? '#fbbf24' : '#f87171')},
-      {'lbl': 'Reliability',     'val': reliability_score,    'sub': 'Errors/Bugs',   'color': reliability_score >= 80    ? '#34d399' : (reliability_score >= 60    ? '#fbbf24' : '#f87171')},
-      {'lbl': 'Security',        'val': security_score,       'sub': 'Vulnerabilities','color': security_score >= 80       ? '#34d399' : (security_score >= 60       ? '#fbbf24' : '#f87171')},
-      {'lbl': 'Performance',     'val': performance_score,    'sub': 'Speed/Load',    'color': performance_score >= 80    ? '#34d399' : (performance_score >= 60    ? '#fbbf24' : '#f87171')},
-      {'lbl': 'Maintainability', 'val': maintainability_score,'sub': 'Tech Debt',     'color': maintainability_score >= 80? '#34d399' : (maintainability_score >= 60? '#fbbf24' : '#f87171')},
-      {'lbl': 'Compliance',      'val': compliance_score,     'sub': 'Deprecations',  'color': compliance_score >= 80     ? '#34d399' : (compliance_score >= 60     ? '#fbbf24' : '#f87171')},
-      {'lbl': 'API Quality',     'val': api_score,            'sub': 'Interfaces',    'color': api_score >= 80            ? '#34d399' : (api_score >= 60            ? '#fbbf24' : '#f87171')},
-      {'lbl': 'Code Quality',    'val': code_quality_score,   'sub': 'Logic/Style',   'color': code_quality_score >= 80   ? '#34d399' : (code_quality_score >= 60   ? '#fbbf24' : '#f87171')},
-    ] %}
+    {% set overall_ring_color = sc.overall_color|default(score >= band_healthy ? '#34d399' : (score >= band_attention ? '#fbbf24' : '#f87171')) %}
+    {% if sc is not null and sc.dimensions is defined %}
+      {% set ring_items = [{'lbl': 'Overall', 'val': score, 'sub': 'Composite', 'color': overall_ring_color}] %}
+      {% for dim_id, dim in sc.dimensions %}
+        {% set ring_items = ring_items|merge([{'lbl': dim.label, 'val': dim.score, 'sub': dim.subtitle, 'color': dim.color}]) %}
+      {% endfor %}
+    {% else %}
+      {% set ring_items = [
+        {'lbl': 'Overall',         'val': score,                'sub': 'Composite',     'color': overall_ring_color},
+        {'lbl': 'Reliability',     'val': reliability_score,    'sub': 'Errors/Bugs',   'color': reliability_score >= band_healthy    ? '#34d399' : (reliability_score >= band_attention    ? '#fbbf24' : '#f87171')},
+        {'lbl': 'Security',        'val': security_score,       'sub': 'Vulnerabilities','color': security_score >= band_healthy       ? '#34d399' : (security_score >= band_attention       ? '#fbbf24' : '#f87171')},
+        {'lbl': 'Performance',     'val': performance_score,    'sub': 'Speed/Load',    'color': performance_score >= band_healthy    ? '#34d399' : (performance_score >= band_attention    ? '#fbbf24' : '#f87171')},
+        {'lbl': 'Maintainability', 'val': maintainability_score,'sub': 'Tech Debt',     'color': maintainability_score >= band_healthy? '#34d399' : (maintainability_score >= band_attention? '#fbbf24' : '#f87171')},
+        {'lbl': 'Compliance',      'val': compliance_score,     'sub': 'Deprecations',  'color': compliance_score >= band_healthy     ? '#34d399' : (compliance_score >= band_attention     ? '#fbbf24' : '#f87171')},
+        {'lbl': 'API Quality',     'val': api_score,            'sub': 'Interfaces',    'color': api_score >= band_healthy            ? '#34d399' : (api_score >= band_attention            ? '#fbbf24' : '#f87171')},
+        {'lbl': 'Code Quality',    'val': code_quality_score,   'sub': 'Logic/Style',   'color': code_quality_score >= band_healthy   ? '#34d399' : (code_quality_score >= band_attention   ? '#fbbf24' : '#f87171')},
+      ] %}
+    {% endif %}
     {% for ring in ring_items %}
     <div class="score-card">
       <div class="score-lbl">{{ ring.lbl }}</div>
@@ -568,12 +597,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica N
     {% set risk_n = risk_n + 1 %}
     {% endif %}
 
-    {% if score < 80 %}
+    {% if score < band_healthy %}
     <li class="risk-item ri">
       <span class="risk-num">#{{ risk_n }}</span>
       <div class="risk-body">
-        <h4>Quality score {{ score }}/100 below enterprise threshold (80)</h4>
-        <p>Quality score below 80 indicates systemic issues that will compound with each release. Establish a debt-reduction sprint to reach baseline quality.</p>
+        <h4>Quality score {{ score }}/100 below enterprise threshold ({{ band_healthy }})</h4>
+        <p>Quality score below {{ band_healthy }} indicates systemic issues that will compound with each release. Establish a debt-reduction sprint to reach baseline quality.</p>
       </div>
       <div class="risk-badges"><span class="badge badge-info">SCORE {{ score }}</span></div>
     </li>
@@ -1003,28 +1032,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica N
     <div class="section-icon" style="background:var(--primary-lt);font-size:17px">🚦</div>
     <div><div class="section-title">CI/CD Gate Recommendation</div><div class="section-sub">Automated pipeline action based on results</div></div>
   </div>
-  <div class="card" style="border-left:4px solid {% if blockers > 0 %}var(--danger){% elseif criticals > 0 or score < 70 %}var(--warning){% else %}var(--success){% endif %}">
+  <div class="card" style="border-left:4px solid {% if r_gate == 'FAIL' %}var(--danger){% elseif r_gate == 'WARN' %}var(--warning){% else %}var(--success){% endif %}">
     <div style="padding:20px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
-      <div style="font-size:32px">{% if blockers > 0 %}🚫{% elseif criticals > 0 or score < 70 %}⚠️{% else %}✅{% endif %}</div>
+      <div style="font-size:32px">{% if r_gate == 'FAIL' %}🚫{% elseif r_gate == 'WARN' %}⚠️{% else %}✅{% endif %}</div>
       <div style="flex:1">
         <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">
-          {% if blockers > 0 %}
-            FAIL — Block merge and notify team lead
-          {% elseif criticals > 0 or score < 70 %}
-            WARN — Proceed with mandatory review gate
-          {% else %}
-            PASS — Safe to merge and deploy
-          {% endif %}
+          {{ r_gate }} — {{ r_summary }}
         </div>
         <div style="font-size:12px;color:var(--text2)">
           Quality Score: <strong>{{ score }}/100</strong> &nbsp;·&nbsp;
           Blockers: <strong {% if blockers > 0 %}style="color:var(--danger)"{% endif %}>{{ blockers }}</strong> &nbsp;·&nbsp;
           Critical: <strong {% if criticals > 0 %}style="color:var(--purple)"{% endif %}>{{ criticals }}</strong> &nbsp;·&nbsp;
           Errors: <strong>{{ errors|number_format }}</strong>
+          {% if r_reason %}&nbsp;·&nbsp; Reason: <strong>{{ r_reason }}</strong>{% endif %}
         </div>
       </div>
       <div style="font-size:11px;color:var(--text3);text-align:right;line-height:1.7">
-        Threshold: score ≥ 65, blockers = 0<br>
+        Verdict: {{ readiness }}<br>
         Evaluated: {{ report.generated_at|default('') }}
       </div>
     </div>

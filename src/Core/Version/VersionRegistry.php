@@ -110,7 +110,21 @@ class VersionRegistry
         $registry = $this->loadRegistryIndex();
         $patches = $registry['latest_patch_by_minor'] ?? [];
 
-        return $patches[$minorVersion] ?? $minorVersion;
+        if (isset($patches[$minorVersion])) {
+            return (string) $patches[$minorVersion];
+        }
+
+        // Release line such as "2.4.6": highest known GA or security patch (2.4.6, 2.4.6-pN),
+        // ignoring beta / rc builds. getKnownVersions() is sorted ascending.
+        $pattern = '/^' . preg_quote($minorVersion, '/') . '(-p\d+)?$/';
+        $latest = $minorVersion;
+        foreach ($this->getKnownVersions() as $version) {
+            if (preg_match($pattern, (string) $version)) {
+                $latest = (string) $version;
+            }
+        }
+
+        return $latest;
     }
 
     public function getKnownVersions(): array

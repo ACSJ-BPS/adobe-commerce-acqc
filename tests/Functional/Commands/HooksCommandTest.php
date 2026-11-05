@@ -186,6 +186,11 @@ final class HooksCommandTest extends TestCase
         }
         $fullEnv = array_merge(getenv(), $env);
         unset($fullEnv['GIT_DIR'], $fullEnv['GIT_INDEX_FILE'], $fullEnv['GIT_WORK_TREE']);
+        foreach (array_keys($fullEnv) as $key) {
+            if ($key === 'GIT_CONFIG_COUNT' || preg_match('/^GIT_CONFIG_(KEY|VALUE)_\d+$/', (string) $key)) {
+                unset($fullEnv[$key]);
+            }
+        }
 
         $proc = proc_open($args, [0 => ['file', '/dev/null', 'r'], 1 => ['pipe', 'w'], 2 => ['redirect', 1]], $pipes, null, $fullEnv);
         $out  = (string) stream_get_contents($pipes[1]);

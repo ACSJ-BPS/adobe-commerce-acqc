@@ -270,19 +270,6 @@ reports:
       enabled: true
       testsuite_name: "ACQC.CodeAnalysis"
       include_properties: true
-      quality_gates:
-        - name: "no_critical_violations"
-          condition: "critical_violations == 0"
-          description: "No critical violations allowed"
-        - name: "minimum_quality_score"
-          condition: "quality_score >= 7.0"
-          description: "Quality score must be at least 7.0"
-        - name: "maximum_technical_debt"
-          condition: "technical_debt_hours <= 100"
-          description: "Technical debt must not exceed 100 hours"
-        - name: "minimum_test_coverage"
-          condition: "test_coverage >= 0.8"
-          description: "Test coverage must be at least 80%"
 
   # Template configurations
   templates:
@@ -432,43 +419,3 @@ reports:
       enabled: false
       token: "${GITLAB_TOKEN}"
       project_id: "12345"
-
-# Default quality gates for different report types
-quality_gates:
-  summary:
-    - metric: "quality_score"
-      operator: ">="
-      threshold: 7.0
-      severity: "error"
-    - metric: "critical_violations"
-      operator: "=="
-      threshold: 0
-      severity: "error"
-      
-  detailed:
-    - metric: "quality_score"
-      operator: ">="
-      threshold: 7.0
-      severity: "error"
-    - metric: "critical_violations"
-      operator: "=="
-      threshold: 0
-      severity: "error"
-    - metric: "technical_debt_hours"
-      operator: "<="
-      threshold: 100
-      severity: "warning"
-    - metric: "test_coverage"
-      operator: ">="
-      threshold: 0.8
-      severity: "warning"
-      
-  executive:
-    - metric: "quality_score"
-      operator: ">="
-      threshold: 8.0
-      severity: "error"
-    - metric: "overall_risk"
-      operator: "<="
-      threshold: 0.3
-      severity: "warning" 

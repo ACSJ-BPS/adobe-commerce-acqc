@@ -231,8 +231,8 @@ class PDFReportGenerator extends AbstractReportGenerator
         
         $summary = $this->getExecutiveSummary($data);
         
-        // Overall score with visual indicator
-        $this->addScoreCard('Overall Quality Score', $summary['overall_score'], 10);
+        // Overall score with visual indicator (0-100 scale)
+        $this->addScoreCard('Overall Quality Score', (float) ($summary['overall_score'] ?? 0), 100);
         
         // Risk level
         $this->addInfoBox('Risk Level', $summary['risk_level']);
@@ -259,11 +259,12 @@ class PDFReportGenerator extends AbstractReportGenerator
         $this->addSectionTitle('Project Overview');
         
         $overview = [
-            'Quality Score' => number_format($data['quality_score'] ?? 0, 1),
+            'Quality Score' => number_format((float) ($data['scores']['overall'] ?? $data['metrics']['quality_score'] ?? $data['quality_score'] ?? 0), 1),
+            'Release Readiness' => (string) ($data['scores']['readiness']['verdict'] ?? 'N/A'),
             'Total Violations' => number_format($data['violations']['total_count'] ?? 0),
-            'Technical Debt' => ($data['technical_debt']['total_hours'] ?? 0) . ' hours',
-            'Files Analyzed' => number_format($data['code_size']['file_count'] ?? 0),
-            'Lines of Code' => number_format($data['code_size']['lines_of_code'] ?? 0)
+            'Technical Debt' => ($data['scores']['debt_hours'] ?? $data['metrics']['technical_debt']['total_hours'] ?? $data['technical_debt']['total_hours'] ?? 0) . ' hours',
+            'Files Analyzed' => number_format($data['code_size']['file_count'] ?? $data['total_files'] ?? $data['metrics']['total_files'] ?? 0),
+            'Lines of Code' => number_format($data['code_size']['total_lines'] ?? $data['code_size']['lines_of_code'] ?? $data['total_lines'] ?? 0)
         ];
         
         $this->addKeyValueTable($overview);

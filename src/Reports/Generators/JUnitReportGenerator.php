@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace ACQC\Reports\Generators;
 
+use ACQC\Core\Scoring\ConditionEvaluator;
+use ACQC\Core\Scoring\ScoreInputs;
+use ACQC\Core\Scoring\ScoringConfig;
+use ACQC\Core\Scoring\ScoringConfigLoader;
 use DOMDocument;
 use DOMElement;
+use InvalidArgumentException;
 
 /**
  * JUnit XML Report Generator
@@ -22,6 +27,7 @@ class JUnitReportGenerator extends AbstractReportGenerator
     private int $errorCount = 0;
     private int $skippedCount = 0;
     private float $totalTime = 0.0;
+    private ?ScoringConfig $scoringConfig = null;
 
     /**
      * Generate JUnit XML report
@@ -33,6 +39,9 @@ class JUnitReportGenerator extends AbstractReportGenerator
                 'type' => $this->reportType,
                 'format' => 'junit'
             ]);
+
+            // Effective scoring config (built-in + .acqc/project.yaml) from ReportCommand; null = built-in defaults
+            $this->scoringConfig = ($options['scoring_config'] ?? null) instanceof ScoringConfig ? $options['scoring_config'] : null;
 
             // Initialize DOM
             $this->initializeDOM($options);
@@ -62,6 +71,8 @@ class JUnitReportGenerator extends AbstractReportGenerator
                 ]
             );
 
+        } catch (InvalidArgumentException $e) {
+            throw $e;
         } catch (\Exception $e) {
             $this->logger->error('JUnit report generation failed', [
                 'error' => $e->getMessage()
@@ -317,13 +328,13 @@ class JUnitReportGenerator extends AbstractReportGenerator
     }
 
     /**
-     * Process metrics as test cases
+     * Process metrics as test cases (0-100 scale)
      */
     private function processMetricsAsTests(array $metrics): void
     {
-        // Quality score test
-        $qualityScore = $metrics['quality_score'] ?? 0;
-        $this->createMetricTestCase('quality_score', $qualityScore, 7.0, 'Quality score too low');
+        // Quality score test (0-100 scale)
+        $qualityScore = (float) ($metrics['quality_score'] ?? 0);
+        $this->createMetricTestCase('quality_score', $qualityScore, 65.0, 'Quality score too low');
         
         // Complexity test
         if (isset($metrics['complexity'])) {
@@ -403,7 +414,7 @@ class JUnitReportGenerator extends AbstractReportGenerator
             'ACQC.Security',
             'security_score',
             $security['security_score'] ?? 0,
-            8.0,
+            80.0,
             'Security score below threshold'
         );
     }
@@ -437,9 +448,26 @@ class JUnitReportGenerator extends AbstractReportGenerator
      */
     private function processQualityGatesAsTests(array $data, array $options): void
     {
-        $gates = $options['quality_gates'] ?? $this->getDefaultQualityGates();
-        
-        foreach ($gates as $gate) {
+        if (isset($options['quality_gates']) && is_array($options['quality_gates'])) {
+            foreach ($options['quality_gates'] as $gate) {
+                $this->processQualityGate($gate, $data);
+            }
+            return;
+        }
+
+        if (!empty($data['scores']['gates']) && is_array($data['scores']['gates'])) {
+            foreach ($data['scores']['gates'] as $gate) {
+                $this->processQualityGate([
+                    'name' => $gate['name'] ?? 'quality_gate',
+                    'passed' => $gate['passed'] ?? true,
+                    'condition' => $gate['reason'] ?? '',
+                    'description' => $gate['reason'] ?? '',
+                    'failure_message' => ($gate['name'] ?? 'Gate') . ' failed: ' . ($gate['reason'] ?? ''),
+                ], $data);
+            }
+        }
+
+        foreach ($this->getDefaultQualityGates() as $gate) {
             $this->processQualityGate($gate, $data);
         }
     }
@@ -565,56 +593,82 @@ class JUnitReportGenerator extends AbstractReportGenerator
     }
 
     /**
-     * Get default quality gates
+     * Get default quality gates (0-100 scale)
      */
     private function getDefaultQualityGates(): array
     {
         return [
             [
                 'name' => 'no_critical_violations',
-                'condition' => 'critical_violations == 0',
+                'condition' => 'critical == 0',
                 'description' => 'No critical violations allowed',
                 'failure_message' => 'Critical violations detected'
             ],
             [
                 'name' => 'minimum_quality_score',
-                'condition' => 'quality_score >= 7.0',
-                'description' => 'Quality score must be at least 7.0',
+                'condition' => 'overall >= 65',
+                'description' => 'Quality score must be at least 65',
                 'failure_message' => 'Quality score below minimum threshold'
             ],
             [
                 'name' => 'maximum_technical_debt',
-                'condition' => 'technical_debt_hours <= 100',
-                'description' => 'Technical debt must not exceed 100 hours',
+                'condition' => 'debt_hours <= 500',
+                'description' => 'Technical debt must not exceed 500 hours',
                 'failure_message' => 'Technical debt exceeds maximum threshold'
             ]
         ];
     }
 
     /**
-     * Evaluate quality gate condition
+     * Evaluate quality gate condition via shared ConditionEvaluator.
+     * Unknown keys or malformed operators throw InvalidArgumentException (never silent pass).
      */
     private function evaluateQualityGate(array $gate, array $data): bool
     {
-        // Simple condition evaluation
-        $condition = $gate['condition'] ?? '';
-        
-        // Extract values from data
-        $criticalViolations = $data['violations']['by_severity']['critical'] ?? 0;
-        $qualityScore = $data['quality_score'] ?? 0;
-        $technicalDebtHours = $data['technical_debt']['total_hours'] ?? 0;
-        
-        // Evaluate common conditions
-        switch ($condition) {
-            case 'critical_violations == 0':
-                return $criticalViolations == 0;
-            case 'quality_score >= 7.0':
-                return $qualityScore >= 7.0;
-            case 'technical_debt_hours <= 100':
-                return $technicalDebtHours <= 100;
-            default:
-                return true; // Unknown condition passes by default
+        if (array_key_exists('passed', $gate)) {
+            return (bool) $gate['passed'];
         }
+
+        $config = $this->scoringConfig ?? (new ScoringConfigLoader())->load();
+        $inputs = ScoreInputs::fromReportData($data, $config);
+        $overall = (float) ($data['scores']['overall'] ?? $data['metrics']['quality_score'] ?? $data['quality_score'] ?? 100.0);
+        $debtHours = (float) ($data['scores']['debt_hours'] ?? $data['metrics']['technical_debt']['total_hours'] ?? $data['technical_debt']['total_hours'] ?? 0.0);
+        $vars = $inputs->toVariablesMap($overall, $debtHours);
+
+        // Legacy JUnit condition variable aliases
+        $vars['critical_violations'] = $vars['critical'];
+        $vars['blocker_violations'] = $vars['blocker'];
+        $vars['error_violations'] = $vars['error'];
+        $vars['warning_violations'] = $vars['warning'];
+        $vars['info_violations'] = $vars['info'];
+        $vars['quality_score'] = $vars['overall'];
+        $vars['technical_debt_hours'] = $vars['debt_hours'];
+        // Other keys used by older --quality-gates files and the removed reports.yaml JUnit gates
+        $vars['test_coverage'] = (float) ($data['metrics']['test_coverage']['line_coverage'] ?? $data['test_coverage']['line_coverage'] ?? 0.0);
+        $vars['average_complexity'] = (float) ($data['metrics']['complexity']['average'] ?? $data['complexity']['average'] ?? 0.0);
+
+        $evaluator = new ConditionEvaluator();
+        $gateName = (string) ($gate['name'] ?? 'quality_gate');
+
+        if (isset($gate['when']) && is_array($gate['when'])) {
+            // In `scoring.gates`, `when` is a failure trigger condition
+            $res = $evaluator->evaluateMap($gate['when'], $vars, 'any', "quality_gates.{$gateName}.when");
+            return !$res['matched'];
+        }
+
+        $condition = trim((string) ($gate['condition'] ?? ''));
+        if ($condition === '' || !preg_match('/^([a-zA-Z0-9_]+)\s*(>=|<=|==|!=|>|<)\s*(-?\d+(?:\.\d+)?)$/', $condition, $matches)) {
+            throw new InvalidArgumentException(sprintf(
+                'Invalid quality gate condition "%s" in gate "%s": expected "<key> <op> <number>".',
+                $condition,
+                $gateName
+            ));
+        }
+
+        $key = $matches[1];
+        $expr = $matches[2] . ' ' . $matches[3];
+
+        return $evaluator->evaluateMap([$key => $expr], $vars, 'all', "quality_gates.{$gateName}")['matched'];
     }
 
     /**

@@ -21,6 +21,64 @@ M2-Quality searches for configuration files in this order:
 3. `~/.m2quality/config.json` (user home)
 4. `/etc/m2quality/config.json` (system-wide)
 
+## 🎯 Config-Driven Quality Scoring & Release Readiness (`.acqc/project.yaml`)
+
+ACQC loads built-in defaults from `config/scoring.yaml` and merges optional overrides from the nearest `.acqc/project.yaml` (discovered by walking upwards from the target path to the git root; when the target is not inside a git repository, only `<target>/.acqc/project.yaml` is used).
+
+Associative maps (`overall.weights`, `category_weights`, `bands`, `dimensions.<id>`, `kpis.<id>`, `status.*`) deep-merge with built-in defaults; sequential lists (`readiness`, `caps`, `grades`, `tiers`, `gates`, `assessment`, `categories`, `rule_ids`, `terms`) replace the built-in list.
+
+### Project Override Example (`.acqc/project.yaml`)
+
+```yaml
+report:
+  # Optional report filter defaults (CLI flags override when provided)
+  exclude_categories: [seo, accessibility]
+
+analyzers:
+  # Optional orchestrator toggles
+  frontend_seo: false
+  frontend_accessibility: false
+
+scoring:
+  category_weights:
+    seo: 0.25
+    accessibility: 0.25
+
+  bands:
+    healthy: 80
+    attention: 60
+
+  overall:
+    normalize: absolute          # absolute | per_file | per_kloc | share_of_total
+    per: 1000
+    weights: { blocker: 15, critical: 6, error: 2.5, warning: 0.6, info: 0.1, minor: 0.03 }
+    caps:
+      - { when: { error_weighted: ">= 100" }, max_score: 75 }
+
+  readiness:
+    - { verdict: BLOCKED,       gate: FAIL, when_any: { blocker: "> 0", critical: "> 5" } }
+    - { verdict: RISKY,         gate: WARN, when_any: { critical: "> 0", error_weighted: "> 50", overall: "< 75" } }
+    - { verdict: READY TO SHIP, gate: PASS }
+
+  kpis:
+    criticality:
+      pass: "<= 2"
+      warn: "<= 10"
+```
+
+### Common Scoring Recipes
+
+| Goal | `.acqc/project.yaml` |
+|---|---|
+| Ignore SEO / accessibility entirely | `report: { exclude_categories: [seo, accessibility] }` |
+| Down-weight noisy categories in scores | `scoring: { category_weights: { seo: 0, accessibility: 0.1, guidance: 0.25 } }` |
+| Mark > N errors as RISKY | `scoring.readiness` rule with `when_any: { error: "> N" }` or `error_weighted: "> N"` |
+| Cap Overall score when blockers exist | `scoring.overall.caps: [{ when: { blocker: ">= 1" }, max_score: 40 }]` |
+| Normalize Overall or rings by project size | `normalize: per_file` or `normalize: per_kloc` |
+| Map specific rules to a dimension ring | `scoring.dimensions.compliance.rule_ids: ['magento-upgrade-deprecated-*']` |
+| Monotonic technical debt hours | `scoring.debt.scaling: marginal` |
+| Add extra JUnit / CI quality gates | `scoring.gates: [{ name: max_errors, when: { error: "> 50" } }]` |
+
 ## 📄 Basic Configuration
 
 ### Minimal Configuration

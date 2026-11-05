@@ -265,7 +265,8 @@ abstract class AbstractReportGenerator
     protected function getExecutiveSummary(array $data): array
     {
         return [
-            'overall_score' => $data['metrics']['quality_score'] ?? $data['quality_score'] ?? 0,
+            'overall_score' => $data['scores']['overall'] ?? $data['metrics']['quality_score'] ?? $data['quality_score'] ?? 0,
+            'readiness' => $data['scores']['readiness']['verdict'] ?? null,
             'risk_level' => $this->calculateRiskLevel($data),
             'critical_issues' => $this->getCriticalIssues($data),
             'key_metrics' => $this->getKeyMetrics($data),
@@ -333,10 +334,10 @@ abstract class AbstractReportGenerator
     private function processTechnicalDebtMetrics(array $metrics): array
     {
         return [
-            'total_hours' => $metrics['debt_hours'] ?? 0,
-            'total_days' => $metrics['debt_days'] ?? 0,
-            'by_category' => $metrics['debt_by_category'] ?? [],
-            'ratio' => $metrics['debt_ratio'] ?? 0
+            'total_hours' => $metrics['total_hours'] ?? $metrics['debt_hours'] ?? 0,
+            'total_days' => $metrics['total_days'] ?? $metrics['debt_days'] ?? 0,
+            'by_category' => $metrics['by_category'] ?? $metrics['debt_by_category'] ?? [],
+            'ratio' => $metrics['ratio'] ?? $metrics['debt_ratio'] ?? 0
         ];
     }
 
@@ -377,7 +378,8 @@ abstract class AbstractReportGenerator
     private function processCodeSizeMetrics(array $metrics): array
     {
         return [
-            'lines_of_code' => $metrics['lines_of_code'] ?? 0,
+            'lines_of_code' => $metrics['lines_of_code'] ?? $metrics['total_lines'] ?? 0,
+            'total_lines' => $metrics['total_lines'] ?? $metrics['lines_of_code'] ?? 0,
             'file_count' => $metrics['file_count'] ?? 0,
             'average_file_size' => $metrics['average_file_size'] ?? 0
         ];

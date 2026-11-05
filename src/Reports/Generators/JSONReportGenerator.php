@@ -189,7 +189,7 @@ class JSONReportGenerator extends AbstractReportGenerator
                 'memory_peak' => memory_get_peak_usage(true)
             ],
             'options' => array_filter($options, function($key) {
-                return !in_array($key, ['api_key', 'password', 'secret']);
+                return !in_array($key, ['api_key', 'password', 'secret', 'scoring_config']);
             }, ARRAY_FILTER_USE_KEY)
         ];
     }
@@ -199,24 +199,30 @@ class JSONReportGenerator extends AbstractReportGenerator
      */
     private function prepareSummaryData(array $data): array
     {
+        $scores = $data['scores'] ?? null;
         return [
             'overview' => [
-                'quality_score' => $data['quality_score'] ?? 0,
+                'quality_score' => $scores['overall'] ?? $data['metrics']['quality_score'] ?? $data['quality_score'] ?? 0,
+                'readiness' => $scores['readiness']['verdict'] ?? null,
+                'readiness_gate' => $scores['readiness']['gate'] ?? null,
+                'readiness_reason' => $scores['readiness']['reason'] ?? null,
+                'grade' => $scores['grade'] ?? null,
                 'total_violations' => $data['violations']['total_count'] ?? 0,
                 'critical_violations' => $data['violations']['by_severity']['critical'] ?? 0,
-                'technical_debt_hours' => $data['technical_debt']['total_hours'] ?? 0,
-                'files_analyzed' => $data['code_size']['file_count'] ?? 0,
-                'lines_of_code' => $data['code_size']['lines_of_code'] ?? 0
+                'technical_debt_hours' => $scores['debt_hours'] ?? $data['metrics']['technical_debt']['total_hours'] ?? $data['technical_debt']['total_hours'] ?? 0,
+                'files_analyzed' => $data['code_size']['file_count'] ?? $data['total_files'] ?? $data['metrics']['total_files'] ?? 0,
+                'lines_of_code' => $data['code_size']['total_lines'] ?? $data['code_size']['lines_of_code'] ?? $data['total_lines'] ?? 0
             ],
+            'scores' => $scores,
             'violations' => [
                 'by_severity' => $data['violations']['by_severity'] ?? [],
                 'by_category' => $data['violations']['by_category'] ?? [],
                 'top_violations' => array_slice($data['violations']['top_violations'] ?? [], 0, 5)
             ],
             'metrics' => [
-                'complexity' => $data['complexity']['average'] ?? 0,
-                'maintainability' => $data['maintainability']['index'] ?? 0,
-                'test_coverage' => $data['test_coverage']['line_coverage'] ?? 0
+                'complexity' => $data['metrics']['complexity']['average'] ?? $data['complexity']['average'] ?? 0,
+                'maintainability' => $data['metrics']['maintainability']['index'] ?? $data['maintainability']['index'] ?? 0,
+                'test_coverage' => $data['metrics']['test_coverage']['line_coverage'] ?? $data['test_coverage']['line_coverage'] ?? 0
             ]
         ];
     }
@@ -493,12 +499,24 @@ class JSONReportGenerator extends AbstractReportGenerator
     private function getInvestmentPriorities(array $data): array { return []; }
     private function getTimelineRecommendations(array $data): array { return []; }
     private function estimateEffort(array $item): string { return 'medium'; }
-    private function calculateSecurityScore(array $data): float { return 7.5; }
+    private function calculateSecurityScore(array $data): float
+    {
+        return (float) ($data['scores']['dimensions']['security']['score']
+            ?? $data['scores']['overall']
+            ?? $data['metrics']['quality_score']
+            ?? 100.0);
+    }
     private function countSecurityViolations(array $violations, string $severity): int { return 0; }
     private function formatSecurityViolations(array $violations): array { return []; }
     private function getSecurityRecommendations(array $data): array { return []; }
     private function assessSecurityCompliance(array $data): array { return []; }
-    private function calculatePerformanceScore(array $data): float { return 8.0; }
+    private function calculatePerformanceScore(array $data): float
+    {
+        return (float) ($data['scores']['dimensions']['performance']['score']
+            ?? $data['scores']['overall']
+            ?? $data['metrics']['quality_score']
+            ?? 100.0);
+    }
     private function calculatePerformanceImpact(array $hotspot): string { return 'medium'; }
     private function getPerformanceRecommendations(array $data): array { return []; }
     private function generateShortTermPredictions(array $data): array { return []; }
@@ -506,7 +524,13 @@ class JSONReportGenerator extends AbstractReportGenerator
     private function assessDataQuality(array $data): float { return 0.9; }
     private function getModelConfidence(array $data): float { return 0.85; }
     private function getFixSuggestions($violation): array { return []; }
-    private function calculateOverallHealth(array $data): float { return 0.8; }
+    private function calculateOverallHealth(array $data): float
+    {
+        return (float) ($data['scores']['overall']
+            ?? $data['metrics']['quality_score']
+            ?? $data['quality_score']
+            ?? 100.0);
+    }
     private function determineTrendDirection(array $data): string { return 'stable'; }
     private function calculateImprovementVelocity(array $data): float { return 0.1; }
     private function getIndustryBenchmarks(array $data): array { return []; }

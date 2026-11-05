@@ -142,6 +142,11 @@ class AccessibilityAnalyzer extends AbstractAnalyzer
         if (!$content) {
             return $violations;
         }
+
+        $isFullDocument = $this->isFullHtmlDocument($content);
+        if (!$isFullDocument && !$this->containsHtmlMarkup($content)) {
+            return $violations;
+        }
         
         $dom = $this->createDOMDocument($content);
         if (!$dom) {
@@ -151,13 +156,13 @@ class AccessibilityAnalyzer extends AbstractAnalyzer
         $xpath = new \DOMXPath($dom);
         
         // WCAG compliance checks
-        $violations = array_merge($violations, $this->checkWCAGCompliance($xpath, $filePath));
+        $violations = array_merge($violations, $this->checkWCAGCompliance($xpath, $filePath, $isFullDocument));
         
         // ARIA patterns and roles
         $violations = array_merge($violations, $this->checkARIAPatterns($xpath, $filePath));
         
         // Semantic HTML structure
-        $violations = array_merge($violations, $this->checkSemanticHTML($xpath, $filePath));
+        $violations = array_merge($violations, $this->checkSemanticHTML($xpath, $filePath, $isFullDocument));
         
         // Keyboard navigation support
         $violations = array_merge($violations, $this->checkKeyboardNavigation($xpath, $filePath));
@@ -169,12 +174,25 @@ class AccessibilityAnalyzer extends AbstractAnalyzer
         $violations = array_merge($violations, $this->checkFocusManagement($xpath, $filePath));
         
         // Screen reader support
-        $violations = array_merge($violations, $this->checkScreenReaderSupport($xpath, $filePath));
+        $violations = array_merge($violations, $this->checkScreenReaderSupport($xpath, $filePath, $isFullDocument));
         
         return $violations;
     }
 
-    private function checkWCAGCompliance(\DOMXPath $xpath, string $filePath): array
+    private function isFullHtmlDocument(string $content): bool
+    {
+        return stripos($content, '<html') !== false || stripos($content, '<!DOCTYPE') !== false;
+    }
+
+    private function containsHtmlMarkup(string $content): bool
+    {
+        return (bool) preg_match(
+            '/<(?:head|body|title|meta|link|script|style|main|nav|header|footer|section|article|aside|h[1-6]|p|div|span|ul|ol|li|table|tr|td|th|form|input|select|textarea|button|label|fieldset|a|img|area|iframe|svg)[\s>\/]/i',
+            $content
+        );
+    }
+
+    private function checkWCAGCompliance(\DOMXPath $xpath, string $filePath, bool $isFullDocument = true): array
     {
         $violations = [];
         
@@ -190,17 +208,23 @@ class AccessibilityAnalyzer extends AbstractAnalyzer
         // WCAG 2.1.1 - Keyboard
         $violations = array_merge($violations, $this->checkKeyboardAccess($xpath, $filePath));
         
-        // WCAG 2.4.1 - Bypass Blocks
-        $violations = array_merge($violations, $this->checkBypassBlocks($xpath, $filePath));
+        // WCAG 2.4.1 - Bypass Blocks (page-level only)
+        if ($isFullDocument) {
+            $violations = array_merge($violations, $this->checkBypassBlocks($xpath, $filePath));
+        }
         
-        // WCAG 2.4.2 - Page Titled
-        $violations = array_merge($violations, $this->checkPageTitle($xpath, $filePath));
+        // WCAG 2.4.2 - Page Titled (page-level only)
+        if ($isFullDocument) {
+            $violations = array_merge($violations, $this->checkPageTitle($xpath, $filePath));
+        }
         
         // WCAG 2.4.6 - Headings and Labels
         $violations = array_merge($violations, $this->checkHeadingsAndLabels($xpath, $filePath));
         
-        // WCAG 3.1.1 - Language of Page
-        $violations = array_merge($violations, $this->checkLanguageOfPage($xpath, $filePath));
+        // WCAG 3.1.1 - Language of Page (page-level only)
+        if ($isFullDocument) {
+            $violations = array_merge($violations, $this->checkLanguageOfPage($xpath, $filePath));
+        }
         
         // WCAG 4.1.2 - Name, Role, Value
         $violations = array_merge($violations, $this->checkNameRoleValue($xpath, $filePath));
@@ -844,22 +868,24 @@ class AccessibilityAnalyzer extends AbstractAnalyzer
         return $violations;
     }
 
-    private function checkSemanticHTML(\DOMXPath $xpath, string $filePath): array
+    private function checkSemanticHTML(\DOMXPath $xpath, string $filePath, bool $isFullDocument = true): array
     {
         $violations = [];
         
         // Check for proper use of semantic elements
         $mainElements = $xpath->query('//main');
         if ($mainElements->length === 0) {
-            $violations[] = new Violation(
-                'a11y-missing-main-element',
-                'Page should include a main element for primary content',
-                $filePath,
-                0,
-                0,
-                $this->configuration['severity_important_a11y'],
-                Violation::TYPE_ACCESSIBILITY
-            );
+            if ($isFullDocument) {
+                $violations[] = new Violation(
+                    'a11y-missing-main-element',
+                    'Page should include a main element for primary content',
+                    $filePath,
+                    0,
+                    0,
+                    $this->configuration['severity_important_a11y'],
+                    Violation::TYPE_ACCESSIBILITY
+                );
+            }
         } elseif ($mainElements->length > 1) {
             $violations[] = new Violation(
                 'a11y-multiple-main-elements',
@@ -999,7 +1025,7 @@ class AccessibilityAnalyzer extends AbstractAnalyzer
         return $violations;
     }
 
-    private function checkScreenReaderSupport(\DOMXPath $xpath, string $filePath): array
+    private function checkScreenReaderSupport(\DOMXPath $xpath, string $filePath, bool $isFullDocument = true): array
     {
         $violations = [];
         
@@ -1010,7 +1036,7 @@ class AccessibilityAnalyzer extends AbstractAnalyzer
         $liveRegions = $xpath->query('//*[@aria-live]');
         $statusElements = $xpath->query('//*[@role="status" or @role="alert"]');
         
-        if ($liveRegions->length === 0 && $statusElements->length === 0) {
+        if ($isFullDocument && $liveRegions->length === 0 && $statusElements->length === 0) {
             // This is just a recommendation, not a violation
             $violations[] = new Violation(
                 'a11y-consider-live-regions',
