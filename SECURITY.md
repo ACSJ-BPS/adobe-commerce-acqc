@@ -2,8 +2,7 @@
 
 ## Report a vulnerability
 
-Do not report a vulnerability in a public issue or pull request. Send an email to
-**kumarrao@adobe.com** with:
+Do not report a vulnerability in a public issue or pull request. Send an email with:
 
 - what the problem is and what an attacker could do with it;
 - the steps or a sample project to reproduce it;
