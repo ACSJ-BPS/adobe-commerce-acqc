@@ -1,5 +1,5 @@
 # Platform plugin manifest: Adobe Commerce / Magento 2
-# See docs/extending.md — "Adding a platform". Detection is data-driven; adding a
+# Detection is data-driven; adding a
 # new language/app is a matter of dropping a manifest like this next to it.
 platform:
   id: adobe-commerce
