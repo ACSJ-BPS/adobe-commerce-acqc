@@ -48,7 +48,6 @@ class ConfigCommand extends Command
         'general' => 'General application settings',
         'rules' => 'Code analysis rules configuration',
         'profiles' => 'User role profiles and permissions',
-        'thresholds' => 'Quality score thresholds and limits',
         'integrations' => 'External integrations (CI/CD, notifications)',
         'ai' => 'AI and predictive analytics settings',
         'reports' => 'Report generation configuration',
@@ -708,15 +707,6 @@ class ConfigCommand extends Command
         $ruleLevel = $helper->ask($input, $io, $rulesQuestion);
         $config['rules'] = $this->generateRulesConfig($ruleLevel);
 
-        // Quality thresholds
-        $io->section('Quality Thresholds');
-        
-        $qualityScoreQuestion = new Question('Minimum quality score (1-10): ', '7.0');
-        $config['thresholds']['quality_score'] = (float)$helper->ask($input, $io, $qualityScoreQuestion);
-
-        $coverageQuestion = new Question('Minimum test coverage (0-100): ', '80');
-        $config['thresholds']['test_coverage'] = (int)$helper->ask($input, $io, $coverageQuestion);
-
         // AI features
         $io->section('AI Features');
         
@@ -797,19 +787,16 @@ class ConfigCommand extends Command
         $templates = [
             'minimal' => [
                 'general' => ['project_name' => 'Project'],
-                'rules' => ['enabled' => ['basic-quality']],
-                'thresholds' => ['quality_score' => 5.0]
+                'rules' => ['enabled' => ['basic-quality']]
             ],
             'developer' => [
                 'general' => ['project_name' => 'Developer Project'],
                 'rules' => ['enabled' => ['code-quality', 'performance']],
-                'thresholds' => ['quality_score' => 7.0, 'test_coverage' => 70],
                 'ai' => ['enabled' => true, 'provider' => 'local']
             ],
             'enterprise' => [
                 'general' => ['project_name' => 'Enterprise Project'],
                 'rules' => ['enabled' => ['all']],
-                'thresholds' => ['quality_score' => 8.5, 'test_coverage' => 90],
                 'ai' => ['enabled' => true, 'provider' => 'openai'],
                 'integrations' => ['ci_cd' => true, 'notifications' => true]
             ]
@@ -921,7 +908,10 @@ The <info>config</info> command provides comprehensive configuration management 
   acqc config show --detailed
 
   # Set a configuration value
-  acqc config set thresholds.quality_score 8.5
+  acqc config set ai.enabled true
+
+  # Quality scores, release readiness and gates are not set here:
+  # use a `scoring:` section in .acqc/project.yaml (see config/scoring.yaml)
 
   # Get a configuration value
   acqc config get ai.enabled

@@ -188,9 +188,23 @@ class VersionRegistryTest extends TestCase
      */
     public function testGetLatestPatchForReturnsCorrectVersion(): void
     {
-        $this->assertSame('2.4.5-p3', $this->registry->getLatestPatchFor('2.4.5'));
-        $this->assertSame('2.4.7-p3', $this->registry->getLatestPatchFor('2.4.7'));
-        $this->assertSame('2.4.8', $this->registry->getLatestPatchFor('2.4.8'));
+        // registry.yaml is live-synced, so the expected value is the highest known "<line>-pN"
+        foreach (['2.4.5', '2.4.7', '2.4.8'] as $line) {
+            $candidates = array_values(array_filter(
+                $this->registry->getKnownVersions(),
+                static fn(string $v): bool => (bool) preg_match('/^' . preg_quote($line, '/') . '(-p\d+)?$/', $v)
+            ));
+            $this->assertNotEmpty($candidates, "No known versions for {$line}");
+            $this->assertSame(end($candidates), $this->registry->getLatestPatchFor($line));
+        }
+
+        // Known synced data points
+        $this->assertMatchesRegularExpression('/^2\.4\.5-p\d+$/', $this->registry->getLatestPatchFor('2.4.5'));
+        $this->assertNotSame('2.4.5', $this->registry->getLatestPatchFor('2.4.5'));
+        // Betas / RCs are never returned
+        $this->assertDoesNotMatchRegularExpression('/beta|rc/', $this->registry->getLatestPatchFor('2.4.8'));
+        // Minor keys from latest_patch_by_minor still win
+        $this->assertMatchesRegularExpression('/^2\.4\.\d+(-p\d+)?$/', $this->registry->getLatestPatchFor('2.4'));
     }
 
     /**

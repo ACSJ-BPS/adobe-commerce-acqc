@@ -156,6 +156,11 @@ class SEOAnalyzer extends AbstractAnalyzer
         if (!$content) {
             return $violations;
         }
+
+        $isFullDocument = $this->isFullHtmlDocument($content);
+        if (!$isFullDocument && !$this->containsHtmlMarkup($content)) {
+            return $violations;
+        }
         
         // Parse HTML/template content
         $dom = $this->createDOMDocument($content);
@@ -163,11 +168,13 @@ class SEOAnalyzer extends AbstractAnalyzer
             return $violations;
         }
         
-        // Meta tags analysis
-        $violations = array_merge($violations, $this->analyzeMetaTags($dom, $filePath));
+        // Meta tags analysis (page-level only)
+        if ($isFullDocument) {
+            $violations = array_merge($violations, $this->analyzeMetaTags($dom, $filePath));
+        }
         
         // Heading structure analysis
-        $violations = array_merge($violations, $this->analyzeHeadingStructure($dom, $filePath));
+        $violations = array_merge($violations, $this->analyzeHeadingStructure($dom, $filePath, $isFullDocument));
         
         // Image optimization analysis
         $violations = array_merge($violations, $this->analyzeImageOptimization($dom, $filePath));
@@ -176,15 +183,28 @@ class SEOAnalyzer extends AbstractAnalyzer
         $violations = array_merge($violations, $this->analyzeLinkOptimization($dom, $filePath));
         
         // Structured data analysis
-        $violations = array_merge($violations, $this->analyzeStructuredData($dom, $filePath));
+        $violations = array_merge($violations, $this->analyzeStructuredData($dom, $filePath, $isFullDocument));
         
         // Content quality analysis
-        $violations = array_merge($violations, $this->analyzeContentQuality($dom, $filePath));
+        $violations = array_merge($violations, $this->analyzeContentQuality($dom, $filePath, $isFullDocument));
         
         // Mobile SEO analysis
         $violations = array_merge($violations, $this->analyzeMobileSEO($dom, $filePath));
         
         return $violations;
+    }
+
+    private function isFullHtmlDocument(string $content): bool
+    {
+        return stripos($content, '<html') !== false || stripos($content, '<!DOCTYPE') !== false;
+    }
+
+    private function containsHtmlMarkup(string $content): bool
+    {
+        return (bool) preg_match(
+            '/<(?:head|body|title|meta|link|script|style|main|nav|header|footer|section|article|aside|h[1-6]|p|div|span|ul|ol|li|table|tr|td|th|form|input|select|textarea|button|label|fieldset|a|img|area|iframe|svg)[\s>\/]/i',
+            $content
+        );
     }
 
     private function createDOMDocument(string $content): ?\DOMDocument
@@ -367,7 +387,7 @@ class SEOAnalyzer extends AbstractAnalyzer
         return $violations;
     }
 
-    private function analyzeHeadingStructure(\DOMDocument $dom, string $filePath): array
+    private function analyzeHeadingStructure(\DOMDocument $dom, string $filePath, bool $isFullDocument = true): array
     {
         $violations = [];
         $xpath = new \DOMXPath($dom);
@@ -375,15 +395,17 @@ class SEOAnalyzer extends AbstractAnalyzer
         // Check H1 tags
         $h1Tags = $xpath->query('//h1');
         if ($h1Tags->length === 0) {
-            $violations[] = new Violation(
-                'seo-missing-h1',
-                'Missing H1 tag - important for SEO structure',
-                $filePath,
-                0,
-                0,
-                $this->configuration['severity_important_seo'],
-                Violation::TYPE_SEO
-            );
+            if ($isFullDocument) {
+                $violations[] = new Violation(
+                    'seo-missing-h1',
+                    'Missing H1 tag - important for SEO structure',
+                    $filePath,
+                    0,
+                    0,
+                    $this->configuration['severity_important_seo'],
+                    Violation::TYPE_SEO
+                );
+            }
         } elseif ($h1Tags->length > $this->configuration['max_h1_count']) {
             $violations[] = new Violation(
                 'seo-multiple-h1',
@@ -598,7 +620,7 @@ class SEOAnalyzer extends AbstractAnalyzer
         return $violations;
     }
 
-    private function analyzeStructuredData(\DOMDocument $dom, string $filePath): array
+    private function analyzeStructuredData(\DOMDocument $dom, string $filePath, bool $isFullDocument = true): array
     {
         $violations = [];
         $xpath = new \DOMXPath($dom);
@@ -607,15 +629,17 @@ class SEOAnalyzer extends AbstractAnalyzer
         $jsonLdScripts = $xpath->query('//script[@type="application/ld+json"]');
         
         if ($jsonLdScripts->length === 0) {
-            $violations[] = new Violation(
-                'seo-missing-structured-data',
-                'Consider adding structured data (JSON-LD) for better search visibility',
-                $filePath,
-                0,
-                0,
-                $this->configuration['severity_recommended_seo'],
-                Violation::TYPE_SEO
-            );
+            if ($isFullDocument) {
+                $violations[] = new Violation(
+                    'seo-missing-structured-data',
+                    'Consider adding structured data (JSON-LD) for better search visibility',
+                    $filePath,
+                    0,
+                    0,
+                    $this->configuration['severity_recommended_seo'],
+                    Violation::TYPE_SEO
+                );
+            }
         } else {
             foreach ($jsonLdScripts as $script) {
                 $jsonContent = trim($script->textContent);
@@ -687,14 +711,14 @@ class SEOAnalyzer extends AbstractAnalyzer
         return $violations;
     }
 
-    private function analyzeContentQuality(\DOMDocument $dom, string $filePath): array
+    private function analyzeContentQuality(\DOMDocument $dom, string $filePath, bool $isFullDocument = true): array
     {
         $violations = [];
         $xpath = new \DOMXPath($dom);
         
-        // Check content length
+        // Check content length (page-level only)
         $bodyContent = $xpath->query('//body')->item(0);
-        if ($bodyContent) {
+        if ($isFullDocument && $bodyContent) {
             $textContent = trim(strip_tags($bodyContent->textContent));
             $wordCount = str_word_count($textContent);
             

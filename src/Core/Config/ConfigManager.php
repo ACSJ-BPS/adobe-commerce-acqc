@@ -259,7 +259,7 @@ class ConfigManager
     }
 
     /**
-     * Get quality gate thresholds
+     * Get quality gate thresholds from effective scoring configuration
      */
     public function getQualityGates(): array
     {
@@ -267,11 +267,15 @@ class ConfigManager
             $this->loadConfig();
         }
 
-        return $this->loadedConfig['quality_gates'] ?? [
-            'min_score' => 70,
-            'max_critical' => 0,
-            'max_errors' => 10,
-            'max_warnings' => 50
+        if (isset($this->loadedConfig['quality_gates']) && is_array($this->loadedConfig['quality_gates'])) {
+            return $this->loadedConfig['quality_gates'];
+        }
+
+        $scoring = (new \ACQC\Core\Scoring\ScoringConfigLoader())->load($this->projectRoot ?: null);
+        return [
+            'readiness' => $scoring->getReadinessRules(),
+            'gates' => $scoring->getGates(),
+            'sources' => $scoring->getSources(),
         ];
     }
 
@@ -315,8 +319,14 @@ class ConfigManager
             if (is_string($source)) {
                 // loadConfigFile() returns [] for non-existent files — no pre-check needed
                 $sourceConfig = $this->loadConfigFile($source);
+                if (isset($sourceConfig['thresholds'])) {
+                    @fwrite(STDERR, "Warning: 'thresholds' in {$source} is ignored; use 'scoring.readiness' in .acqc/project.yaml.\n");
+                }
                 $config = $this->mergeConfigurations($config, $sourceConfig);
             } elseif (is_array($source)) {
+                if (isset($source['thresholds'])) {
+                    @fwrite(STDERR, "Warning: 'thresholds' config key is ignored; use 'scoring.readiness' in .acqc/project.yaml.\n");
+                }
                 $config = $this->mergeConfigurations($config, $source);
             }
         }

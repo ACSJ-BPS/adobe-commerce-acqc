@@ -9,7 +9,7 @@ namespace ACQC\Core\Platform;
  * Node.js, …), loaded from a config/platforms/<id>.yaml manifest.
  *
  * Adding a new language/app is a matter of dropping in a manifest plus, where
- * needed, an analyzer class — no engine change. See docs/extending.md.
+ * needed, an analyzer class — no engine change.
  */
 class PlatformDefinition
 {

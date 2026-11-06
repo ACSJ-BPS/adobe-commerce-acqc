@@ -17,6 +17,8 @@ use ACQC\Core\Rules\RuleRegistry;
 use ACQC\Core\Rules\CheckerRegistry;
 use ACQC\Core\Rules\YamlRuleLoader;
 use ACQC\Core\Rules\RuleValidator;
+use ACQC\Core\Scoring\ScoreCalculator;
+use ACQC\Core\Scoring\ScoringConfigLoader;
 use ACQC\Utils\FileScanner;
 use ACQC\Utils\ConfigLoader;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
@@ -147,12 +149,26 @@ class AuditEngine
             }
         }
 
-        // Calculate summary metrics
+        // Calculate summary metrics via config-driven ScoreCalculator
         $results['issues_found'] = count($results['issues']);
+        $results['blockers'] = count(array_filter($results['issues'], fn($issue) => ($issue['severity'] ?? '') === 'blocker'));
         $results['critical'] = count(array_filter($results['issues'], fn($issue) => ($issue['severity'] ?? '') === 'critical'));
         $results['errors'] = count(array_filter($results['issues'], fn($issue) => $issue['severity'] === 'error'));
         $results['warnings'] = count(array_filter($results['issues'], fn($issue) => $issue['severity'] === 'warning'));
-        $results['score'] = $this->calculateQualityScore($results);
+
+        $scoringConfig = (new ScoringConfigLoader())->load($projectPath);
+        $auditScoring = (new ScoreCalculator())->calculateAuditScore(
+            $results['issues'],
+            (int) $results['files_analyzed'],
+            $scoringConfig
+        );
+
+        $results['score'] = $auditScoring['score'];
+        $results['grade'] = $auditScoring['grade'];
+        $results['grade_label'] = $auditScoring['label'];
+        $results['caps_applied'] = $auditScoring['caps_applied'];
+        $results['formula_description'] = $auditScoring['formula_description'];
+        $results['config_sources'] = $auditScoring['config_sources'];
         $results['execution_time'] = round(microtime(true) - $startTime, 2);
 
         return $results;
@@ -373,29 +389,12 @@ class AuditEngine
 
     private function calculateQualityScore(array $results): int
     {
-        $filesAnalyzed = $results['files_analyzed'];
-        $errors = $results['errors'];
-        $warnings = $results['warnings'];
-        
-        // Avoid division by zero
-        if ($filesAnalyzed === 0) {
-            return 0;
-        }
-        
-        // Calculate violations per file
-        $errorsPerFile = $errors / $filesAnalyzed;
-        $warningsPerFile = $warnings / $filesAnalyzed;
-        
-        // Base score
-        $baseScore = 100;
-        
-        // More reasonable penalty calculation based on violations per file
-        // Penalty scales with severity and density of issues
-        $errorPenalty = min(50, $errorsPerFile * 10); // Max 50 points penalty from errors
-        $warningPenalty = min(30, $warningsPerFile * 5); // Max 30 points penalty from warnings
-        
-        $score = max(0, $baseScore - $errorPenalty - $warningPenalty);
-        
-        return (int)round(min(100, $score));
+        $scoringConfig = (new ScoringConfigLoader())->load($results['project_path'] ?? null);
+        $auditScoring = (new ScoreCalculator())->calculateAuditScore(
+            $results['issues'] ?? [],
+            (int) ($results['files_analyzed'] ?? 0),
+            $scoringConfig
+        );
+        return $auditScoring['score'];
     }
-} 
+}

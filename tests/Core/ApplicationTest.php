@@ -23,7 +23,7 @@ class ApplicationTest extends TestCase
 
     public function testApplicationHasCorrectName(): void
     {
-        $this->assertEquals('M2 Quality Audit Tool', $this->application->getName());
+        $this->assertEquals('Adobe Commerce Quality Control', $this->application->getName());
     }
 
     public function testApplicationHasVersion(): void

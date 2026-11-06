@@ -17,6 +17,11 @@ use PhpOffice\PhpSpreadsheet\Chart\Layout;
 use PhpOffice\PhpSpreadsheet\Chart\Legend;
 use PhpOffice\PhpSpreadsheet\Chart\PlotArea;
 use PhpOffice\PhpSpreadsheet\Chart\Title;
+use ACQC\Core\Scoring\ConditionEvaluator;
+use ACQC\Core\Scoring\ScoreCalculator;
+use ACQC\Core\Scoring\ScoreInputs;
+use ACQC\Core\Scoring\ScoringConfig;
+use ACQC\Core\Scoring\ScoringConfigLoader;
 use ACQC\Recommendations\RecommendationEnhancer;
 
 /**
@@ -32,6 +37,7 @@ class ExcelReportGenerator extends AbstractReportGenerator
     private string $outputFormat = 'xlsx';
     private int $maxRows;
     private ?RecommendationEnhancer $recommendationEnhancer = null;
+    private ?ScoringConfig $scoringConfig = null;
 
     public function __construct($configManager = null, $logger = null, $predictiveAnalytics = null)
     {
@@ -58,6 +64,9 @@ class ExcelReportGenerator extends AbstractReportGenerator
             }
         }
         
+        // Effective scoring config (built-in + .acqc/project.yaml) from ReportCommand; null = built-in defaults
+        $this->scoringConfig = ($options['scoring_config'] ?? null) instanceof ScoringConfig ? $options['scoring_config'] : null;
+
         // Enable garbage collection for better memory management
         gc_enable();
         
@@ -260,16 +269,30 @@ class ExcelReportGenerator extends AbstractReportGenerator
         $this->applyHeaderStyle($worksheet, "A{$row}:B{$row}");
         $row++;
         
+        $scores = $this->resolveScores($data);
         $codeCoveragePct = number_format(($data['metrics']['test_coverage']['line_coverage'] ?? $data['test_coverage']['line_coverage'] ?? 0) * 100, 1);
+        $filesAnalyzed = $data['code_size']['file_count']
+            ?? $data['total_files']
+            ?? $data['metrics']['total_files']
+            ?? $data['metrics']['files_analyzed']
+            ?? 0;
+        $linesOfCode = $data['code_size']['total_lines']
+            ?? $data['code_size']['lines_of_code']
+            ?? $data['total_lines']
+            ?? $data['metrics']['total_lines']
+            ?? 0;
+
         $metrics = [
-            'Quality Score' => number_format($data['metrics']['quality_score'] ?? $data['quality_score'] ?? 0, 1),
+            'Quality Score' => number_format((float) ($scores['overall'] ?? $data['metrics']['quality_score'] ?? $data['quality_score'] ?? 0), 1),
+            'Release Readiness' => (string) ($scores['readiness']['verdict'] ?? 'READY TO SHIP'),
+            'Readiness Reason' => (string) ($scores['readiness']['reason'] ?? 'All readiness thresholds met'),
             'Total Violations' => number_format($data['violations']['total_count'] ?? 0),
             'Critical Violations' => number_format($data['violations']['by_severity']['critical'] ?? 0),
-            'Technical Debt (hours)' => number_format($data['metrics']['technical_debt']['total_hours'] ?? $data['technical_debt']['total_hours'] ?? 0, 1),
+            'Technical Debt (hours)' => number_format((float) ($scores['debt_hours'] ?? $data['metrics']['technical_debt']['total_hours'] ?? $data['technical_debt']['total_hours'] ?? 0), 1),
             'Test Coverage (%)' => $codeCoveragePct,
             'Code Coverage (%)' => $codeCoveragePct,
-            'Files Analyzed' => number_format($data['metrics']['files_analyzed'] ?? $data['code_size']['file_count'] ?? 0),
-            'Lines of Code' => number_format($data['code_size']['lines_of_code'] ?? 0)
+            'Files Analyzed' => number_format((int) $filesAnalyzed),
+            'Lines of Code' => number_format((int) $linesOfCode)
         ];
         
         foreach ($metrics as $metric => $value) {
@@ -380,7 +403,7 @@ class ExcelReportGenerator extends AbstractReportGenerator
             $row++;
             
             $complexityData = [
-                'Average Complexity' => number_format($metrics['complexity']['average'], 2),
+                'Average Complexity' => number_format((float) ($metrics['complexity']['average'] ?? 0.0), 2),
                 'High Complexity Files' => count($metrics['complexity']['hotspots'] ?? [])
             ];
             
@@ -398,10 +421,13 @@ class ExcelReportGenerator extends AbstractReportGenerator
             $this->applyHeaderStyle($worksheet, "A{$row}:B{$row}");
             $row++;
             
+            $totalHours = (float) ($metrics['technical_debt']['total_hours'] ?? 0.0);
+            $totalDays = (float) ($metrics['technical_debt']['total_days'] ?? ($totalHours / 8.0));
+            $debtRatio = (float) ($metrics['technical_debt']['ratio'] ?? 0.0);
             $debtData = [
-                'Total Hours' => number_format($metrics['technical_debt']['total_hours'], 1),
-                'Total Days' => number_format($metrics['technical_debt']['total_days'], 1),
-                'Debt Ratio' => number_format($metrics['technical_debt']['ratio'] * 100, 2) . '%'
+                'Total Hours' => number_format($totalHours, 1),
+                'Total Days' => number_format($totalDays, 1),
+                'Debt Ratio' => number_format($debtRatio * 100, 2) . '%'
             ];
             
             foreach ($debtData as $metric => $value) {
@@ -418,7 +444,7 @@ class ExcelReportGenerator extends AbstractReportGenerator
             $this->applyHeaderStyle($worksheet, "A{$row}:B{$row}");
             $row++;
 
-            $coverageSrc = $data['metrics']['coverage_source'] ?? 'none';
+            $coverageSrc = $metrics['coverage_source'] ?? 'none';
             $fmtCov = function (?float $ratio) use ($coverageSrc): string {
                 if ($coverageSrc === 'generated_baseline') {
                     return '0.0% (baseline)';
@@ -863,33 +889,35 @@ class ExcelReportGenerator extends AbstractReportGenerator
         $perfFiles    = count(array_unique(array_map(fn($v) => $v['file'] ?? $v['file_path'] ?? '', $perfViol)));
         $perfModules  = count(array_unique(array_map(fn($v) => $v['module'] ?? 'Unknown', array_filter($perfViol, fn($v) => ($v['module'] ?? 'Unknown') !== 'Unknown'))));
 
+        $perfBands = $this->getScoringConfig()->getStatus()['performance_sheet'] ?? [];
+
         $performanceMetrics = [
             [
                 'Total Performance Violations',
                 $perfTotal,
-                '10',
+                $this->statusThresholdText('performance_sheet', 'total_violations', ['good' => '== 0', 'info' => '<= 3', 'warn' => '<= 10'], 'warn'),
                 $this->getPerformanceStatus($perfTotal),
                 'Review all performance violations — prioritize critical and error severity'
             ],
             [
                 'Critical / Blocker Performance Issues',
                 $perfCritical,
-                '0',
-                $perfCritical === 0 ? 'Good' : 'Critical',
+                $this->statusThresholdText('performance_sheet', 'critical_issues', ['good' => '== 0']),
+                $this->evaluateStatusBand($perfCritical, $perfBands['critical_issues'] ?? ['good' => '== 0']),
                 $perfCritical > 0 ? 'Fix critical performance violations immediately — they block release' : 'No critical performance blockers detected'
             ],
             [
                 'High-Severity Performance Issues',
                 $perfHigh,
-                '5',
-                $perfHigh <= 5 ? 'Good' : ($perfHigh <= 15 ? 'Warning' : 'Critical'),
+                $this->statusThresholdText('performance_sheet', 'high_issues', ['good' => '<= 5', 'warn' => '<= 15']),
+                $this->evaluateStatusBand($perfHigh, $perfBands['high_issues'] ?? ['good' => '<= 5', 'warn' => '<= 15']),
                 'Address N+1 queries, large-dataset loops, and missing cache directives'
             ],
             [
                 'Files with Performance Issues',
                 $perfFiles,
-                '20',
-                $perfFiles <= 20 ? 'Good' : ($perfFiles <= 50 ? 'Warning' : 'Critical'),
+                $this->statusThresholdText('performance_sheet', 'files_affected', ['good' => '<= 20', 'warn' => '<= 50']),
+                $this->evaluateStatusBand($perfFiles, $perfBands['files_affected'] ?? ['good' => '<= 20', 'warn' => '<= 50']),
                 'Refactor performance hotspots; consider pooling/caching patterns'
             ],
             [
@@ -1081,16 +1109,19 @@ class ExcelReportGenerator extends AbstractReportGenerator
             $bgColor = match ($status) {
                 'Pass' => 'E8F5E9',
                 'Warn' => 'FFF9C4',
+                'N/A' => 'F5F5F5',
                 default => 'FFEBEE',
             };
             $statusColor = match ($status) {
                 'Pass' => '2E7D32',
                 'Warn' => 'E65100',
+                'N/A' => '757575',
                 default => 'C62828',
             };
             $statusLabel = match ($status) {
                 'Pass' => '✓ PASS',
                 'Warn' => '⚠ WARN',
+                'N/A' => 'N/A',
                 default => '✗ FAIL',
             };
             $worksheet->setCellValue("C{$row}", $statusLabel);
@@ -1303,28 +1334,43 @@ class ExcelReportGenerator extends AbstractReportGenerator
         $this->applyHeaderStyle($worksheet, "A{$row}:F{$row}");
         $row++;
         
+        $placeholdersMode = (string) ($data['scores']['placeholders'] ?? $this->getScoringConfig()->getPlaceholdersMode());
+        $useNa = $placeholdersMode !== 'legacy';
+
+        $hasComplexity = isset($data['metrics']['complexity']['average']);
+        $complexityVal = (float) ($data['metrics']['complexity']['average'] ?? 5.2);
+
+        $hasMaintainability = isset($data['metrics']['maintainability']['index']);
+        $maintVal = (float) ($data['metrics']['maintainability']['index'] ?? 65.0);
+
+        $hasDocCov = isset($data['metrics']['documentation_coverage']);
+        $docCovVal = (float) ($data['metrics']['documentation_coverage'] ?? 45.0);
+
+        $hasStdComp = isset($data['metrics']['standards_compliance']);
+        $stdCompVal = (float) ($data['metrics']['standards_compliance'] ?? 78.0);
+
         // Quality metrics data
         $qualityMetrics = [
             [
                 'Code Complexity Score',
-                number_format($data['metrics']['complexity']['average'] ?? 5.2, 1),
-                '5.0',
-                $this->getComplexityStatus($data['metrics']['complexity']['average'] ?? 5.2),
-                $this->getComplexityImpact($data['metrics']['complexity']['average'] ?? 5.2),
+                (!$hasComplexity && $useNa) ? 'N/A' : number_format($complexityVal, 1),
+                $this->statusThresholdText('code_quality_sheet', 'complexity', ['good' => '<= 5.0', 'warn' => '<= 7.0']),
+                (!$hasComplexity && $useNa) ? 'N/A' : $this->getComplexityStatus($complexityVal),
+                (!$hasComplexity && $useNa) ? 'N/A' : $this->getComplexityImpact($complexityVal),
                 'Refactor complex methods, reduce cyclomatic complexity'
             ],
             [
                 'Maintainability Index',
-                number_format($data['metrics']['maintainability']['index'] ?? 65, 1),
-                '70.0',
-                $this->getMaintainabilityStatus($data['metrics']['maintainability']['index'] ?? 65),
-                $this->getMaintainabilityImpact($data['metrics']['maintainability']['index'] ?? 65),
+                (!$hasMaintainability && $useNa) ? 'N/A' : number_format($maintVal, 1),
+                $this->statusThresholdText('code_quality_sheet', 'maintainability', ['good' => '>= 70.0', 'warn' => '>= 50.0']),
+                (!$hasMaintainability && $useNa) ? 'N/A' : $this->getMaintainabilityStatus($maintVal),
+                (!$hasMaintainability && $useNa) ? 'N/A' : $this->getMaintainabilityImpact($maintVal),
                 'Improve code structure, reduce dependencies'
             ],
             [
                 'Technical Debt (hours)',
                 number_format($data['metrics']['technical_debt']['total_hours'] ?? 0, 1) . ' hrs',
-                '200 hrs',
+                $this->statusThresholdText('code_quality_sheet', 'debt_hours', ['good' => '<= 200', 'warn' => '<= 500'], 'good', 1.0, ' hrs'),
                 $this->getTechnicalDebtHoursStatus($data['metrics']['technical_debt']['total_hours'] ?? 0),
                 $this->getTechnicalDebtHoursImpact($data['metrics']['technical_debt']['total_hours'] ?? 0),
                 'Address technical debt; prioritize blockers and criticals first'
@@ -1335,27 +1381,29 @@ class ExcelReportGenerator extends AbstractReportGenerator
                     ? 'N/A'
                     : ((($data['metrics']['coverage_source'] ?? '') === 'heuristic' ? '~' : '')
                         . number_format(($data['metrics']['test_coverage']['line_coverage'] ?? 0) * 100, 1) . '%'),
-                '80%',
+                $this->statusThresholdText('code_quality_sheet', 'coverage', ['good' => '>= 0.80', 'warn' => '>= 0.60'], 'good', 100.0, '%'),
                 (($data['metrics']['coverage_source'] ?? 'none') === 'none')
-                    ? 'not-applicable'
+                    ? 'N/A'
                     : $this->getCoverageStatus($data['metrics']['test_coverage']['line_coverage'] ?? 0),
-                $this->getCoverageImpact($data['metrics']['test_coverage']['line_coverage'] ?? 0.65),
+                (($data['metrics']['coverage_source'] ?? 'none') === 'none')
+                    ? 'N/A'
+                    : $this->getCoverageImpact($data['metrics']['test_coverage']['line_coverage'] ?? 0.65),
                 'Increase test coverage, add unit and integration tests'
             ],
             [
                 'Documentation Coverage',
-                number_format($data['metrics']['documentation_coverage'] ?? 45, 1) . '%',
-                '70%',
-                $this->getDocumentationStatus($data['metrics']['documentation_coverage'] ?? 45),
-                $this->getDocumentationImpact($data['metrics']['documentation_coverage'] ?? 45),
+                (!$hasDocCov && $useNa) ? 'N/A' : (number_format($docCovVal, 1) . '%'),
+                $this->statusThresholdText('code_quality_sheet', 'documentation', ['good' => '>= 70.0', 'warn' => '>= 50.0'], 'good', 1.0, '%'),
+                (!$hasDocCov && $useNa) ? 'N/A' : $this->getDocumentationStatus($docCovVal),
+                (!$hasDocCov && $useNa) ? 'N/A' : $this->getDocumentationImpact($docCovVal),
                 'Improve code documentation, add PHPDoc blocks'
             ],
             [
                 'Code Standards Compliance',
-                number_format($data['metrics']['standards_compliance'] ?? 78, 1) . '%',
-                '90%',
-                $this->getStandardsStatus($data['metrics']['standards_compliance'] ?? 78),
-                $this->getStandardsImpact($data['metrics']['standards_compliance'] ?? 78),
+                (!$hasStdComp && $useNa) ? 'N/A' : (number_format($stdCompVal, 1) . '%'),
+                $this->statusThresholdText('code_quality_sheet', 'standards', ['good' => '>= 90.0', 'warn' => '>= 75.0'], 'good', 1.0, '%'),
+                (!$hasStdComp && $useNa) ? 'N/A' : $this->getStandardsStatus($stdCompVal),
+                (!$hasStdComp && $useNa) ? 'N/A' : $this->getStandardsImpact($stdCompVal),
                 'Enforce coding standards, use automated tools'
             ]
         ];
@@ -1527,60 +1575,67 @@ class ExcelReportGenerator extends AbstractReportGenerator
         // ✅ Get pre-filtered security violations from ReportCommand
         $securityViolations = $data['security_violations'] ?? [];
         
-        $criticalCount = count(array_filter($securityViolations, fn($v) => $v['severity'] === 'critical'));
-        $highCount = count(array_filter($securityViolations, fn($v) => $v['severity'] === 'error'));
-        $mediumCount = count(array_filter($securityViolations, fn($v) => $v['severity'] === 'warning'));
-        $lowCount = count(array_filter($securityViolations, fn($v) => $v['severity'] === 'info'));
+        $aliases = $this->getScoringConfig()->getSeverityAliases();
+        $blockerCount = count(array_filter($securityViolations, fn($v) => ScoreInputs::normalizeSeverity((string) ($v['severity'] ?? ''), $aliases) === 'blocker'));
+        $criticalCount = count(array_filter($securityViolations, fn($v) => ScoreInputs::normalizeSeverity((string) ($v['severity'] ?? ''), $aliases) === 'critical'));
+        $highCount = count(array_filter($securityViolations, fn($v) => ScoreInputs::normalizeSeverity((string) ($v['severity'] ?? ''), $aliases) === 'error'));
+        $mediumCount = count(array_filter($securityViolations, fn($v) => ScoreInputs::normalizeSeverity((string) ($v['severity'] ?? ''), $aliases) === 'warning'));
+        $lowCount = count(array_filter($securityViolations, fn($v) => ScoreInputs::normalizeSeverity((string) ($v['severity'] ?? ''), $aliases) === 'info'));
         
-        $securityScore = $this->calculateSecurityScore($criticalCount, $highCount, $mediumCount, $lowCount);
+        $securityScore = $this->calculateSecurityScore($criticalCount, $highCount, $mediumCount, $lowCount, $blockerCount);
         $owaspCompliance = $this->calculateOWASPCompliance($securityViolations);
+        $rowThresholds = $this->getScoringConfig()->getStatus()['security_sheet']['row_thresholds'] ?? [];
+        $critThresh = (int) ($rowThresholds['critical'] ?? 0);
+        $highThresh = (int) ($rowThresholds['error'] ?? 5);
+        $medThresh = (int) ($rowThresholds['warning'] ?? 10);
+        $lowThresh = (int) ($rowThresholds['info'] ?? 20);
         
         // Security metrics data
         $securityMetrics = [
             [
                 'Security Score',
                 number_format($securityScore, 1) . '%',
-                '85%',
+                $this->statusThresholdText('security_sheet', 'score', ['good' => '>= 85', 'warn' => '>= 70'], 'good', 1.0, '%'),
                 $this->getSecurityStatus($securityScore),
                 $this->getSecurityRiskLevel($securityScore),
                 'Implement comprehensive security measures'
             ],
             [
                 'Critical Vulnerabilities',
-                $criticalCount,
-                '0',
-                $this->getRiskStatus($criticalCount, 0),
-                $this->getRiskLevel($criticalCount, 0),
+                $criticalCount + $blockerCount,
+                (string) $critThresh,
+                $this->getRiskStatus($criticalCount + $blockerCount, $critThresh),
+                $this->getRiskLevel($criticalCount + $blockerCount, $critThresh),
                 'Address critical security issues immediately'
             ],
             [
                 'High Risk Issues',
                 $highCount,
-                '5',
-                $this->getRiskStatus($highCount, 5),
-                $this->getRiskLevel($highCount, 5),
+                (string) $highThresh,
+                $this->getRiskStatus($highCount, $highThresh),
+                $this->getRiskLevel($highCount, $highThresh),
                 'Prioritize high-risk security fixes'
             ],
             [
                 'Medium Risk Issues',
                 $mediumCount,
-                '10',
-                $this->getRiskStatus($mediumCount, 10),
-                $this->getRiskLevel($mediumCount, 10),
+                (string) $medThresh,
+                $this->getRiskStatus($mediumCount, $medThresh),
+                $this->getRiskLevel($mediumCount, $medThresh),
                 'Address medium-risk issues in next sprint'
             ],
             [
                 'Low Risk Issues',
                 $lowCount,
-                '20',
-                $this->getRiskStatus($lowCount, 20),
-                $this->getRiskLevel($lowCount, 20),
+                (string) $lowThresh,
+                $this->getRiskStatus($lowCount, $lowThresh),
+                $this->getRiskLevel($lowCount, $lowThresh),
                 'Monitor and address low-risk issues'
             ],
             [
                 'OWASP Compliance',
                 number_format($owaspCompliance, 1) . '%',
-                '90%',
+                $this->statusThresholdText('security_sheet', 'owasp', ['good' => '>= 90', 'warn' => '>= 75'], 'good', 1.0, '%'),
                 $this->getOWASPStatus($owaspCompliance),
                 $this->getOWASPRiskLevel($owaspCompliance),
                 'Improve OWASP compliance score'
@@ -3116,13 +3171,9 @@ class ExcelReportGenerator extends AbstractReportGenerator
         $recommendations = $this->getStrategicRecommendations($healthScore, $data);
         $timeline = $this->getRemediationTimeline($criticalIssues, $securityIssues);
 
-        $blockers  = (int) ($data['violations']['by_severity']['blocker'] ?? 0);
-        $criticals = (int) ($data['violations']['by_severity']['critical'] ?? 0);
-        $releaseReadiness = $blockers > 0
-            ? "BLOCKED — {$blockers} blocker(s) must be resolved before deployment"
-            : ($criticals > 0
-                ? "REVIEW REQUIRED — {$criticals} critical issue(s) should be reviewed before release"
-                : "READY — No blockers detected; standard release process applies");
+        $scores = $this->resolveScores($data);
+        $releaseReadiness = (string) ($scores['readiness']['excel_text']
+            ?? "READY — No blockers detected; standard release process applies");
         
         // Prefer real coverage from coverage_breakdown totals, fallback to aggregated test_coverage
         $coverageSource = $data['metrics']['coverage_source'] ?? 'none';
@@ -3173,7 +3224,11 @@ class ExcelReportGenerator extends AbstractReportGenerator
         $branchCoveragePct   = $formatCoverage($branchCoverageRatio);
         $functionCoveragePct = $formatCoverage($functionCoverageRatio);
 
-        $maintainability = number_format($data['metrics']['maintainability']['index'] ?? 0, 1);
+        $maintIndex = $data['metrics']['maintainability']['index'] ?? null;
+        $naPlaceholders = ((string) ($data['scores']['placeholders'] ?? $this->getScoringConfig()->getPlaceholdersMode())) !== 'legacy';
+        $maintainability = ($maintIndex === null && $naPlaceholders)
+            ? 'N/A'
+            : number_format((float) ($maintIndex ?? 0), 1);
         $technicalDebtHours = isset($data['metrics']['technical_debt']['total_hours'])
             ? number_format($data['metrics']['technical_debt']['total_hours'], 1)
             : 'N/A';
@@ -3207,131 +3262,29 @@ class ExcelReportGenerator extends AbstractReportGenerator
      */
     private function getOverallAssessment(array $data): string
     {
-        $score     = (float) ($data['metrics']['quality_score'] ?? 0);
-        $blockers  = (int) ($data['violations']['by_severity']['blocker']  ?? 0);
-        $critical  = (int) ($data['violations']['by_severity']['critical'] ?? 0);
-        $secIssues = (int) ($data['violations']['by_category']['security'] ?? 0);
-        $debtHours = (float) ($data['metrics']['technical_debt']['total_hours'] ?? 0);
-
-        // Primary label — same thresholds used by the HTML quality score
-        $scoreInt = (int) round($score);
-        if ($score >= 90) {
-            $label = "Excellent ({$scoreInt}/100)";
-            $detail = "High quality standards with minimal issues. Continue current practices.";
-        } elseif ($score >= 75) {
-            $label = "Good ({$scoreInt}/100)";
-            $detail = "Codebase is well-structured with manageable issues. Maintain momentum with targeted fixes.";
-        } elseif ($score >= 60) {
-            $label = "Fair ({$scoreInt}/100)";
-            $detail = "Codebase is functional but has notable technical debt. Improvement plan recommended.";
-        } elseif ($score >= 40) {
-            $label = "Poor ({$scoreInt}/100)";
-            $detail = "Substantial issues across multiple areas. Significant rework recommended before next release.";
-        } else {
-            $label = "Critical Risk ({$scoreInt}/100)";
-            $detail = "Major quality issues detected; significant remediation required before any production deployment.";
+        $scores = $this->resolveScores($data);
+        if (!empty($scores['assessment']['text'])) {
+            return (string) $scores['assessment']['text'];
         }
 
-        // Supplementary risk notes (blockers, security) appended without changing the primary label
-        $notes = [];
-        if ($blockers > 0) {
-            $notes[] = "Release is currently BLOCKED by {$blockers} blocker(s)";
-        }
-        if ($critical > 0) {
-            $notes[] = "{$critical} critical issue(s) require urgent attention";
-        }
-        if ($secIssues > 0) {
-            $notes[] = "{$secIssues} security vulnerability/ies require immediate remediation";
-        }
-        if ($debtHours > 500) {
-            $notes[] = "technical debt exceeds 500 hrs — plan a dedicated remediation sprint";
-        } elseif ($debtHours > 200) {
-            $notes[] = "technical debt above 200 hrs — prioritise high-severity fixes";
-        }
-
-        $suffix = $notes ? ' · ' . implode('; ', $notes) . '.' : '';
-        return "{$label} — {$detail}{$suffix}";
+        return 'Fair (0/100)';
     }
 
     private function getWeightedScoreBreakdown(array $data): array
     {
-        $total       = max(1, (int) ($data['violations']['total_count'] ?? 0));
-        $blockers    = (int) ($data['violations']['by_severity']['blocker']   ?? 0);
-        $criticals   = (int) ($data['violations']['by_severity']['critical']  ?? 0);
-        $errors      = (int) ($data['violations']['by_severity']['error']     ?? 0);
-        $warnings    = (int) ($data['violations']['by_severity']['warning']   ?? 0);
-        $secIssues   = (int) ($data['violations']['by_category']['security']  ?? 0);
-        $perfIssues  = (int) ($data['violations']['by_category']['performance'] ?? 0);
-        $depIssues   = (int) ($data['violations']['by_category']['deprecation'] ?? 0);
-        $debtHours   = (float) ($data['metrics']['technical_debt']['total_hours'] ?? 0);
-        $score       = (float) ($data['metrics']['quality_score'] ?? 0);
-        $maintIdx    = (float) ($data['metrics']['maintainability']['index'] ?? 0);
-        $frontIssues = (int) ($data['violations']['by_category']['frontend'] ?? 0);
+        $scores = $this->resolveScores($data);
+        $breakdown = [];
 
-        // --- 1. Release Readiness Score (0–100) ---
-        // Use density-based penalties so large codebases with many violations aren't
-        // instantly zeroed — same logic as the HTML report's dimension scores.
-        $critDensity  = ($criticals  / $total) * 100;   // % of violations that are critical
-        $secDensity   = ($secIssues  / $total) * 100;
-        $rrs = max(0, 100
-            - min(50, $blockers * 25)         // hard: any blocker is severe
-            - min(25, $critDensity * 2.5)     // density-based, cap 25 pts
-            - min(15, $secDensity  * 3)       // security density, cap 15 pts
-            - ($debtHours > 200 ? 10 : 0)    // debt penalty
-        );
-        $rrs = min(100, (int) round($rrs));
-        $rrsStatus = $rrs >= 80 ? 'Pass' : ($rrs >= 60 ? 'Warn' : 'Fail');
+        foreach (($scores['kpis'] ?? []) as $kpi) {
+            $label = (string) ($kpi['label'] ?? $kpi['id'] ?? 'KPI');
+            $breakdown[$label] = [
+                (string) ($kpi['display'] ?? '0/100'),
+                (string) ($kpi['status'] ?? 'Fail'),
+                (string) ($kpi['note'] ?? ''),
+            ];
+        }
 
-        // --- 2. Business Risk Score (0–100, higher = more risk) ---
-        $brs = min(100, (int) round(
-            min(50, $blockers * 25)
-            + min(25, $critDensity * 2.5)
-            + min(15, $secDensity * 3)
-            + ($debtHours > 200 ? 10 : 0) + ($debtHours > 500 ? 10 : 0)
-        ));
-        $brsStatus = $brs <= 20 ? 'Pass' : ($brs <= 50 ? 'Warn' : 'Fail');
-
-        // --- 3. Quality Confidence Score (0–100) ---
-        $qcs = min(100, max(0, round($score)));
-        $qcsStatus = $qcs >= 80 ? 'Pass' : ($qcs >= 65 ? 'Warn' : 'Fail');
-
-        // --- 4. Security Health Score (0–100) ---
-        $shs = max(0, 100 - $secIssues * 12 - ($blockers > 0 ? 10 : 0));
-        $shs = min(100, $shs);
-        $shsStatus = $shs >= 90 ? 'Pass' : ($shs >= 70 ? 'Warn' : 'Fail');
-
-        // --- 5. Maintainability Index (0–100) ---
-        $miStatus = $maintIdx >= 70 ? 'Pass' : ($maintIdx >= 50 ? 'Warn' : 'Fail');
-
-        // --- 6. Performance Stability Score (0–100) ---
-        $perfPct = round(($perfIssues / $total) * 100, 1);
-        $pss = max(0, min(100, 100 - (int)($perfPct * 3)));
-        $pssStatus = $pss >= 80 ? 'Pass' : ($pss >= 60 ? 'Warn' : 'Fail');
-
-        // --- 7. Criticality Score (0–100, higher = more critical) ---
-        $cs = min(100, round((($blockers * 4 + $criticals * 2 + $errors) / $total) * 100));
-        $csStatus = $cs <= 5 ? 'Pass' : ($cs <= 20 ? 'Warn' : 'Fail');
-
-        // --- 8. Upgrade Readiness Score (0–100) ---
-        $depPct = round(($depIssues / $total) * 100, 1);
-        $urs = max(0, min(100, 100 - (int)($depPct * 5) - ($criticals > 0 ? 10 : 0)));
-        $ursStatus = $urs >= 80 ? 'Pass' : ($urs >= 60 ? 'Warn' : 'Fail');
-
-        // --- 9. Customer Impact Risk Score (0–100, higher = more risk) ---
-        $cirs = min(100, $secIssues * 10 + $blockers * 15 + $criticals * 3 + (int)(($frontIssues / $total) * 30));
-        $cirsStatus = $cirs <= 15 ? 'Pass' : ($cirs <= 40 ? 'Warn' : 'Fail');
-
-        return [
-            'Release Readiness Score'      => ["{$rrs}/100",                $rrsStatus, 'Deployment gate: blockers, criticals, security, debt weighted'],
-            'Business Risk Score'          => ["{$brs}/100 risk",           $brsStatus, 'Higher = more business risk; target ≤20'],
-            'Quality Confidence Score'     => ["{$qcs}/100",                $qcsStatus, 'Composite weighted analyzer score; target ≥80'],
-            'Security Health Score'        => ["{$shs}/100",                $shsStatus, 'Target ≥90; deducted per security violation'],
-            'Maintainability Index'        => [number_format($maintIdx, 1), $miStatus,  'Industry scale 0–100; target ≥70'],
-            'Performance Stability Score'  => ["{$pss}/100",                $pssStatus, 'Based on performance violation density; target ≥80'],
-            'Criticality Score'            => ["{$cs}/100 risk",            $csStatus,  'Weighted blocker/critical density; target ≤5'],
-            'Upgrade Readiness Score'      => ["{$urs}/100",                $ursStatus, 'Deprecation + critical penalty; target ≥80 for major upgrades'],
-            'Customer Impact Risk Score'   => ["{$cirs}/100 risk",          $cirsStatus,'Security + blocker + frontend risk; target ≤15'],
-        ];
+        return $breakdown;
     }
 
     /**
@@ -3424,15 +3377,16 @@ class ExcelReportGenerator extends AbstractReportGenerator
      */
     private function getBusinessImpact(float $healthScore, array $data): string
     {
-        if ($healthScore >= 90) {
-            return 'Low risk - Minimal business impact, high maintainability';
-        } elseif ($healthScore >= 75) {
-            return 'Moderate risk - Some technical debt, manageable impact';
-        } elseif ($healthScore >= 60) {
-            return 'High risk - Significant technical debt, potential performance issues';
-        } else {
-            return 'Critical risk - Major technical debt, security vulnerabilities, high maintenance costs';
+        $scores = $this->resolveScores($data);
+        if (!empty($scores['assessment']['business_impact']) && abs($healthScore - (float) ($scores['overall'] ?? $healthScore)) < 1.0) {
+            return (string) $scores['assessment']['business_impact'];
         }
+        foreach ($this->getScoringConfig()->getAssessmentBands() as $band) {
+            if ($healthScore >= (float) ($band['min'] ?? 0)) {
+                return (string) ($band['impact'] ?? 'Moderate risk');
+            }
+        }
+        return 'Critical risk - Major technical debt, security vulnerabilities, high maintenance costs';
     }
 
     /**
@@ -3502,113 +3456,98 @@ class ExcelReportGenerator extends AbstractReportGenerator
     
     private function getComplexityStatus(float $complexity): string
     {
-        if ($complexity <= 5.0) return 'Good';
-        if ($complexity <= 7.0) return 'Warning';
-        return 'Critical';
+        return $this->evaluateStatusBand($complexity, $this->getScoringConfig()->getStatus()['code_quality_sheet']['complexity'] ?? ['good' => '<= 5.0', 'warn' => '<= 7.0']);
     }
     
     private function getComplexityImpact(float $complexity): string
     {
-        if ($complexity <= 5.0) return 'Low';
-        if ($complexity <= 7.0) return 'Medium';
-        return 'High';
+        $st = $this->getComplexityStatus($complexity);
+        return $st === 'Good' ? 'Low' : ($st === 'Warning' ? 'Medium' : 'High');
     }
     
     private function getMaintainabilityStatus(float $index): string
     {
-        if ($index >= 70.0) return 'Good';
-        if ($index >= 50.0) return 'Warning';
-        return 'Critical';
+        return $this->evaluateStatusBand($index, $this->getScoringConfig()->getStatus()['code_quality_sheet']['maintainability'] ?? ['good' => '>= 70.0', 'warn' => '>= 50.0']);
     }
     
     private function getMaintainabilityImpact(float $index): string
     {
-        if ($index >= 70.0) return 'Low';
-        if ($index >= 50.0) return 'Medium';
-        return 'High';
+        $st = $this->getMaintainabilityStatus($index);
+        return $st === 'Good' ? 'Low' : ($st === 'Warning' ? 'Medium' : 'High');
     }
     
     private function getTechnicalDebtStatus(float $ratio): string
     {
-        if ($ratio <= 0.020) return 'Good';
-        if ($ratio <= 0.050) return 'Warning';
-        return 'Critical';
+        return $this->evaluateStatusBand($ratio, $this->getScoringConfig()->getStatus()['code_quality_sheet']['debt_ratio'] ?? ['good' => '<= 0.020', 'warn' => '<= 0.050']);
     }
     
     private function getTechnicalDebtImpact(float $ratio): string
     {
-        if ($ratio <= 0.020) return 'Low';
-        if ($ratio <= 0.050) return 'Medium';
-        return 'High';
+        $st = $this->getTechnicalDebtStatus($ratio);
+        return $st === 'Good' ? 'Low' : ($st === 'Warning' ? 'Medium' : 'High');
     }
 
     private function getTechnicalDebtHoursStatus(float $hours): string
     {
-        if ($hours <= 200) return 'Good';
-        if ($hours <= 500) return 'Warning';
-        return 'Critical';
+        return $this->evaluateStatusBand($hours, $this->getScoringConfig()->getStatus()['code_quality_sheet']['debt_hours'] ?? ['good' => '<= 200', 'warn' => '<= 500']);
     }
 
     private function getTechnicalDebtHoursImpact(float $hours): string
     {
-        if ($hours <= 200) return 'Low';
-        if ($hours <= 500) return 'Medium';
-        return 'High';
+        $st = $this->getTechnicalDebtHoursStatus($hours);
+        return $st === 'Good' ? 'Low' : ($st === 'Warning' ? 'Medium' : 'High');
     }
     
     private function getCoverageStatus(float $coverage): string
     {
-        if ($coverage >= 0.80) return 'Good';
-        if ($coverage >= 0.60) return 'Warning';
-        return 'Critical';
+        return $this->evaluateStatusBand($coverage, $this->getScoringConfig()->getStatus()['code_quality_sheet']['coverage'] ?? ['good' => '>= 0.80', 'warn' => '>= 0.60']);
     }
     
     private function getCoverageImpact(float $coverage): string
     {
-        if ($coverage >= 0.80) return 'Low';
-        if ($coverage >= 0.60) return 'Medium';
-        return 'High';
+        $st = $this->getCoverageStatus($coverage);
+        return $st === 'Good' ? 'Low' : ($st === 'Warning' ? 'Medium' : 'High');
     }
     
     private function getDocumentationStatus(float $coverage): string
     {
-        if ($coverage >= 70.0) return 'Good';
-        if ($coverage >= 50.0) return 'Warning';
-        return 'Critical';
+        return $this->evaluateStatusBand($coverage, $this->getScoringConfig()->getStatus()['code_quality_sheet']['documentation'] ?? ['good' => '>= 70.0', 'warn' => '>= 50.0']);
     }
     
     private function getDocumentationImpact(float $coverage): string
     {
-        if ($coverage >= 70.0) return 'Low';
-        if ($coverage >= 50.0) return 'Medium';
-        return 'High';
+        $st = $this->getDocumentationStatus($coverage);
+        return $st === 'Good' ? 'Low' : ($st === 'Warning' ? 'Medium' : 'High');
     }
     
     private function getStandardsStatus(float $compliance): string
     {
-        if ($compliance >= 90.0) return 'Good';
-        if ($compliance >= 75.0) return 'Warning';
-        return 'Critical';
+        return $this->evaluateStatusBand($compliance, $this->getScoringConfig()->getStatus()['code_quality_sheet']['standards'] ?? ['good' => '>= 90.0', 'warn' => '>= 75.0']);
     }
     
     private function getStandardsImpact(float $compliance): string
     {
-        if ($compliance >= 90.0) return 'Low';
-        if ($compliance >= 75.0) return 'Medium';
-        return 'High';
+        $st = $this->getStandardsStatus($compliance);
+        return $st === 'Good' ? 'Low' : ($st === 'Warning' ? 'Medium' : 'High');
     }
 
     /**
-     * Calculate security score based on OWASP Top 10 metrics
+     * Calculate security score based on OWASP Top 10 metrics and configured weights
      */
-    private function calculateSecurityScore(int $critical, int $high, int $medium, int $low): float
+    private function calculateSecurityScore(int $critical, int $high, int $medium, int $low, int $blocker = 0): float
     {
-        $total = $critical + $high + $medium + $low;
+        $total = $blocker + $critical + $high + $medium + $low;
         if ($total === 0) return 100.0;
         
-        // Weighted scoring: Critical = -20, High = -10, Medium = -5, Low = -1
-        $score = 100 - ($critical * 20) - ($high * 10) - ($medium * 5) - ($low * 1);
-        return max(0, $score);
+        $weights = $this->getScoringConfig()->getStatus()['security_sheet']['weights'] ?? [];
+        $wBlocker  = (float) ($weights['blocker'] ?? 30);
+        $wCritical = (float) ($weights['critical'] ?? 20);
+        $wHigh     = (float) ($weights['error'] ?? 10);
+        $wMedium   = (float) ($weights['warning'] ?? 5);
+        $wLow      = (float) ($weights['info'] ?? 1);
+
+        $score = 100.0 - ($blocker * $wBlocker) - ($critical * $wCritical) - ($high * $wHigh) - ($medium * $wMedium) - ($low * $wLow);
+        return max(0.0, $score);
     }
     
     private function calculateOWASPCompliance(array $securityViolations): float
@@ -3630,30 +3569,24 @@ class ExcelReportGenerator extends AbstractReportGenerator
     
     private function getSecurityStatus(float $score): string
     {
-        if ($score >= 85) return 'Good';
-        if ($score >= 70) return 'Warning';
-        return 'Critical';
+        return $this->evaluateStatusBand($score, $this->getScoringConfig()->getStatus()['security_sheet']['score'] ?? ['good' => '>= 85', 'warn' => '>= 70']);
     }
     
     private function getSecurityRiskLevel(float $score): string
     {
-        if ($score >= 85) return 'Low';
-        if ($score >= 70) return 'Medium';
-        return 'High';
+        $st = $this->getSecurityStatus($score);
+        return $st === 'Good' ? 'Low' : ($st === 'Warning' ? 'Medium' : 'High');
     }
     
     private function getOWASPStatus(float $compliance): string
     {
-        if ($compliance >= 90) return 'Good';
-        if ($compliance >= 75) return 'Warning';
-        return 'Critical';
+        return $this->evaluateStatusBand($compliance, $this->getScoringConfig()->getStatus()['security_sheet']['owasp'] ?? ['good' => '>= 90', 'warn' => '>= 75']);
     }
     
     private function getOWASPRiskLevel(float $compliance): string
     {
-        if ($compliance >= 90) return 'Low';
-        if ($compliance >= 75) return 'Medium';
-        return 'High';
+        $st = $this->getOWASPStatus($compliance);
+        return $st === 'Good' ? 'Low' : ($st === 'Warning' ? 'Medium' : 'High');
     }
     
     private function getRiskStatus(int $count, int $threshold): string
@@ -4186,8 +4119,18 @@ class ExcelReportGenerator extends AbstractReportGenerator
     
     private function calculateModuleRiskLevel(array $violations): string
     {
-        $criticalCount = count(array_filter($violations, fn($v) => ($v['severity'] ?? '') === 'critical'));
-        $highCount = count(array_filter($violations, fn($v) => ($v['severity'] ?? '') === 'high'));
+        $aliases = $this->getScoringConfig()->getSeverityAliases();
+        $criticalCount = 0;
+        $highCount = 0;
+
+        foreach ($violations as $v) {
+            $norm = ScoreInputs::normalizeSeverity((string) ($v['severity'] ?? ''), $aliases);
+            if ($norm === 'blocker' || $norm === 'critical') {
+                $criticalCount++;
+            } elseif ($norm === 'error') {
+                $highCount++;
+            }
+        }
         
         if ($criticalCount > 0) return 'Critical';
         if ($highCount > 2) return 'High';
@@ -4197,16 +4140,26 @@ class ExcelReportGenerator extends AbstractReportGenerator
     
     private function calculateModuleTechnicalDebt(array $violations): float
     {
-        $totalHours = 0;
+        $totalHours = 0.0;
+        $aliases = $this->getScoringConfig()->getSeverityAliases();
+        $hoursMap = $this->getScoringConfig()->getStatus()['module_sheet']['debt_hours'] ?? [
+            'blocker' => 8.0,
+            'critical' => 4.0,
+            'error' => 2.0,
+            'warning' => 1.0,
+            'info' => 0.5,
+            'minor' => 0.25,
+        ];
         
         foreach ($violations as $violation) {
-            $severity = $violation['severity'] ?? 'medium';
-            switch ($severity) {
-                case 'critical': $totalHours += 4; break;
-                case 'high': $totalHours += 2; break;
-                case 'medium': $totalHours += 1; break;
-                case 'low': $totalHours += 0.5; break;
+            $rawSev = strtolower((string) ($violation['severity'] ?? 'medium'));
+            // Preserve legacy distinction where 'high' = 2h and 'critical' = 4h, while also mapping 'error' = 2h and 'blocker' = 8h
+            if ($rawSev === 'high') {
+                $totalHours += (float) ($hoursMap['error'] ?? 2.0);
+                continue;
             }
+            $norm = ScoreInputs::normalizeSeverity($rawSev, $aliases);
+            $totalHours += (float) ($hoursMap[$norm] ?? 0.5);
         }
         
         return $totalHours;
@@ -5060,15 +5013,113 @@ class ExcelReportGenerator extends AbstractReportGenerator
      */
     private function getPerformanceStatus(int $count): string
     {
-        if ($count === 0) {
+        $perfCfg = $this->getScoringConfig()->getStatus()['performance_sheet']['total_violations'] ?? [
+            'good' => '== 0',
+            'info' => '<= 3',
+            'warn' => '<= 10',
+        ];
+        $ev = new ConditionEvaluator();
+        if (isset($perfCfg['good']) && $ev->evaluateValue($count, (string) $perfCfg['good'])) {
             return 'Good';
-        } elseif ($count <= 3) {
-            return 'Warning';
-        } elseif ($count <= 10) {
-            return 'Error';
-        } else {
-            return 'Critical';
         }
+        if (isset($perfCfg['info']) && $ev->evaluateValue($count, (string) $perfCfg['info'])) {
+            return 'Warning';
+        }
+        if (isset($perfCfg['warn']) && $ev->evaluateValue($count, (string) $perfCfg['warn'])) {
+            return 'Error';
+        }
+        return 'Critical';
+    }
+
+    /**
+     * Excel "Threshold" text built from the same status band that drives the Status cell,
+     * e.g. good ">= 85" -> "≥ 85%". `scale` converts 0-1 ratios to percent.
+     *
+     * @param array<string, string> $defaultBand
+     */
+    private function statusThresholdText(
+        string $sheet,
+        string $metric,
+        array $defaultBand,
+        string $bandKey = 'good',
+        float $scale = 1.0,
+        string $suffix = ''
+    ): string {
+        $band = $this->getScoringConfig()->getStatus()[$sheet][$metric] ?? $defaultBand;
+        $expr = (string) ($band[$bandKey] ?? $band['good'] ?? $defaultBand[$bandKey] ?? '');
+        if ($expr === '') {
+            return '';
+        }
+        $parsed = (new ConditionEvaluator())->parseExpression($expr, "scoring.status.{$sheet}.{$metric}.{$bandKey}");
+        $symbol = ['>=' => '≥', '<=' => '≤', '==' => '=', '!=' => '≠', '>' => '>', '<' => '<'][$parsed['op']];
+        $value = rtrim(rtrim(number_format($parsed['threshold'] * $scale, 3, '.', ''), '0'), '.');
+
+        return "{$symbol} {$value}{$suffix}";
+    }
+
+    private function getScoringConfig(): ScoringConfig
+    {
+        return $this->scoringConfig ??= (new ScoringConfigLoader())->load();
+    }
+
+    /**
+     * Evaluate a value against a `{good: "<op> <num>", warn: "<op> <num>"}` status band.
+     *
+     * @param array<string, mixed> $band
+     */
+    private function evaluateStatusBand(float|int $value, array $band): string
+    {
+        $ev = new ConditionEvaluator();
+        if (isset($band['good']) && is_string($band['good']) && $ev->evaluateValue($value, $band['good'])) {
+            return 'Good';
+        }
+        if (isset($band['warn']) && is_string($band['warn']) && $ev->evaluateValue($value, $band['warn'])) {
+            return 'Warning';
+        }
+        return 'Critical';
+    }
+
+    /**
+     * Return `$data['scores']` if already calculated by `ReportCommand`, or calculate on the fly.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function resolveScores(array $data): array
+    {
+        if (isset($data['scores']) && is_array($data['scores']) && isset($data['scores']['kpis'])) {
+            return $data['scores'];
+        }
+
+        // When invoked directly on aggregate counts (e.g. reflection / unit tests without `violations.violations`)
+        // and `metrics.quality_score` is already supplied, preserve unweighted density parity unless a scoring config was injected.
+        $cfg = $this->scoringConfig;
+        if (!$cfg instanceof ScoringConfig) {
+            $hasRawList = !empty($data['violations']['violations']);
+            $overrides = !$hasRawList && isset($data['metrics']['quality_score'])
+                ? ['category_weights' => ['seo' => 1.0, 'accessibility' => 1.0]]
+                : null;
+            $cfg = (new ScoringConfigLoader())->load(null, $overrides);
+        }
+
+        $scores = (new ScoreCalculator())->calculateReportScores($data, $cfg);
+        if (!isset($data['violations']['violations']) && isset($data['metrics']['quality_score'])) {
+            $explicitOverall = (float) $data['metrics']['quality_score'];
+            $scores['overall'] = $explicitOverall;
+            $scores['overall_rounded'] = (int) round($explicitOverall);
+            if (isset($scores['kpis']['quality_confidence'])) {
+                $qcs = (int) min(100, max(0, round($explicitOverall)));
+                $scores['kpis']['quality_confidence']['value'] = $qcs;
+                $scores['kpis']['quality_confidence']['display'] = "{$qcs}/100";
+                $ev = new ConditionEvaluator();
+                $kpiCfg = $cfg->getKpis()['quality_confidence'] ?? ['pass' => '>= 80', 'warn' => '>= 65'];
+                $scores['kpis']['quality_confidence']['status'] = $ev->evaluateValue($qcs, (string) ($kpiCfg['pass'] ?? '>= 80'))
+                    ? 'Pass'
+                    : ($ev->evaluateValue($qcs, (string) ($kpiCfg['warn'] ?? '>= 65')) ? 'Warn' : 'Fail');
+            }
+        }
+
+        return $scores;
     }
     
     /**

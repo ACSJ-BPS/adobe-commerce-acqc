@@ -83,8 +83,6 @@ vendor-audit.json
 !CONTRIBUTING.md
 !CODE_OF_CONDUCT.md
 !SECURITY.md
-!GOVERNANCE.md
-!OPEN_SOURCE_GUIDE.md
 
 # ADLC and agent internals
 .claude/

@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace ACQC\Commands;
 
 use ACQC\Core\Config\ConfigManager;
+use ACQC\Core\Config\ProjectConfigLocator;
 use ACQC\Core\Coverage\CloverCoverageParser;
 use ACQC\Core\Coverage\CloverXmlGenerator;
 use ACQC\Core\Coverage\PHPUnitTextCoverageParser;
 use ACQC\Core\AI\PredictiveAnalytics;
 use ACQC\Core\Analysis\AnalyzerOrchestrator;
+use ACQC\Core\Scoring\ScoreCalculator;
+use ACQC\Core\Scoring\ScoringConfig;
+use ACQC\Core\Scoring\ScoringConfigLoader;
 use ACQC\Analyzers\AppBuilder\AbqcAnalyzer;
 use ACQC\Core\Platform\PlatformDetector;
 use ACQC\Core\Platform\PlatformRegistry;
@@ -25,6 +29,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\NullOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
@@ -40,6 +45,7 @@ class ReportCommand extends Command
     private PredictiveAnalytics $predictiveAnalytics;
     private array $generators = [];
     private $logger;
+    private ?ScoringConfig $scoringConfig = null;
 
     public function __construct()
     {
@@ -204,6 +210,11 @@ Generate comprehensive quality reports in multiple formats for different audienc
         $io->text("Format: <info>{$format}</info>");
         $io->text("Type: <info>{$type}</info>");
         $io->text("Role: <info>{$role}</info>");
+        if ($input->getOption('profile') !== null && $input->getOption('profile') !== '') {
+            // stderr, so the warning also shows for json/sarif/junit without breaking stdout
+            $stderr = $output instanceof ConsoleOutputInterface ? $output->getErrorOutput() : $output;
+            (new SymfonyStyle($input, $stderr))->warning('Option --profile is ignored for report; configure scoring and filters in .acqc/project.yaml.');
+        }
         $io->newLine();
 
         // Validate inputs
@@ -238,6 +249,9 @@ Generate comprehensive quality reports in multiple formats for different audienc
                 return Command::FAILURE;
             }
 
+        } catch (\InvalidArgumentException $e) {
+            $errorIo->error('Configuration error: ' . $e->getMessage());
+            return Command::INVALID;
         } catch (\Throwable $e) {
             $errorIo->error('Report generation failed: ' . $e->getMessage());
             if ($output->isVeryVerbose()) {
@@ -270,6 +284,12 @@ Generate comprehensive quality reports in multiple formats for different audienc
     private function collectAnalysisData(string $target, InputInterface $input, SymfonyStyle $io): array
     {
         $data = [];
+        $locator = new ProjectConfigLocator();
+        $locatedProject = $locator->loadNearest($target);
+        $projectYamlConfig = $locatedProject['config'];
+        $scoringConfig = (new ScoringConfigLoader(null, $locator))->load($target);
+        $this->scoringConfig = $scoringConfig;
+        $io->writeln('Scoring config: <info>' . implode(' + ', $scoringConfig->getSources()) . '</info>');
         
         // Detect project name dynamically
         $projectName = $this->detectProjectName($target, $input);
@@ -356,6 +376,12 @@ Generate comprehensive quality reports in multiple formats for different audienc
                 // assumption. Both are meaningless noise on a non-Magento project.
                 $orchestratorConfig['analyzers']['performance_server_uptime'] = false;
                 $orchestratorConfig['analyzers']['performance_opcache'] = false;
+            }
+            if (!empty($projectYamlConfig['analyzers']) && is_array($projectYamlConfig['analyzers'])) {
+                $orchestratorConfig['analyzers'] = array_replace(
+                    $orchestratorConfig['analyzers'] ?? [],
+                    $projectYamlConfig['analyzers']
+                );
             }
             $orchestrator = new AnalyzerOrchestrator(
                 $orchestratorConfig,
@@ -461,8 +487,8 @@ Generate comprehensive quality reports in multiple formats for different audienc
             $this->logger->warning('Advanced analyzers failed: ' . $e->getMessage());
         }
         
-        // Apply filtering based on user options (severity and type filters)
-        $data = $this->applyViolationFilters($data, $input, $io);
+        // Apply filtering based on user options and .acqc/project.yaml `report:` defaults
+        $data = $this->applyViolationFilters($data, $input, $io, $projectYamlConfig['report'] ?? []);
         
         $io->writeln('Collecting metrics data...');
         $coverageCloverPath = $input->getOption('coverage-clover') ?: null;
@@ -533,27 +559,25 @@ Generate comprehensive quality reports in multiple formats for different audienc
             }
         }
         $data['metrics'] = $this->collectRealMetricsDataFromModules($modulePaths, $io, $target, $coverageCloverPath);
-        
-        // ✅ CRITICAL FIX: Calculate quality score and technical debt from ACTUAL violations
-        if (!empty($data['violations']['violations'])) {
-            $allViolations = $data['violations']['violations'];
-            
-            // Override quality score with violation-based calculation
-            $data['metrics']['quality_score'] = $this->calculateQualityScoreFromViolations($allViolations);
-            $data['metrics']['code_quality_score'] = $data['metrics']['quality_score'];
-            
-            // Override technical debt with violation-based calculation
-            $violationBasedDebt = $this->calculateTechnicalDebtFromViolations($allViolations);
-            $data['metrics']['technical_debt']['total_hours'] = round($violationBasedDebt, 1);
-            $data['metrics']['technical_debt']['total_days'] = round($violationBasedDebt / 8, 1);
-        }
-        
+
         $io->writeln('Collecting code size data...');
-        $data['code_size'] = $this->collectRealCodeSizeDataFromModules($modulePaths, $io);
-        
-        // Add project metadata
+        // No Magento modules detected (e.g. target is app/code): size the files already collected for the
+        // scan, which honour --exclude-paths and never include vendor/ or node_modules/.
+        $data['code_size'] = $modulePaths !== []
+            ? $this->collectRealCodeSizeDataFromModules($modulePaths, $io)
+            : $this->collectCodeSizeFromFiles($phpFiles);
+
+        // Add project metadata before scoring so per_file / per_kloc normalisation has exact counts
         $data['total_files'] = $data['code_size']['file_count'];
         $data['total_lines'] = $data['code_size']['total_lines'];
+
+        // Calculate config-driven quality scores, dimension rings, readiness, KPIs and technical debt
+        $scores = (new ScoreCalculator())->calculateReportScores($data, $scoringConfig);
+        $data['scores'] = $scores;
+        $data['metrics']['quality_score'] = $scores['overall'];
+        $data['metrics']['code_quality_score'] = $scores['overall'];
+        $data['metrics']['technical_debt']['total_hours'] = $scores['debt_hours'];
+        $data['metrics']['technical_debt']['total_days'] = $scores['debt_days'];
         
         // Add predictive analytics if requested
         if ($input->getOption('include-predictive')) {
@@ -1960,21 +1984,21 @@ Generate comprehensive quality reports in multiple formats for different audienc
         return [
             'total_files' => $totalFiles,
             'total_lines' => $totalLines,
-            'average_complexity' => round($averageComplexity, 2),
+            'average_complexity' => $moduleCount > 0 ? round($averageComplexity, 2) : null,
             'technical_debt_ratio' => round($averageTechnicalDebt, 2),
             'test_coverage' => round($averageTestCoverage, 2),
-            'maintainability_index' => round($averageMaintainabilityIndex, 2),
+            'maintainability_index' => $moduleCount > 0 ? round($averageMaintainabilityIndex, 2) : null,
             'performance_issues' => $totalPerformanceIssues,
             'quality_score' => $qualityScore,
             'code_quality_score' => $qualityScore,
             'modules_analyzed' => $moduleCount,
             'module_metrics' => $moduleMetrics,
             'complexity' => [
-                'average' => $averageComplexity,
+                'average' => $moduleCount > 0 ? $averageComplexity : null,
                 'distribution' => $this->calculateComplexityDistribution($moduleMetrics)
             ],
             'maintainability' => [
-                'index' => $averageMaintainabilityIndex,
+                'index' => $moduleCount > 0 ? $averageMaintainabilityIndex : null,
                 'distribution' => $this->calculateMaintainabilityDistribution($moduleMetrics)
             ],
             'technical_debt' => [
@@ -1990,8 +2014,9 @@ Generate comprehensive quality reports in multiple formats for different audienc
             ],
             'coverage_source' => $coverageSource,
             'coverage_breakdown' => $moduleCoverageBreakdown,
-            'documentation_coverage' => $this->calculateDocumentationCoverage($modulePaths),
-            'standards_compliance' => $this->calculateStandardsCompliance($modulePaths)
+            // No modules analysed => these are unmeasured (null), not a real 0
+            'documentation_coverage' => $moduleCount > 0 ? $this->calculateDocumentationCoverage($modulePaths) : null,
+            'standards_compliance' => $moduleCount > 0 ? $this->calculateStandardsCompliance($modulePaths) : null
         ];
     }
 
@@ -2522,6 +2547,50 @@ XML;
         ];
     }
 
+    /**
+     * Code size for an explicit file list (used when no Magento modules were detected).
+     *
+     * @param list<string> $files
+     */
+    private function collectCodeSizeFromFiles(array $files): array
+    {
+        $totalLines = 0;
+        $codeLines = 0;
+        $commentLines = 0;
+        $blankLines = 0;
+        $fileTypes = [];
+
+        foreach ($files as $path) {
+            if (!is_file($path)) {
+                continue;
+            }
+            $ext = pathinfo($path, PATHINFO_EXTENSION);
+            $fileTypes[$ext] = ($fileTypes[$ext] ?? 0) + 1;
+            $lines = explode("\n", (string) file_get_contents($path));
+            $totalLines += count($lines);
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if ($line === '') {
+                    $blankLines++;
+                } elseif (str_starts_with($line, '//') || str_starts_with($line, '/*') || str_starts_with($line, '*')) {
+                    $commentLines++;
+                } else {
+                    $codeLines++;
+                }
+            }
+        }
+
+        return [
+            'file_count' => array_sum($fileTypes),
+            'total_lines' => $totalLines,
+            'code_lines' => $codeLines,
+            'comment_lines' => $commentLines,
+            'blank_lines' => $blankLines,
+            'file_types' => $fileTypes,
+            'modules_analyzed' => 0,
+        ];
+    }
+
     // Helper methods for real data collection
     private function calculateQualityScore(string $target): float
     {
@@ -2895,22 +2964,23 @@ XML;
             return $projectName;
         }
 
-        // Try .acqc/project.yaml first
-        $acqcConfig = $target . '/.acqc/project.yaml';
-        if (file_exists($acqcConfig)) {
-            $cfg = \Symfony\Component\Yaml\Yaml::parseFile($acqcConfig);
-            if (!empty($cfg['project']['name'])) {
-                return $cfg['project']['name'];
-            }
+        // Try nearest .acqc/project.yaml first (walks upwards to git root)
+        $located = (new ProjectConfigLocator())->loadNearest($target);
+        if (!empty($located['config']['project']['name'])) {
+            return (string) $located['config']['project']['name'];
+        }
+        if (!empty($located['config']['name'])) {
+            return (string) $located['config']['name'];
         }
 
-        // Try composer.json
+        // Try composer.json in the target only. The repo-root composer.json is usually the Magento
+        // project template (e.g. "magento/magento-cloud-template"), not the project name.
         $composerFile = $target . '/composer.json';
         if (file_exists($composerFile)) {
-            $composerData = json_decode(file_get_contents($composerFile), true);
+            $composerData = json_decode((string) file_get_contents($composerFile), true);
             if (!empty($composerData['name'])) {
-                $parts = explode('/', $composerData['name']);
-                return ucfirst(str_replace(['-', '_'], ' ', end($parts)));
+                $parts = explode('/', (string) $composerData['name']);
+                return ucfirst(str_replace(['-', '_'], ' ', (string) end($parts)));
             }
         }
 
@@ -3222,7 +3292,9 @@ XML;
             'compress' => $input->getOption('compress'),
             'split_by_severity' => $input->getOption('split-by-severity'),
             'max_violations' => (int) $input->getOption('max-violations'),
-            'filename_prefix' => $input->getOption('filename')
+            'filename_prefix' => $input->getOption('filename'),
+            // Effective scoring config (built-in + .acqc/project.yaml) for Excel status bands and JUnit gates
+            'scoring_config' => $this->scoringConfig,
         ];
         
         // Load custom template if specified
@@ -3669,17 +3741,17 @@ XML;
     }
 
     /**
-     * Apply severity and type filters to violations
+     * Apply severity and type filters to violations (CLI options override `.acqc/project.yaml` `report:` defaults)
+     *
+     * @param array<string, mixed> $reportConfig
      */
-    private function applyViolationFilters(array $data, InputInterface $input, SymfonyStyle $io): array
+    private function applyViolationFilters(array $data, InputInterface $input, SymfonyStyle $io, array $reportConfig = []): array
     {
-        $minSeverity = $input->getOption('min-severity');
-        $excludeTypes = $input->getOption('exclude-types');
-        $includeTypes = $input->getOption('include-types');
-        
-        // If no filters specified, return data as-is
-        $minImpact = $input->getOption('min-impact');
-        $excludeCategories = $input->getOption('exclude-categories');
+        $minSeverity = $input->getOption('min-severity') ?? ($reportConfig['min_severity'] ?? null);
+        $excludeTypes = $input->getOption('exclude-types') ?? $this->normalizeConfigFilterList($reportConfig['exclude_types'] ?? null);
+        $includeTypes = $input->getOption('include-types') ?? $this->normalizeConfigFilterList($reportConfig['include_types'] ?? null);
+        $minImpact = $input->getOption('min-impact') ?? ($reportConfig['min_impact'] ?? null);
+        $excludeCategories = $input->getOption('exclude-categories') ?? $this->normalizeConfigFilterList($reportConfig['exclude_categories'] ?? null);
         if (!$minSeverity && !$minImpact && !$excludeTypes && !$includeTypes && !$excludeCategories) {
             return $data;
         }
@@ -3765,6 +3837,7 @@ XML;
         $data['violations']['total_count'] = count($data['violations']['violations'] ?? []);
         $data['violations']['by_severity'] = $this->groupBySeverity($data['violations']['violations'] ?? []);
         $data['violations']['by_category'] = $this->groupByCategory($data['violations']['violations'] ?? []);
+        $data['violations']['category_samples'] = $this->sampleMessagesByCategory($data['violations']['violations'] ?? []);
         
         $filteredCount = $data['violations']['total_count'];
         $removedCount = $originalCount - $filteredCount;
@@ -3774,6 +3847,18 @@ XML;
         }
         
         return $data;
+    }
+
+    private function normalizeConfigFilterList(mixed $value): ?string
+    {
+        if (is_array($value)) {
+            $items = array_filter(array_map(static fn($v): string => trim((string) $v), $value));
+            return $items !== [] ? implode(',', $items) : null;
+        }
+        if (is_string($value) && trim($value) !== '') {
+            return trim($value);
+        }
+        return null;
     }
     
     /**

@@ -75,19 +75,6 @@
     "development": "minor"
   },
   
-  "quality_gates": {
-    "_comment": "Quality gate thresholds",
-    
-    "max_blocker_violations": 0,
-    "max_critical_violations": 0,
-    "max_error_violations": 10,
-    "max_warning_violations": 50,
-    
-    "fail_on_blocker": true,
-    "fail_on_critical": true,
-    "fail_on_error": false
-  },
-  
   "analyzer_severity_weights": {
     "_comment": "Adjust severity based on analyzer confidence",
     

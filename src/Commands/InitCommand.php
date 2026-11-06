@@ -78,7 +78,25 @@ class InitCommand extends Command
             'suppressions'  => [],
         ];
 
-        file_put_contents($configPath, Yaml::dump($config, 4, 2));
+        $yamlContent = Yaml::dump($config, 4, 2) . <<<'YAML'
+
+# Optional: override report filters, analyzer flags, or scoring & readiness rules per project
+# report:
+#   exclude_categories: [seo, accessibility]
+# analyzers:
+#   frontend_seo: false
+#   frontend_accessibility: false
+# scoring:
+#   readiness:
+#     - { verdict: BLOCKED, gate: FAIL, when_any: { blocker: "> 0", critical: "> 5" } }
+#     - { verdict: RISKY,   gate: WARN, when_any: { critical: "> 0", error_weighted: "> 50", overall: "< 75" } }
+#     - { verdict: READY TO SHIP, gate: PASS }
+#   overall:
+#     caps:
+#       - { when: { error_weighted: ">= 100" }, max_score: 75 }
+YAML;
+
+        file_put_contents($configPath, $yamlContent);
 
         if (!$quiet) {
             $output->writeln("<info>✓ Created .acqc/project.yaml</info>");

@@ -231,10 +231,6 @@ scanner:
       - 'registration.php'
       - 'composer.json'
 
-thresholds:
-  quality_score: 7.0
-  test_coverage: 70
-
 ai:
   enabled: true
   default_provider: local
