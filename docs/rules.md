@@ -57,7 +57,12 @@ acqc rules:unsuppress AC_PERF_001
 ```
 
 The entry records the reason, your git user email (or system user) and the date. `doctor` reports
-suppressions whose `review_by` date has passed.
+suppressions whose `review_by` date has passed; the suppression stays active after that date.
+
+Both commands rewrite the whole `.acqc/project.yaml`: comments and formatting are lost. When the
+file is not valid YAML, `rules:suppress` replaces all of it with only the `suppressions` list.
+Commit the file before you run them. If you edit the file by hand, use the list form shown in
+[Project config](project-config.md#suppressions); a map is ignored without a message.
 
 Known issue: `audit` and `rules:list` cache the loaded rules for up to one hour in the system temp
 folder, and a suppression change does not clear that cache. To apply the change at once, delete

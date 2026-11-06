@@ -84,7 +84,8 @@ acqc hooks:install
 |---|---|
 | [Getting started](docs/getting-started.md) | Requirements, install, optional tools, first run |
 | [Commands](docs/commands.md) | Which command to use, common options, exit codes, known limitations |
-| [Configuration](docs/configuration.md) | `.acqc/project.yaml`, profiles, scoring, report filters, environment variables |
+| [Configuration](docs/configuration.md) | Where settings live, profiles, environment variables |
+| [Project config](docs/project-config.md) | Every `.acqc/project.yaml` key: control which findings show, scores, grades, release verdict, debt, gates |
 | [Rules](docs/rules.md) | Where rules come from, list, suppress and write rules |
 | [Reports](docs/reports.md) | Formats, file names, report types, filters |
 | [Upgrade analysis](docs/upgrade.md) | `upgrade:analyze`, `detect-version`, `version:*` |

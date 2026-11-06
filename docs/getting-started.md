@@ -91,6 +91,7 @@ suppressions in `<project>/.acqc/`. To check selected files with them, run from 
 | Block bad code before it is committed | [Pre-commit gate](pre-commit.md) |
 | Run ACQC in a pipeline | [CI/CD](ci-cd.md) |
 | Plan an Adobe Commerce upgrade | [Upgrade analysis](upgrade.md) |
-| Tune scoring, filters and profiles | [Configuration](configuration.md) |
+| Control which findings show and how scores, grades and the release verdict work | [Project config](project-config.md) |
+| Change profiles and see where settings live | [Configuration](configuration.md) |
 | Add, suppress or write rules | [Rules](rules.md) |
 | Fix a problem | [Troubleshooting](troubleshooting.md) |

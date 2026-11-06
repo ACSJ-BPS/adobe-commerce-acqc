@@ -4,7 +4,7 @@
 quality gate: it exits `0` when the report is written, whatever it finds. Use
 [`acqc audit`](commands.md#audit) to pass or fail a build.
 
-`report` runs its own analyzer set (see [Configuration](configuration.md#analyzers)). It does not
+`report` runs its own analyzer set (see [Project config](project-config.md#analyzers)). It does not
 use the YAML rules or the profiles. PHP_CodeSniffer and the other PHP tools run only when they are on
 your `PATH` (see [Getting started](getting-started.md#php-tools-for-report)). For an App Builder or
 Node.js project that is not also an Adobe Commerce project, `report` skips PHP and XML files and
@@ -74,7 +74,8 @@ REST API Analysis, GraphQL Analysis, Compliance Check and Coverage by Module.
 | `--exclude-paths` | Comma-separated path patterns to skip. Default: `*/Test/*,*/Tests/*,*/test/*,*/tests/*`. A value you pass replaces the default. |
 
 Set project defaults for the first four in the `report:` section of `.acqc/project.yaml`. See
-[Configuration](configuration.md#report-filters).
+[Project config](project-config.md#report). Filters run before scoring, so hidden findings do not
+count in the scores.
 
 ## Test coverage
 
@@ -101,7 +102,7 @@ at the installation, not only the code:
 
 `audit`, `analyze` and `scan` do not do this. Run `report` only on code you trust. To turn these
 checks off, set them to `false` in the `analyzers` section of `.acqc/project.yaml` (see
-[Configuration](configuration.md#analyzers)):
+[Project config](project-config.md#analyzers)):
 
 ```yaml
 analyzers:

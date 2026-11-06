@@ -47,7 +47,7 @@ acqc audit . --fail-on=critical,blocker                   # choose what fails th
 
 | Option | Meaning |
 |---|---|
-| `[path]` | Project path. Default: the current directory. ACQC reads `.acqc/` (team rules, suppressions, scoring) from this path, or from the git root with `--staged` and `--diff-from`. Run from the project root so they apply. |
+| `[path]` | Project path. Default: the current directory. ACQC reads team rules and suppressions from `.acqc/` in this path, or in the git root with `--staged` and `--diff-from`. Run from the project root so they apply. Scoring comes from the nearest `.acqc/project.yaml` (see [Project config](project-config.md#where-acqc-looks-for-the-file)). |
 | `-p, --profile` | `developer` (default), `tech-lead`, `architect`, `executive`, `ci`, `pre-commit`. See [Configuration](configuration.md#profiles). |
 | `-f, --format` | `console`, `compact`, `json`, `html`, `sarif`. Default comes from the profile. |
 | `--sarif-file` | Also write SARIF to a file, whatever the `--format`. |

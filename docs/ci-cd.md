@@ -1,6 +1,6 @@
 # CI/CD
 
-Use `acqc audit` as the quality gate in your pipeline. `report` and `upgrade:analyze` always exit `0`, so they cannot gate a build.
+Use `acqc audit` as the quality gate in your pipeline. `report` and `upgrade:analyze` exit `0` whatever they find, so they cannot gate a build.
 
 ## Recommended gate
 
@@ -171,7 +171,7 @@ In GitLab and Bitbucket, `ACQC_REPO_TOKEN` is a masked CI variable you create. T
 
 | Command | Use in CI | Notes |
 |---|---|---|
-| `acqc report` | Build an HTML, JSON or Excel report as an artifact | Always exits `0`. Not a gate. See [Reports](reports.md). |
+| `acqc report` | Build an HTML, JSON or Excel report as an artifact | Exits `0` whatever it finds; exits `1` or `2` only when it cannot run, for example with an invalid `.acqc/project.yaml`. Not a gate. See [Reports](reports.md). |
 | `acqc upgrade:analyze` | Upgrade readiness as an artifact | Exits `0` even with critical issues. Not a gate. See [Upgrade analysis](upgrade.md). |
 | `acqc appbuilder:lint` | App Builder-only gate | Exits `1` on error findings. See [App Builder](app-builder.md). |
 

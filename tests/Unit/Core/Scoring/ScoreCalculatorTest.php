@@ -6,6 +6,7 @@ namespace ACQC\Tests\Unit\Core\Scoring;
 
 use ACQC\Core\Scoring\ScoreCalculator;
 use ACQC\Core\Scoring\ScoreInputs;
+use ACQC\Core\Scoring\ScoringConfig;
 use ACQC\Core\Scoring\ScoringConfigLoader;
 use PHPUnit\Framework\TestCase;
 use Twig\Environment;
@@ -300,19 +301,67 @@ final class ScoreCalculatorTest extends TestCase
             ],
         ]);
 
+        $html = $this->renderSummary($config);
+
+        $this->assertStringContainsString('RISKY', $html);
+        $this->assertStringContainsString('Capped at 75', $html);
+        $this->assertStringContainsString('WARN — Proceed with mandatory review gate', $html);
+    }
+
+    /**
+     * @return array<string, array{int, int, list<string>, list<string>}>
+     */
+    public static function legendBandsProvider(): array
+    {
+        return [
+            'defaults'            => [80, 60, ['80–100 Healthy', '60–79 Needs attention', '0–59 At risk'], []],
+            'custom 95/90'        => [95, 90, ['95–100 Healthy', '90–94 Needs attention', '0–89 At risk'], ['80–100 Healthy']],
+            'low 20/10'           => [20, 10, ['20–100 Healthy', '10–19 Needs attention', '0–9 At risk'], ['80–100 Healthy']],
+            'attention equals'    => [90, 90, ['90–100 Healthy', '0–89 At risk'], ['Needs attention</span>']],
+            'attention above'     => [70, 85, ['70–100 Healthy', '0–69 At risk'], ['Needs attention</span>']],
+            'attention zero'      => [50, 0, ['50–100 Healthy', '0–49 Needs attention'], ['At risk</span>']],
+            'healthy 100'         => [100, 99, ['100 Healthy', '99 Needs attention', '0–98 At risk'], []],
+            'attention one'       => [80, 1, ['80–100 Healthy', '1–79 Needs attention', '0 At risk'], []],
+        ];
+    }
+
+    /**
+     * @param list<string> $expected
+     * @param list<string> $absent
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('legendBandsProvider')]
+    public function testSummaryTwigLegendFollowsBands(int $healthy, int $attention, array $expected, array $absent): void
+    {
+        $config = (new ScoringConfigLoader())->load(null, [
+            'bands' => ['healthy' => $healthy, 'attention' => $attention],
+        ]);
+
+        $html = $this->renderSummary($config);
+
+        $start = strpos($html, 'Score Color Key:');
+        $this->assertNotFalse($start);
+        $legend = substr($html, $start, (int) strpos($html, 'Blocker / Critical', $start) - $start);
+
+        foreach ($expected as $text) {
+            $this->assertStringContainsString($text, $legend);
+        }
+        foreach ($absent as $text) {
+            $this->assertStringNotContainsString($text, $legend);
+        }
+    }
+
+    private function renderSummary(ScoringConfig $config): string
+    {
         $data = $this->buildShellAggregateData(true);
         $data['scores'] = (new ScoreCalculator())->calculateReportScores($data, $config);
         $data['metrics']['quality_score'] = $data['scores']['overall'];
 
         $twig = new Environment(new FilesystemLoader(dirname(__DIR__, 4) . '/templates/reports/html'));
-        $html = $twig->render('summary.html.twig', [
+
+        return $twig->render('summary.html.twig', [
             'report' => ['title' => 'Quality Report', 'project_name' => 'Shell', 'generated_at' => '2026-11-04', 'user_role' => 'architect'],
             'data' => $data,
             'options' => [],
         ]);
-
-        $this->assertStringContainsString('RISKY', $html);
-        $this->assertStringContainsString('Capped at 75', $html);
-        $this->assertStringContainsString('WARN — Proceed with mandatory review gate', $html);
     }
 }
