@@ -214,6 +214,7 @@ class JSONReportGenerator extends AbstractReportGenerator
                 'lines_of_code' => $data['code_size']['total_lines'] ?? $data['code_size']['lines_of_code'] ?? $data['total_lines'] ?? 0
             ],
             'scores' => $scores,
+            'analysis' => $data['analysis'] ?? [],
             'violations' => [
                 'by_severity' => $data['violations']['by_severity'] ?? [],
                 'by_category' => $data['violations']['by_category'] ?? [],
@@ -235,7 +236,7 @@ class JSONReportGenerator extends AbstractReportGenerator
         $detailed = $this->prepareSummaryData($data);
         
         // Add detailed sections
-        $detailed['violations']['detailed'] = $this->formatViolationsForJSON($data['violations'] ?? []);
+        $detailed['violations']['detailed'] = $this->formatViolationsForJSON($data['violations']['violations'] ?? []);
         $detailed['files'] = $this->formatFilesForJSON($data['files'] ?? []);
         $detailed['technical_debt']['by_category'] = $data['technical_debt']['by_category'] ?? [];
         $detailed['performance'] = [

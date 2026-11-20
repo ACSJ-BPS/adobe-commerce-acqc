@@ -66,6 +66,7 @@ class AnalyzerOrchestrator
         
         $allViolations = [];
         $analyzerResults = [];
+        $externalTools = ['php_phpcs', 'php_phpmd', 'php_phpstan', 'php_phpcpd'];
         
         foreach ($this->analyzers as $name => $analyzer) {
             if (!$analyzer['enabled']) {
@@ -76,6 +77,13 @@ class AnalyzerOrchestrator
                 $this->logger->info("Running analyzer: {$name}");
                 
                 $startTime = microtime(true);
+                if (($options['explicit_scope'] ?? false) && in_array($name, $externalTools, true)) {
+                    $analyzer['instance']->setConfiguration([
+                        'ignore_patterns' => [],
+                        'excludes' => [],
+                        'exclude' => [],
+                    ]);
+                }
                 $violations = $analyzer['instance']->analyze($files, array_merge($options, [
                     'severity_mapping' => $this->severityMapping
                 ]));
@@ -86,6 +94,10 @@ class AnalyzerOrchestrator
                     'duration' => round($duration, 2),
                     'status' => 'success'
                 ];
+                if (in_array($name, $externalTools, true)) {
+                    $analyzerResults[$name]['files_analyzed'] = count($analyzer['instance']->getLastResults()['files'] ?? []);
+                    $analyzerResults[$name]['version'] = $analyzer['instance']->getVersion();
+                }
                 
                 // Apply severity overrides
                 $violations = $this->applySeverityOverrides($violations, $name);
@@ -102,6 +114,7 @@ class AnalyzerOrchestrator
                     'error' => $e->getMessage()
                 ];
             }
+
         }
         
         $this->logger->info('Analysis complete: ' . count($allViolations) . ' total violations');

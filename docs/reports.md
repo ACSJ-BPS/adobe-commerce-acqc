@@ -19,7 +19,33 @@ acqc report . --format=json -o build/acqc              # JSON in the build/acqc/
 acqc report . --format=json -o build/acqc-report.json  # JSON in this exact file
 acqc report . --format=excel -t comprehensive_magento_audit
 acqc report . --min-severity=error                     # only error, critical and blocker
+acqc report . --run-coverage                          # explicitly request PHPUnit coverage generation
 ```
+
+`--all-modules-paths` and `--specific-modules` also restrict the advanced analyzers' source
+collection to the selected directories. Explicitly selected files are not discarded by the
+external tools' default `vendor` exclusions; report path exclusions still apply.
+
+To prevent automatic PHPUnit execution, configure `.acqc/project.yaml`:
+
+```yaml
+report:
+  run_phpunit: false
+```
+
+Existing coverage files may still be read. Explicit `--run-coverage` or `--phpunit-binary`
+overrides this setting when coverage needs generating. The default is `true`, preserving the
+automatic coverage attempt.
+Control environment analyzers separately through the `analyzers` section
+(see [What report reads besides your code](#what-report-reads-besides-your-code)).
+
+External tools remain optional: unavailable tools are skipped, and analyzer failures do not
+prevent other analyzers from running or the report from being generated. Availability alone
+does not guarantee a working integration; see [Known limitations](commands.md#known-limitations).
+
+Successful external-tool version lookups are cached per analyzer instance and command arguments,
+so recording version metadata does not launch another process for every finding. Failed lookups
+are retried rather than cached.
 
 ## Formats
 
@@ -27,7 +53,7 @@ acqc report . --min-severity=error                     # only error, critical an
 |---|---|---|
 | `html` (default) | `<project>-report_<timestamp>.html` | Single file, open in a browser. |
 | `excel` | `<project>-report_<timestamp>.xlsx` | |
-| `json` | `<project>-report_<timestamp>.json` | Top-level keys: `metadata`, `report`, `data`, `computed`. The default `summary` type has counts only. For a list of findings, use `acqc audit --format=json` (see [Known limitations](commands.md#known-limitations)). |
+| `json` | `<project>-report_<timestamp>.json` | Top-level keys: `metadata`, `report`, `data`, `computed`. Use `--type=detailed` for findings. `data.analysis` records selected paths, collected files, effective `phpunit_enabled` policy and analyzer statuses. |
 | `sarif` | `acqc-<timestamp>.sarif` | For code-scanning tools. For a CI gate, `audit --format=sarif` is usually the better choice. |
 | `junit` | `junit-acqc_<timestamp>.xml` | For CI test-result views. |
 | `pdf` | | Needs TCPDF: `composer require tecnickcom/tcpdf`. Without it, the command fails. |
@@ -106,6 +132,8 @@ checks off, set them to `false` in the `analyzers` section of `.acqc/project.yam
 
 ```yaml
 analyzers:
+  performance_redis: false
+  performance_varnish: false
   performance_http_protocol: false
   infrastructure_cdn: false
   performance_opcache: false

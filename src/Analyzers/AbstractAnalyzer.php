@@ -22,6 +22,7 @@ abstract class AbstractAnalyzer
     protected int $timeout = 300; // 5 minutes default timeout
     protected array $lastAnalysisResults = [];
     protected array $supportedFileExtensions = ['php'];
+    private array $toolVersions = [];
 
     public function __construct(array $configuration = [], ?LoggerInterface $logger = null)
     {
@@ -474,13 +475,18 @@ abstract class AbstractAnalyzer
      */
     protected function getToolVersion(string $command, array $versionArgs = ['--version']): string
     {
+        $key = serialize([$command, $versionArgs]);
+        if (isset($this->toolVersions[$key])) {
+            return $this->toolVersions[$key];
+        }
+
         try {
             $process = new Process(array_merge([$command], $versionArgs));
             $process->setTimeout(10);
             $process->run();
             
             if ($process->isSuccessful()) {
-                return trim($process->getOutput());
+                return $this->toolVersions[$key] = trim($process->getOutput());
             }
         } catch (\Exception $e) {
             $this->logger->debug("Failed to get version for {$command}: " . $e->getMessage());

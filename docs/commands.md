@@ -187,7 +187,7 @@ Do not rely on them until they are fixed.
 | `report --profile` | Ignored with a warning. Configure `report` through `.acqc/project.yaml`. |
 | `report --diff`, `analyze --diff` | Ignored; all files are analyzed. Use `audit --diff-from` for changed files. |
 | `report --type=security --format=json` | Fails with a PHP error. `--type=security` works with `html` and `excel`. |
-| `report --format=json` | `-t summary` (the default) has only counts by severity and category, no list of findings. With `-t detailed` the list entries show `unknown` and `No message provided`. For a list of findings in JSON, use `audit --format=json`. |
+| `report --format=json` | `-t summary` (the default) has counts and samples. Use `-t detailed` for the finding list. `data.analysis` records scan scope and analyzer execution status. |
 | `rules:suppress`, `rules:unsuppress` | `audit` and `rules:list` cache the rule set for up to one hour and do not see the change until then. See [Rules](rules.md#suppress-a-rule) for the workaround. |
 | `audit --profile=pre-commit` (the hook default) | Runs the built-in analyzers only. No YAML rule has the `pre-commit` role. See [Pre-commit gate](pre-commit.md#yaml-rules-in-the-hook). |
 | `audit` on an App Builder / Node.js project without Node.js | A full audit skips abqc without a message and can pass with 0 App Builder findings. A scoped audit (`--staged`, `--diff-from`, `--files`) that touches App Builder files exits `2`. See [App Builder](app-builder.md). |

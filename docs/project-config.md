@@ -164,16 +164,19 @@ you run them. More in [Rules](rules.md#suppress-a-rule), including the rule cach
 
 ## report
 
-Default filters for `acqc report`. A command-line option replaces the matching key.
+Default filters and PHPUnit execution settings for `acqc report`. A command-line option replaces
+the matching key.
 
 ```yaml
 report:
+  run_phpunit: false                    # skip automatic PHPUnit execution
   min_severity: warning                 # minor | info | warning | error | critical | blocker
   exclude_categories: [seo, accessibility]
 ```
 
 | Key | Command-line option | Values |
 |---|---|---|
+| `run_phpunit` | `--run-coverage`, `--phpunit-binary` | Boolean; defaults to `true`. `false` disables automatic PHPUnit execution. Either explicit execution option overrides `false`. Existing coverage files are still read. |
 | `min_severity` | `--min-severity` | Keep this severity and higher: `minor`, `info`, `warning`, `error`, `critical`, `blocker`. |
 | `min_impact` | `--min-impact` | `low`, `medium`, `high`, `critical` = severity `warning`, `error`, `critical`, `blocker`. Used only when no minimum severity is set. |
 | `exclude_categories` | `--exclude-categories` | Categories to drop. |
@@ -209,6 +212,8 @@ analyzers:
   `performance_opcache` are off. Set them to `true` here to force them on.
 - Some analyzers read `app/etc/env.php` and call the store URL. See
   [Reports](reports.md#what-report-reads-besides-your-code).
+- Disable environment checks through this section and automatic PHPUnit execution with
+  `report.run_phpunit: false`. External tools remain optional.
 
 ## How the scoring section is merged
 

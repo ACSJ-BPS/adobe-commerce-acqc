@@ -284,9 +284,15 @@ Generate comprehensive quality reports in multiple formats for different audienc
     private function collectAnalysisData(string $target, InputInterface $input, SymfonyStyle $io): array
     {
         $data = [];
+        $scanPaths = $this->resolveScanPaths($target, $input);
         $locator = new ProjectConfigLocator();
         $locatedProject = $locator->loadNearest($target);
         $projectYamlConfig = $locatedProject['config'];
+        $reportConfig = $projectYamlConfig['report'] ?? [];
+        if (!is_array($reportConfig)) {
+            throw new \InvalidArgumentException('The report configuration must be a mapping.');
+        }
+        $runPhpunit = $this->shouldRunPhpunit($input, $reportConfig);
         $scoringConfig = (new ScoringConfigLoader(null, $locator))->load($target);
         $this->scoringConfig = $scoringConfig;
         $io->writeln('Scoring config: <info>' . implode(' + ', $scoringConfig->getSources()) . '</info>');
@@ -335,30 +341,34 @@ Generate comprehensive quality reports in multiple formats for different audienc
         } else {
             $io->writeln('Collecting violations data...');
             // Collect PHP and XML files from target (XML needed for DatabaseAnalyzer)
-            if (is_dir($target)) {
-                $iterator = new \RecursiveIteratorIterator(
-                    new \RecursiveDirectoryIterator($target, \RecursiveDirectoryIterator::SKIP_DOTS)
-                );
-                foreach ($iterator as $file) {
-                    if ($file->isFile()) {
-                        $ext = $file->getExtension();
-                        // Include PHP and XML files (DatabaseAnalyzer needs db_schema.xml)
-                        if ($ext === 'php' || $ext === 'xml') {
-                            if (!$this->shouldExcludeFilePath($file->getPathname(), $excludePathPatterns)) {
+            foreach ($scanPaths as $scanPath) {
+                if (is_dir($scanPath)) {
+                    $iterator = new \RecursiveIteratorIterator(
+                        new \RecursiveDirectoryIterator($scanPath, \RecursiveDirectoryIterator::SKIP_DOTS)
+                    );
+                    foreach ($iterator as $file) {
+                        if ($file->isFile()) {
+                            $ext = $file->getExtension();
+                            if (($ext === 'php' || $ext === 'xml') && !$this->shouldExcludeFilePath($file->getPathname(), $excludePathPatterns)) {
                                 $phpFiles[] = $file->getPathname();
                             }
                         }
                     }
-                }
-            } else if (is_file($target)) {
-                $ext = pathinfo($target, PATHINFO_EXTENSION);
-                if ($ext === 'php' || $ext === 'xml') {
-                    if (!$this->shouldExcludeFilePath($target, $excludePathPatterns)) {
-                        $phpFiles[] = $target;
+                } elseif (is_file($scanPath)) {
+                    $ext = pathinfo($scanPath, PATHINFO_EXTENSION);
+                    if (($ext === 'php' || $ext === 'xml') && !$this->shouldExcludeFilePath($scanPath, $excludePathPatterns)) {
+                        $phpFiles[] = $scanPath;
                     }
                 }
             }
         }
+        $phpFiles = array_values(array_unique($phpFiles));
+        $data['analysis'] = [
+            'phpunit_enabled' => $runPhpunit,
+            'scan_paths' => $scanPaths,
+            'files' => $phpFiles,
+            'analyzer_results' => [],
+        ];
 
         $data['violations'] = $skipPhpScan
             ? ['total_count' => 0, 'by_severity' => [], 'by_category' => [], 'top_violations' => [], 'violations' => []]
@@ -388,7 +398,15 @@ Generate comprehensive quality reports in multiple formats for different audienc
                 $this->logger
             );
 
-            $advancedResults = $orchestrator->analyze($phpFiles);
+            $advancedResults = $orchestrator->analyze($phpFiles, [
+                'explicit_scope' => (bool) ($input->getOption('all-modules-paths') || $input->getOption('specific-modules')),
+            ]);
+            $data['analysis']['analyzer_results'] = $advancedResults['analyzer_results'];
+            foreach ($advancedResults['analyzer_results'] as $name => $result) {
+                if ($result['status'] === 'failed') {
+                    $io->warning("Analyzer {$name} failed: " . $result['error']);
+                }
+            }
             
             // Extract all violations from orchestrator results
             if (!empty($advancedResults['violations'])) {
@@ -488,7 +506,7 @@ Generate comprehensive quality reports in multiple formats for different audienc
         }
         
         // Apply filtering based on user options and .acqc/project.yaml `report:` defaults
-        $data = $this->applyViolationFilters($data, $input, $io, $projectYamlConfig['report'] ?? []);
+        $data = $this->applyViolationFilters($data, $input, $io, $reportConfig);
         
         $io->writeln('Collecting metrics data...');
         $coverageCloverPath = $input->getOption('coverage-clover') ?: null;
@@ -531,7 +549,7 @@ Generate comprehensive quality reports in multiple formats for different audienc
         }
 
         // Level 3: attempt to run PHPUnit and generate coverage (silent when phpunit is unavailable)
-        if ($coverageCloverPath === null) {
+        if ($coverageCloverPath === null && $runPhpunit) {
             $explicitBinary    = $input->getOption('phpunit-binary')    ?: null;
             $explicitBootstrap = $input->getOption('phpunit-bootstrap') ?: null;
             $forceRun          = (bool) $input->getOption('run-coverage');
@@ -3005,19 +3023,35 @@ XML;
     /**
      * Detect modules using patterns and filters
      */
+    private function resolveScanPaths(string $target, InputInterface $input): array
+    {
+        $selected = $input->getOption('specific-modules') ?: $input->getOption('all-modules-paths');
+        if (!$selected) {
+            return [realpath($target) ?: $target];
+        }
+
+        $paths = [];
+        foreach (explode(',', $selected) as $path) {
+            $path = trim($path);
+            $resolved = realpath(str_starts_with($path, '/') ? $path : $target . '/' . $path);
+            if ($path === '' || $resolved === false || !is_dir($resolved)) {
+                throw new \InvalidArgumentException("Selected scan directory does not exist: {$path}");
+            }
+            $paths[] = $resolved;
+        }
+        return array_values(array_unique($paths));
+    }
+
     private function detectModules(string $target, InputInterface $input): array
     {
         $modules = [];
-        
+
         // Check for specific modules first (highest priority)
         $specificModules = $input->getOption('specific-modules');
         if ($specificModules) {
-            $specificPaths = array_map('trim', explode(',', $specificModules));
-            foreach ($specificPaths as $modulePath) {
-                $fullPath = $target . '/' . $modulePath;
-                if (is_dir($fullPath) && $this->isMagentoModule($fullPath)) {
-                    $moduleName = $this->extractModuleName($modulePath, $target);
-                    $modules[] = $this->getModuleInfo($fullPath, $target);
+            foreach ($this->resolveScanPaths($target, $input) as $fullPath) {
+                if ($this->isMagentoModule($fullPath)) {
+                    $modules[] = $fullPath;
                 }
             }
             return $modules;
@@ -3265,6 +3299,18 @@ XML;
         }
         
         return 'unknown';
+    }
+
+    private function shouldRunPhpunit(InputInterface $input, array $reportConfig): bool
+    {
+        $enabled = array_key_exists('run_phpunit', $reportConfig) ? $reportConfig['run_phpunit'] : true;
+        if (!is_bool($enabled)) {
+            throw new \InvalidArgumentException('report.run_phpunit must be a boolean.');
+        }
+
+        return $enabled
+            || (bool) $input->getOption('run-coverage')
+            || (bool) $input->getOption('phpunit-binary');
     }
 
     /**
