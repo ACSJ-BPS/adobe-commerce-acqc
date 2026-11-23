@@ -16,6 +16,8 @@ final class ScoringConfigLoaderTest extends TestCase
         $config = $loader->load();
 
         $this->assertSame(['config/scoring.yaml'], $config->getSources());
+        $this->assertSame('per_kloc', $config->getOverall()['normalize']);
+        $this->assertSame('per_file', $config->getAuditOverall()['normalize']);
         $this->assertSame(['seo' => 0.25, 'accessibility' => 0.25], $config->getCategoryWeights());
         $this->assertSame(['healthy' => 80, 'attention' => 60], $config->getBands());
         $this->assertSame('show_na', $config->getPlaceholdersMode());

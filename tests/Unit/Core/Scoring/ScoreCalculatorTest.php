@@ -73,6 +73,7 @@ final class ScoreCalculatorTest extends TestCase
         $loader = new ScoringConfigLoader();
         $config = $loader->load(null, [
             'category_weights' => ['seo' => 1.0, 'accessibility' => 1.0],
+            'overall' => ['normalize' => 'absolute', 'per' => 1000],
         ]);
         $calc = new ScoreCalculator();
         $scores = $calc->calculateReportScores($this->buildShellAggregateData(false), $config);
@@ -93,16 +94,16 @@ final class ScoreCalculatorTest extends TestCase
         $this->assertSame(79, $scores['dimensions']['code_quality']['score']);
     }
 
-    public function testNewDefaultsMatchPlanColumnB(): void
+    public function testDefaultsNormalizeOverallByScannedLines(): void
     {
         $loader = new ScoringConfigLoader();
         $config = $loader->load();
         $calc = new ScoreCalculator();
         $scores = $calc->calculateReportScores($this->buildShellAggregateData(true), $config);
 
-        // Plan Section 7 Column B: Overall 98 (97.5), rings 67/92/94/73/97/89/78, READY TO SHIP, debt 501.3
-        $this->assertSame(98, $scores['overall_rounded']);
-        $this->assertSame('READY TO SHIP', $scores['readiness']['verdict']);
+        $this->assertSame(62.0, $scores['overall']);
+        $this->assertSame(62, $scores['overall_rounded']);
+        $this->assertSame('RISKY', $scores['readiness']['verdict']);
         $this->assertSame(501.3, $scores['debt_hours']);
 
         $this->assertSame(67, $scores['dimensions']['reliability']['score']);
@@ -124,6 +125,7 @@ final class ScoreCalculatorTest extends TestCase
                 ['verdict' => 'READY TO SHIP', 'gate' => 'PASS'],
             ],
             'overall' => [
+                'normalize' => 'absolute',
                 'caps' => [
                     ['when' => ['error_weighted' => '>= 100'], 'max_score' => 75],
                 ],
@@ -165,6 +167,74 @@ final class ScoreCalculatorTest extends TestCase
         $this->assertSame(0.0, $scores['debt_hours']);
         foreach ($scores['dimensions'] as $dim) {
             $this->assertSame(100, $dim['score']);
+        }
+    }
+
+    public function testOverallUsesOneThousandLinesAndScalesWithFindingDensity(): void
+    {
+        $config = (new ScoringConfigLoader())->load();
+        $calc = new ScoreCalculator();
+        $data = [
+            'code_size' => ['total_lines' => 1000],
+            'violations' => [
+                'by_severity' => ['error' => 2, 'warning' => 5],
+                'by_category' => ['logic' => 7],
+            ],
+        ];
+        $this->assertSame(92.0, $calc->calculateReportScores($data, $config)['overall']);
+        $data['code_size']['total_lines'] = 2000;
+        $this->assertSame(96.0, $calc->calculateReportScores($data, $config)['overall']);
+        $data['violations']['by_severity'] = ['error' => 4, 'warning' => 10];
+        $data['violations']['by_category'] = ['logic' => 14];
+        $this->assertSame(92.0, $calc->calculateReportScores($data, $config)['overall']);
+    }
+
+    public function testOverallKeepsCategoryWeightsAndExplicitNormalizationOverrides(): void
+    {
+        $loader = new ScoringConfigLoader();
+        $data = [
+            'code_size' => ['total_lines' => 1000],
+            'violations' => ['violations' => [
+                ['severity' => 'warning', 'category' => 'seo'],
+                ['severity' => 'error', 'category' => 'logic'],
+            ]],
+        ];
+        $calc = new ScoreCalculator();
+        $this->assertSame(97.4, $calc->calculateReportScores($data, $loader->load())['overall']);
+        $absolute = $loader->load(null, ['overall' => ['normalize' => 'absolute', 'per' => 1000]]);
+        $this->assertSame(100.0, $calc->calculateReportScores($data, $absolute)['overall']);
+        $capped = $loader->load(null, ['overall' => [
+            'caps' => [['when' => ['error' => '> 0'], 'max_score' => 70]],
+        ]]);
+        $this->assertSame(70.0, $calc->calculateReportScores($data, $capped)['overall']);
+    }
+
+    public function testSixDirectorySeverityCountsUseScannedLineDenominator(): void
+    {
+        $data = [
+            'code_size' => ['total_lines' => 507430],
+            'violations' => ['by_severity' => [
+                'critical' => 554, 'error' => 679, 'warning' => 5190, 'info' => 4499,
+            ]],
+        ];
+        $config = (new ScoringConfigLoader())->load();
+        $calc = new ScoreCalculator();
+        $this->assertSame(83.1, $calc->calculateReportScores($data, $config)['overall']);
+        $data['violations']['by_severity']['critical'] = 0;
+        $data['violations']['by_severity']['error'] = 0;
+        $this->assertSame(93.0, $calc->calculateReportScores($data, $config)['overall']);
+    }
+
+    public function testSmallOrMissingLineCountsKeepScoresFiniteAndClamped(): void
+    {
+        $calc = new ScoreCalculator();
+        $config = (new ScoringConfigLoader())->load();
+        foreach ([0, 1, 100] as $lines) {
+            $scores = $calc->calculateReportScores([
+                'code_size' => ['total_lines' => $lines],
+                'violations' => ['violations' => [['severity' => 'critical', 'category' => 'logic']]],
+            ], $config);
+            $this->assertSame($lines === 100 ? 40.0 : 0.0, $scores['overall']);
         }
     }
 
@@ -257,7 +327,10 @@ final class ScoreCalculatorTest extends TestCase
             ],
         ]);
         $scores = (new ScoreCalculator())->calculateReportScores(
-            ['violations' => ['violations' => [['severity' => 'error', 'category' => 'logic']]]],
+            [
+                'code_size' => ['total_lines' => 1000],
+                'violations' => ['violations' => [['severity' => 'error', 'category' => 'logic']]],
+            ],
             $config
         );
 
@@ -295,6 +368,7 @@ final class ScoreCalculatorTest extends TestCase
                 ['verdict' => 'READY TO SHIP', 'gate' => 'PASS'],
             ],
             'overall' => [
+                'normalize' => 'absolute',
                 'caps' => [
                     ['when' => ['error_weighted' => '>= 100'], 'max_score' => 75],
                 ],

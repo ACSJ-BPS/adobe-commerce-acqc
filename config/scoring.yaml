@@ -113,6 +113,8 @@ scoring:
   #   score = 100 - SUM( normalized(weighted count of severity) x weight )
   #   then clamped to [floor, 100], rounded to 1 decimal, then `caps` applied.
   #   Zero findings always scores 100.
+  #   Default: severity-weighted findings per 1,000 scanned lines, including
+  #   comments and blank lines (not executable-only lines).
   #
   # normalize: how a severity count is turned into a number before weighting
   #   absolute       count / per          (default; per = 1000 means
@@ -129,7 +131,7 @@ scoring:
   #          Example: - { when: { blocker: ">= 1" }, max_score: 40 }
   # ---------------------------------------------------------------------------
   overall:
-    normalize: absolute
+    normalize: per_kloc
     per: 1000
     weights:
       blocker: 15.0

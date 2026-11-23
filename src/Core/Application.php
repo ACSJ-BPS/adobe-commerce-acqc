@@ -24,6 +24,7 @@ use ACQC\Commands\DashboardCommand;
 use ACQC\Commands\ExportCommand;
 use ACQC\Commands\InitCommand;
 use ACQC\Commands\DoctorCommand;
+use ACQC\Commands\Phpmd\SetupCommand as PhpmdSetupCommand;
 use ACQC\Commands\ScanCommand;
 use ACQC\Commands\ValidateCommand;
 use ACQC\Commands\Rules\ListCommand as RulesListCommand;
@@ -76,6 +77,7 @@ class Application extends ConsoleApplication
             new ExportCommand(),
             new InitCommand(),
             new DoctorCommand(),
+            new PhpmdSetupCommand(),
             new ScanCommand(),
             new ValidateCommand(),
             new RulesListCommand(),

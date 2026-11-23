@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace ACQC\Commands;
 
+use ACQC\Core\Version\MagentoVersion;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
+use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Yaml\Yaml;
 
 class InitCommand extends Command
@@ -20,6 +22,7 @@ class InitCommand extends Command
             ->setDescription('Initialise ACQC for the current project')
             ->addOption('ci',      null, InputOption::VALUE_OPTIONAL, 'Generate CI workflow: github|gitlab|bitbucket')
             ->addOption('profile', null, InputOption::VALUE_OPTIONAL, 'Default profile', 'developer')
+            ->addOption('commerce-version', null, InputOption::VALUE_REQUIRED, 'Exact Adobe Commerce version for version-matched PHPMD setup')
             ->addOption('force',   null, InputOption::VALUE_NONE,     'Overwrite existing .acqc/project.yaml without prompting')
             ->addOption('silent',  null, InputOption::VALUE_NONE,     'Suppress informational output');
     }
@@ -55,6 +58,30 @@ class InitCommand extends Command
 
         // Detect platform
         ['platform' => $platform, 'version' => $platformVersion] = $this->detectPlatform($projectRoot);
+        $requestedVersion = $input->getOption('commerce-version');
+        if ($requestedVersion !== null) {
+            if (!is_string($requestedVersion) || !MagentoVersion::isValidString($requestedVersion)) {
+                $output->writeln('<error>--commerce-version must be an exact release, for example 2.4.8-p5.</error>');
+                return Command::INVALID;
+            }
+            $platformVersion = $requestedVersion;
+            if ($platform === 'unknown') {
+                $platform = 'magento2';
+            }
+        } elseif (str_starts_with($platform, 'magento2') && !MagentoVersion::isValidString($platformVersion)) {
+            if (!$input->isInteractive()) {
+                $output->writeln('<error>Exact Commerce version could not be detected. Pass --commerce-version; a Composer constraint is insufficient.</error>');
+                return Command::INVALID;
+            }
+            $question = new Question('<question>Exact Adobe Commerce version (for example 2.4.8-p5): </question>');
+            $question->setValidator(static function ($version): string {
+                if (!is_string($version) || !MagentoVersion::isValidString($version)) {
+                    throw new \InvalidArgumentException('Enter an exact Commerce release.');
+                }
+                return $version;
+            });
+            $platformVersion = $this->getHelper('question')->ask($input, $output, $question);
+        }
         $phpVersion = PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION;
 
         // Bundled rule set — matches the config/rules/adobe-commerce/ directory on disk
@@ -117,6 +144,9 @@ YAML;
             $output->writeln('');
             $output->writeln('<info>Next steps:</info>');
             $output->writeln('  php bin/acqc doctor          # verify setup');
+            if (str_starts_with($platform, 'magento2')) {
+                $output->writeln('  acqc phpmd:setup             # install version-matched Magento PHPMD rules');
+            }
             $output->writeln('  php bin/acqc rules:list      # browse rules');
             $output->writeln('  php bin/acqc scan .          # run first scan');
         }

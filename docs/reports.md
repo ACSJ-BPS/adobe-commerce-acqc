@@ -47,6 +47,63 @@ Successful external-tool version lookups are cached per analyzer instance and co
 so recording version metadata does not launch another process for every finding. Failed lookups
 are retried rather than cached.
 
+## PHPCS severity policy
+
+PHPCS defaults remain numeric thresholds of **5** for both errors and warnings, with the
+existing ACQC mapping:
+
+| Native PHPCS type | Numeric severity | ACQC severity |
+|---|---|---|
+| ERROR | 7 and above | Critical |
+| ERROR | Below 7 | Error |
+| WARNING | 7 and above | Error |
+| WARNING | Below 7 | Warning |
+
+Override thresholds and individual native type/severity mappings through the project's `phpcs`
+section; see [Project config](project-config.md#phpcs). Numeric thresholds filter findings in
+PHPCS before ACQC scoring. Mapping overrides change ACQC severity, not PHPCS's native type or
+numeric severity. These settings do not change other analyzers or the report command's exit
+status.
+
+## Overall scoring
+
+The default report Overall score uses severity-weighted findings per 1,000 scanned lines,
+including comments and blank lines. It no longer divides finding counts by a fixed 1,000.
+Severity/category weights and explicit project scoring overrides are preserved. Previously
+generated reports retain their original scores until regenerated. See
+[Overall score](project-config.md#overall-score-report) for the formula and legacy override.
+
+## PHPMD project policy
+
+To prefer external checks over redundant native findings without disabling whole native analyzers,
+opt into `report.prefer_external_checks: true`. Native fallback remains when the replacement fails,
+is unavailable, is not selected or does not analyze the file. See
+[Native check policy](project-config.md#prefer-external-checks-without-disabling-native-analyzers).
+
+Use the project's `phpmd` section to select a curated ruleset, its priority cutoff and an
+optional bootstrap. Add `phpmd.severity_mapping` for priority labels and
+`phpmd.rule_severity_overrides` for exact rule exceptions; exceptions take precedence.
+Unspecified labels retain ACQC defaults, and setup preserves these project settings.
+Severity labels do not change rule selection or native-check ownership.
+See [Project config](project-config.md#phpmd). This does not change the
+default PHPMD rules or severity mapping for projects without overrides.
+
+PHPMD file-level failures are isolated automatically by retrying smaller batches. Failing
+files are skipped with explicit diagnostics, not permanent exclusions. A `partial` analyzer
+receipt includes successful-file coverage and `skipped_files` (`file`, `error`); CLI and HTML
+also warn. Native replacement uses only successfully analyzed files, retaining fallback on
+skipped files. Global tool/configuration failures, malformed output, or no successful files
+remain analyzer failures. A generated report is not a claim of complete PHPMD coverage.
+
+For automatic version-matched setup, set `project.platform_version` to the exact Commerce release
+and run `acqc phpmd:setup [project-path]`. It installs the curated resources and trusted bootstrap,
+validates them, and enables PHPMD without a manual PHPMD `PATH` adjustment. See
+[Automated setup](project-config.md#automated-magento-phpmd-setup).
+
+Magento's curated ruleset is not the same as enabling all generic PHPMD rulesets. Its custom
+rules require the matching static-test rule resources and a project autoloader in the PHPMD
+subprocess. Keep these resources version-matched and retain their license notices.
+
 ## Formats
 
 | `-f, --format` | Default file name | Notes |

@@ -11,6 +11,7 @@ use ACQC\Core\Rules\Violation;
 class PHPCSAnalyzer extends AbstractAnalyzer
 {
     private string $phpcsCommand = 'phpcs';
+    private array $reportedFiles = [];
     private ?string $configFile = null;
     private array $installedStandards = [];
 
@@ -27,6 +28,15 @@ class PHPCSAnalyzer extends AbstractAnalyzer
     public function getVersion(): string
     {
         return $this->getToolVersion($this->phpcsCommand, ['--version']);
+    }
+
+    public function getLastResults(): array
+    {
+        $results = parent::getLastResults();
+        if ($this->getConfiguration('prefer_external_checks', false)) {
+            $results['files'] = array_values(array_unique($this->reportedFiles));
+        }
+        return $results;
     }
 
     public function isAvailable(): bool
@@ -49,9 +59,7 @@ class PHPCSAnalyzer extends AbstractAnalyzer
      */
     public function configure(array $config): void
     {
-        foreach ($config as $key => $value) {
-            $this->configuration[$key] = $value;
-        }
+        $this->setConfiguration($config);
     }
 
     protected function getDefaultConfiguration(): array
@@ -68,6 +76,7 @@ class PHPCSAnalyzer extends AbstractAnalyzer
             ],
             'warning_severity' => 5,
             'error_severity' => 5,
+            'phpcs' => [],
             'tab_width' => 4,
             'encoding' => 'utf-8',
             'report_format' => 'json',
@@ -93,17 +102,55 @@ class PHPCSAnalyzer extends AbstractAnalyzer
             throw new AnalyzerException("Invalid PHPCS standard: {$standard}");
         }
 
-        // Validate severity levels
-        $warningSeverity = $this->getConfiguration('warning_severity');
-        $errorSeverity = $this->getConfiguration('error_severity');
-        
-        if (!is_int($warningSeverity) || $warningSeverity < 0 || $warningSeverity > 8) {
-            throw new AnalyzerException("Warning severity must be between 0 and 8");
+        self::validateProjectConfiguration($this->configuration['phpcs']);
+        $this->getSeverityThreshold('warning_severity');
+        $this->getSeverityThreshold('error_severity');
+    }
+
+    public static function validateProjectConfiguration(mixed $configuration): void
+    {
+        if (!is_array($configuration)) {
+            throw new \InvalidArgumentException('phpcs must be a mapping.');
         }
-        
-        if (!is_int($errorSeverity) || $errorSeverity < 0 || $errorSeverity > 8) {
-            throw new AnalyzerException("Error severity must be between 0 and 8");
+
+        foreach ($configuration as $key => $value) {
+            if (!in_array($key, ['warning_severity', 'error_severity', 'severity_mapping'], true)) {
+                throw new \InvalidArgumentException("Unknown phpcs setting: {$key}.");
+            }
+            if ($key !== 'severity_mapping' && (!is_int($value) || $value < 0 || $value > 10)) {
+                throw new \InvalidArgumentException("phpcs.{$key} must be an integer between 0 and 10.");
+            }
         }
+
+        $mapping = array_key_exists('severity_mapping', $configuration) ? $configuration['severity_mapping'] : [];
+        if (!is_array($mapping)) {
+            throw new \InvalidArgumentException('phpcs.severity_mapping must be a mapping.');
+        }
+        foreach ($mapping as $type => $levels) {
+            if (!in_array($type, ['error', 'warning'], true) || !is_array($levels)) {
+                throw new \InvalidArgumentException('phpcs.severity_mapping must map error or warning to numeric severities.');
+            }
+            foreach ($levels as $severity => $level) {
+                if (!is_int($severity) || $severity < 1 || $severity > 10) {
+                    throw new \InvalidArgumentException("phpcs.severity_mapping.{$type} keys must be integers between 1 and 10.");
+                }
+                if (!in_array($level, Violation::getSeverityLevels(), true)) {
+                    throw new \InvalidArgumentException("phpcs.severity_mapping.{$type}.{$severity} must be a valid ACQC severity.");
+                }
+            }
+        }
+    }
+
+    private function getSeverityThreshold(string $key): int
+    {
+        $severity = $this->configuration['phpcs'][$key] ?? $this->getConfiguration($key);
+
+        if (!is_int($severity) || $severity < 0 || $severity > 10) {
+            $label = $key === 'warning_severity' ? 'Warning' : 'Error';
+            throw new AnalyzerException("{$label} severity must be between 0 and 10");
+        }
+
+        return $severity;
     }
 
     protected function executeAnalysis(array $files, array $options = []): array
@@ -111,6 +158,7 @@ class PHPCSAnalyzer extends AbstractAnalyzer
         $batchSize = $this->getConfiguration('batch_size', 50);
         $results = [];
 
+        $this->reportedFiles = [];
         // Process files in batches to avoid command line length limits
         $fileBatches = array_chunk($files, $batchSize);
 
@@ -123,6 +171,8 @@ class PHPCSAnalyzer extends AbstractAnalyzer
                 
                 if (!empty($output)) {
                     $results[] = $output;
+                } elseif ($this->getConfiguration('prefer_external_checks', false)) {
+                    throw new AnalyzerException('PHPCS did not return an analysis report.');
                 }
 
                 // Handle errors
@@ -133,6 +183,9 @@ class PHPCSAnalyzer extends AbstractAnalyzer
 
             } catch (\Exception $e) {
                 $this->logger->error("PHPCS batch failed: " . $e->getMessage());
+                if ($this->getConfiguration('prefer_external_checks', false)) {
+                    throw $e;
+                }
                 
                 // Try individual files if batch fails
                 if (count($batch) > 1) {
@@ -163,6 +216,9 @@ class PHPCSAnalyzer extends AbstractAnalyzer
         $violations = [];
 
         if (empty($output) || trim($output) === '') {
+            if ($this->getConfiguration('prefer_external_checks', false)) {
+                throw new AnalyzerException('PHPCS did not return an analysis report.');
+            }
             return $violations;
         }
 
@@ -170,6 +226,9 @@ class PHPCSAnalyzer extends AbstractAnalyzer
         // prepending them to the JSON. Strip everything before the first '{'.
         $jsonStart = strpos($output, '{');
         if ($jsonStart === false) {
+            if ($this->getConfiguration('prefer_external_checks', false)) {
+                throw new AnalyzerException('PHPCS did not return a JSON report.');
+            }
             return $violations;
         }
         if ($jsonStart > 0) {
@@ -185,15 +244,28 @@ class PHPCSAnalyzer extends AbstractAnalyzer
             }
 
             if (!isset($data['files']) || !is_array($data['files'])) {
+                if ($this->getConfiguration('prefer_external_checks', false)) {
+                    throw new AnalyzerException('PHPCS report has no files mapping.');
+                }
                 return $violations;
             }
 
             foreach ($data['files'] as $filePath => $fileData) {
                 if (!isset($fileData['messages']) || !is_array($fileData['messages'])) {
+                    if ($this->getConfiguration('prefer_external_checks', false)) {
+                        throw new AnalyzerException("Invalid PHPCS file report: {$filePath}");
+                    }
                     continue;
+                }
+                if ($this->getConfiguration('prefer_external_checks', false)) {
+                    $this->reportedFiles[] = $filePath;
                 }
 
                 foreach ($fileData['messages'] as $message) {
+                    if ($this->getConfiguration('prefer_external_checks', false)
+                        && (!is_array($message) || !isset($message['source'], $message['message'], $message['line'], $message['type'], $message['severity']))) {
+                        throw new AnalyzerException("Incomplete PHPCS finding in {$filePath}.");
+                    }
                     $violation = $this->createViolationFromMessage($message, $filePath);
                     if ($violation) {
                         $violations[] = $violation;
@@ -204,6 +276,9 @@ class PHPCSAnalyzer extends AbstractAnalyzer
         } catch (\Exception $e) {
             $this->logger->error("Failed to parse PHPCS output: " . $e->getMessage());
             $this->logger->debug("Raw output: " . substr($output, 0, 1000));
+            if ($this->getConfiguration('prefer_external_checks', false)) {
+                throw $e;
+            }
         }
 
         return $violations;
@@ -245,16 +320,8 @@ class PHPCSAnalyzer extends AbstractAnalyzer
         }
 
         // Add severity levels
-        $warningSeverity = $this->getConfiguration('warning_severity');
-        $errorSeverity = $this->getConfiguration('error_severity');
-        
-        if ($warningSeverity !== null) {
-            $command[] = '--warning-severity=' . $warningSeverity;
-        }
-        
-        if ($errorSeverity !== null) {
-            $command[] = '--error-severity=' . $errorSeverity;
-        }
+        $command[] = '--warning-severity=' . $this->getSeverityThreshold('warning_severity');
+        $command[] = '--error-severity=' . $this->getSeverityThreshold('error_severity');
 
         // Add report format
         $reportFormat = $this->getConfiguration('report_format', 'json');
@@ -393,6 +460,11 @@ class PHPCSAnalyzer extends AbstractAnalyzer
      */
     private function mapPhpcsSeverity(string $type, int $severity): string
     {
+        $mapping = $this->configuration['phpcs']['severity_mapping'] ?? [];
+        if (isset($mapping[$type][$severity])) {
+            return $mapping[$type][$severity];
+        }
+
         // PHPCS uses ERROR and WARNING types
         if ($type === 'error') {
             return $severity >= 7 ? Violation::SEVERITY_CRITICAL : Violation::SEVERITY_ERROR;

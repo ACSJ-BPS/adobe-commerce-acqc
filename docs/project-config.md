@@ -17,6 +17,10 @@ in `config/scoring.yaml` in the ACQC folder; that file also explains each key in
 | Hide categories in the report, for example SEO | `report.exclude_categories` | `report` |
 | Hide low severities in the report | `report.min_severity` | `report` |
 | Turn off a report analyzer | `analyzers.<id>: false` | `report` |
+| Set PHPCS thresholds or severity mapping | `phpcs` | `report` |
+| Choose PHPMD rules and priority cutoff | `phpmd` | `report` |
+| Avoid counting native checks again when external checks cover them | `report.prefer_external_checks: true` | `report` |
+| Install Magento PHPMD rules for the project's release | `project.platform_version`, then `acqc phpmd:setup` | `phpmd:setup`, then `report` |
 | Turn off a YAML rule for this project | `suppressions` (use `acqc rules:suppress`) | `audit` |
 | Count a noisy category less in scores | `scoring.category_weights` | `report`, `audit` |
 | Change when the verdict is BLOCKED or RISKY | `scoring.readiness` | `report` |
@@ -37,10 +41,13 @@ The `audit` score never decides the `audit` gate. The gate fails when there is a
 | Key | `report` | `audit` | Other commands |
 |---|---|---|---|
 | `project.name`, `name` | Yes | No | |
+| `project.platform_version` | No | No | `phpmd:setup` |
 | `rule_bundles` | No | Yes | `rules:list`, `rules:sync`, `doctor` |
 | `suppressions` | No | Yes | `rules:list`, `rules:suppress`, `rules:unsuppress`, `doctor` |
 | `report` | Yes | No | |
 | `analyzers` | Yes | No | |
+| `phpcs` | Yes | No | |
+| `phpmd` | Yes | No | |
 | `scoring` | Yes, all keys | Only `audit`, `grades`, `category_weights` and `severity_aliases` | |
 
 `report` does not run the YAML rules, so rule bundles and suppressions do not change it.
@@ -49,7 +56,7 @@ The `audit` score never decides the `audit` gate. The gate fails when there is a
 
 | Command | Which `.acqc/project.yaml` |
 |---|---|
-| `report` (all keys) and `audit` (`scoring`) | The one in the folder you scan. If there is none and the folder is inside a git repository, the nearest one in a parent folder, up to the git root. Outside git, only the scanned folder. |
+| `report` (all keys), `phpmd:setup` and `audit` (`scoring`) | The one in the folder you scan. If there is none and the folder is inside a git repository, the nearest one in a parent folder, up to the git root. Outside git, only the scanned folder. |
 | `audit` (`rule_bundles`, `suppressions`) | Only `<path>/.acqc/` for the `<path>` you pass, or the git root with `--staged` or `--diff-from`. |
 | `init`, `doctor`, `rules:*` | The current folder. |
 
@@ -126,7 +133,8 @@ suppressions: {  }
 |---|---|
 | `project.name` | Project name in `report` titles and file names. `Shell B2B` gives the title `Shell B2B` and the file `shell-b2b-report_<timestamp>.json`. |
 | `name` (top level) | Used when `project.name` is not set. |
-| `schema_version`, `acqc_version`, `project.platform`, `project.platform_version`, `project.php_version` | Written by `init`. No command reads them today. |
+| `project.platform_version` | Exact Adobe Commerce/Magento release (for example `2.4.8-p5`), used by `phpmd:setup` to select matching public Magento static-test resources. Not a Composer constraint. |
+| `schema_version`, `acqc_version`, `project.platform`, `project.php_version` | Written by `init`. No command reads them today. |
 | `thresholds` | An old key. It is ignored, without a message. Use `scoring.readiness`. |
 
 `report` takes the first name it finds: `--project-name`, `project.name`, `name`, the `name` in
@@ -177,6 +185,7 @@ report:
 | Key | Command-line option | Values |
 |---|---|---|
 | `run_phpunit` | `--run-coverage`, `--phpunit-binary` | Boolean; defaults to `true`. `false` disables automatic PHPUnit execution. Either explicit execution option overrides `false`. Existing coverage files are still read. |
+| `prefer_external_checks` | None | Boolean, default `false`. Prefer covered PHPCS/PHPMD checks over overlapping native findings; see below. |
 | `min_severity` | `--min-severity` | Keep this severity and higher: `minor`, `info`, `warning`, `error`, `critical`, `blocker`. |
 | `min_impact` | `--min-impact` | `low`, `medium`, `high`, `critical` = severity `warning`, `error`, `critical`, `blocker`. Used only when no minimum severity is set. |
 | `exclude_categories` | `--exclude-categories` | Categories to drop. |
@@ -189,6 +198,192 @@ report:
   `Invalid severity level: high. Ignoring severity filter.` and the report keeps all severities.
 - Filters run before scoring. Hidden findings do not count in any score, the verdict or debt.
 - There is no key for `--exclude-paths`; pass it on the command line.
+
+### Prefer external checks without disabling native analyzers
+
+```yaml
+report:
+  prefer_external_checks: true
+```
+
+This opt-in report policy leaves ACQC defaults unchanged for other projects. It suppresses native
+findings only on files successfully analyzed by an external tool with the corresponding check selected:
+
+| Native finding | Authoritative external check |
+|---|---|
+| `HighCyclomaticComplexity` | PHPMD `CyclomaticComplexity` |
+| `LongMethod` | PHPMD `ExcessiveMethodLength` |
+| `LongParameterList`, `GodObject` (constructor parameter count) | PHPMD `ExcessiveParameterList` |
+| `DeeplyNestedCode` | Magento2 PHPCS `Generic.Metrics.NestingLevel` |
+
+PHPMD ruleset references, exclusions and effective priorities are checked. Nesting suppression
+requires the Magento2 standard, an included nesting sniff, a sufficient warning cutoff, and a file
+not excluded by that sniff. An unavailable/disabled/failed external tool, an unselected rule or an
+unanalyzed file retains the native fallback. Metadata inspection errors produce a warning and keep
+native findings. External execution and parsing failures must not yield partial, success-shaped
+coverage under this policy.
+
+This intentionally adopts external thresholds and severity labels, not the stricter native limits.
+For example, PHPMD's default method-length threshold is 100 instead of native 50; parameter count
+is 10 instead of 5. Cognitive complexity, maintainability, documentation, class/file-size findings,
+API/GraphQL and performance checks remain.
+
+Partially overlapping superglobal, command-execution, include, raw-SQL and namespace findings are
+removed only when the corresponding PHPCS finding actually exists on the same file/line
+(same file for namespace declarations). Otherwise they remain; `sha1` hashing checks, XSS and
+other differently scoped checks are not broadly disabled.
+
+The two inline `LongMethod` heuristics are disabled outright: they measure signature text or merely
+match `function` and `{`, not body length. The real AST-based length check remains as fallback.
+ObjectManager findings from different native detectors at the same file/line are consolidated,
+keeping the strongest existing severity's detector and preserving distinct calls it reported.
+
+The policy runs before report filters and scoring, so removed findings do not inflate scores, debt
+or report counts. JSON records decisions in `data.analysis.native_check_policy`. Affected native
+analyzer receipts expose `raw_violations` alongside the retained `violations` count.
+
+## phpcs
+
+Project-specific PHPCS thresholds and native type/severity overrides for `report`. Without this
+section, both numeric thresholds remain 5 and ACQC's existing PHPCS mapping is unchanged.
+
+For a focused Magento2 review, this example includes severity 7 and above:
+
+```yaml
+phpcs:
+  warning_severity: 7
+  error_severity: 7
+  severity_mapping:
+    error:
+      7: critical
+      8: critical
+      9: critical
+      10: critical
+    warning:
+      7: warning
+      8: warning
+      9: error
+      10: error
+```
+
+- Thresholds must be integers from 0 to 10. PHPCS hides messages below the threshold; 0 disables
+  that native type entirely, rather than showing every severity.
+- Mapping keys are native PHPCS types (`error`, `warning`) and exact numeric severities (1-10),
+  not ranges. Values are ACQC levels: `blocker`, `critical`, `error`, `warning`, `info`, `minor`.
+- Only listed type/severity combinations change; unlisted combinations retain the existing
+  ACQC mapping. Partial project settings merge over ACQC configuration settings.
+- Thresholds run before mapping and scoring. These numeric thresholds differ from
+  `report.min_severity`, which filters the resulting ACQC severity across all analyzers.
+- Settings affect PHPCS only, for this project; they do not change the standard or other
+  analyzers. Invalid keys, thresholds or mappings fail the report with a configuration error.
+
+## phpmd
+
+Project-specific PHPMD rulesets, priority cutoff, severity policy and optional bootstrap for `report`.
+
+```yaml
+phpmd:
+  rulesets:
+    - .acqc/phpmd/2.4.8-p5/testsuite/Magento/Test/Php/_files/phpmd/ruleset.xml
+  minimum_priority: 5
+  bootstrap: .acqc/phpmd/2.4.8-p5/bootstrap.php
+  severity_mapping:
+    1: error
+    2: warning
+    3: warning
+    4: info
+    5: info
+  rule_severity_overrides:
+    phpmd.Magento Specific Design Rules.AllPurposeAction: error
+    phpmd.Magento Specific Design Rules.CookieAndSessionMisuse: error
+```
+
+- `rulesets` is a non-empty list of built-in names (`cleancode`, `codesize`, `controversial`,
+  `design`, `naming`, `unusedcode`) or readable custom ruleset files. A project list replaces,
+  rather than appends to, the ACQC ruleset list.
+- `minimum_priority` is an integer from 1 to 5. PHPMD priority 1 is highest; cutoff 1 loads only
+  priority-1 rules, while cutoff 5 loads all priorities within the selected rulesets.
+- `bootstrap` is an optional readable PHP file. It runs before PHPMD in its subprocess, using
+  ACQC's PHP interpreter, and can register the project's Composer autoloader for custom rules.
+  This executes PHP code: use only a trusted bootstrap and trusted ruleset files.
+- `severity_mapping` optionally maps integer priorities 1-5 to any ACQC severity: `blocker`,
+  `critical`, `error`, `warning`, `info` or `minor`. Missing entries retain ACQC defaults:
+  1 Critical, 2 Error, 3 Warning, 4-5 Info.
+- `rule_severity_overrides` optionally maps exact, fully qualified ACQC PHPMD rule IDs to those
+  severity levels. Copy IDs from the detailed report, including the ruleset display name;
+  short names and wildcard patterns are not supported. Rule overrides take precedence over
+  priority mappings. Both fields belong inside `phpmd`, not at the config root.
+  These labels do not change PHPMD priorities, rule selection, thresholds or native-check ownership.
+  The example treats general design smells as warnings and reserves Error for two selected
+  Magento implementation rules; a PHPMD priority alone does not establish critical runtime impact.
+- Relative file paths resolve against the project root containing `.acqc/project.yaml`, not
+  the working directory or a selected module subdirectory. Absolute paths are also supported.
+- Invalid settings or missing files fail the report with a configuration error.
+- PHPMD automatically splits failing batches to isolate PHP fatal/parse errors, file timeouts
+  and named XML processing errors. It skips only the failing individual inputs and continues;
+  no filename whitelist or project exclusion is required. Successful sub-batches must return
+  valid, error-free XML before their findings or coverage are accepted.
+  The analyzer receipt at `data.analysis.analyzer_results.php_phpmd` has `status: partial`,
+  the successful `files_analyzed` count and `skipped_files` entries containing `file` and `error`.
+  CLI and HTML reports warn about incomplete coverage. If no files succeed, status is `failed`.
+  Unavailable tools, configuration/bootstrap failures and malformed reports remain analyzer
+  failures, not skipped-file successes. Previously skipped files are retried on later scans,
+  including incremental scans.
+  With `report.prefer_external_checks`, native fallback remains for skipped files while
+  selected external rules still own the successfully analyzed files.
+- Without this section, ACQC retains the six generic rulesets, priority cutoff 1 and existing
+  priority-to-severity mapping. Other projects and analyzers are unchanged.
+
+### Automated Magento PHPMD setup
+
+Run from the Commerce project root after its Composer dependencies have been installed:
+
+```bash
+acqc init --commerce-version=2.4.8-p5  # only when no project config exists
+acqc phpmd:setup
+acqc report .
+```
+
+`init` detects an exact version from Composer metadata where possible; when it finds only a
+constraint, interactive initialization asks for the exact release. Noninteractive use requires
+`--commerce-version` in that case. Existing projects can add this field without rerunning `init`:
+
+```yaml
+project:
+  platform_version: 2.4.8-p5
+```
+
+`phpmd:setup [path]` reads the nearest project config. `--commerce-version=<exact-version>`
+overrides and saves the configured version. Missing or constrained versions prompt interactively,
+or fail with exit code 2 under `--no-interaction`; an invalid explicit override always fails.
+
+The command resolves that exact public `magento/magento2` tag to a commit, downloads its curated
+ruleset and complete `CodeMessDetector` subtree with upstream license files, and preserves their
+relative layout under `.acqc/phpmd/<version>/`. It generates a trusted bootstrap defining `BP`
+and loading the project's `vendor/autoload.php`, then checks the rules with ACQC's installed PHPMD
+before publishing them. No different release or "latest" fallback is used. A missing tag or rule
+resource fails explicitly. PHP curl and internet access to `api.github.com` are needed for downloads;
+`GITHUB_TOKEN` can be supplied for GitHub API rate limits. Neither `gh` nor a global PHPMD install
+is required: PHPMD is already an ACQC Composer dependency. Project-configured PHPMD prefers a
+binary on `PATH`, otherwise uses ACQC's installed package.
+
+Setup selects the curated ruleset, cutoff 5, bootstrap and `analyzers.php_phpmd: true`. It replaces
+the PHPMD resource settings while validating and preserving `severity_mapping` and
+`rule_severity_overrides`, including on cache reuse and version changes. It saves
+`project.platform_version`; all other config values are preserved.
+Changed YAML is rewritten, so comments/formatting are lost. Commit or back up your config first.
+The setup rejects symlinked managed paths. Repeated runs verify cached file checksums and reload
+the rules without downloading; unchanged config is not rewritten. `--force` downloads afresh and
+preserves the previous version directory as a backup, whose location is printed.
+
+After upgrading Commerce, update `project.platform_version` and rerun `acqc phpmd:setup`, or use
+`acqc phpmd:setup --commerce-version=<new-version>`. Other version directories are retained.
+Commit the generated resources, licenses, bootstrap and config if CI should use them offline.
+Do not remove the licenses or copy only the ruleset XML: it references Magento's framework files.
+
+This adopts Magento's core static-test selection, not a universal Marketplace extension policy. The
+custom controller and cookie/session rules rely on loadable Commerce classes; a missing or
+unloadable generated class can limit their coverage even with a bootstrap.
 
 ## analyzers
 
@@ -289,8 +484,8 @@ No findings means 100. The defaults:
 | Key | Default |
 |---|---|
 | `overall.weights` | `blocker: 15`, `critical: 6`, `error: 2.5`, `warning: 0.6`, `info: 0.1`, `minor: 0.03` |
-| `overall.normalize` | `absolute` |
-| `overall.per` | `1000` |
+| `overall.normalize` | `per_kloc` |
+| `overall.per` | `1000` (used only with `absolute`; ignored by the default `per_kloc`) |
 | `overall.floor` | `0` |
 | `overall.caps` | none |
 
@@ -301,10 +496,30 @@ No findings means 100. The defaults:
 | `per_kloc` | Thousands of lines of code |
 | `share_of_total` | Weighted total of all findings, then x 100 |
 
-With the defaults, the Overall score moves very little: 1,000 warnings cost 0.6 points, and
-40 errors plus 300 warnings plus 100 SEO warnings still give 99.7 (A+). To make it react, use the
-release verdict, add caps, or normalize by size. The same 440 findings with `normalize: per_kloc`
-on 50,000 lines give 94.1 (A).
+By default, deductions are based on severity-weighted findings per 1,000 scanned lines:
+`sum(weighted severity count x severity weight) / (total_lines / 1000)`.
+The denominator uses scanned total lines, including comments and blank lines, not just
+executable lines. It is bounded below at 0.001 KLOC (one line) to avoid division by zero.
+Scores are clamped to the configured floor and 100. No findings still means 100.
+
+For example, 40 errors plus 300 warnings plus 100 SEO warnings on 50,000 lines give
+94.1 (A), using the default SEO category weight of 0.25. Doubling both the findings and
+scanned lines leaves the Overall score unchanged.
+
+This replaces the previous default that divided counts by 1,000 findings regardless of
+project size. Existing report files are not changed; regenerate them to use the new default.
+Projects can retain the previous calculation with:
+
+```yaml
+scoring:
+  overall:
+    normalize: absolute
+    per: 1000
+```
+
+Explicit project normalization settings still take precedence. Audit scoring, dimension
+formulas, severity weights and readiness conditions are unchanged; readiness and other
+metrics that depend on Overall can change as a consequence of the new score.
 
 Caps set a maximum score. A cap applies when any one of its conditions is true. When several apply,
 the lowest `max_score` wins. Each applied cap is listed in `data.scores.caps_applied`, for example

@@ -305,7 +305,7 @@ final class ScoreCalculator
             ];
         }
 
-        $normalize = (string) ($overallCfg['normalize'] ?? 'absolute');
+        $normalize = (string) ($overallCfg['normalize'] ?? 'per_kloc');
         $per = max(0.0001, (float) ($overallCfg['per'] ?? 1000.0));
         $floor = (float) ($overallCfg['floor'] ?? 0.0);
         $weights = is_array($overallCfg['weights'] ?? null) ? $overallCfg['weights'] : [];

@@ -191,7 +191,7 @@ class VersionDetector
     private function isMagentoVersion(string $version): bool
     {
         // Magento versions are 2.x.x or 2.x.x-px
-        return preg_match('/^2\.\d+\.\d+(?:-p\d+)?$/', $version) === 1;
+        return MagentoVersion::isValidString($version);
     }
 
     /**
@@ -332,4 +332,3 @@ class VersionDetector
         return $matrix->isCompatible();
     }
 }
-

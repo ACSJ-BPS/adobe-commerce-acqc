@@ -60,6 +60,22 @@ class HTMLReportGenerator extends AbstractReportGenerator
             // Render template
             $template = $this->getTemplate();
             $htmlContent = $this->twig->render($template, $templateVars);
+            $coverageWarnings = $this->twig->render('@acqc/analyzer-coverage.html.twig', [
+                'analyzer_results' => $processedData['analysis']['analyzer_results'] ?? [],
+            ]);
+            if (trim($coverageWarnings) !== '') {
+                $withWarnings = preg_replace_callback(
+                    '/<body\b[^>]*>/i',
+                    static fn(array $match) => $match[0] . $coverageWarnings,
+                    $htmlContent,
+                    1,
+                    $insertions
+                );
+                if ($withWarnings === null || $insertions !== 1) {
+                    throw new \RuntimeException('Cannot display analyzer coverage warnings: HTML body is missing or invalid.');
+                }
+                $htmlContent = $withWarnings;
+            }
             
             // Post-process HTML
             $htmlContent = $this->postProcessHTML($htmlContent, $options);
@@ -127,6 +143,7 @@ class HTMLReportGenerator extends AbstractReportGenerator
     private function initializeTwig(): void
     {
         $loader = new FilesystemLoader($this->templatesDir);
+        $loader->addPath($this->getPackageRoot() . '/templates/reports/html', 'acqc');
         $this->twig = new Environment($loader, [
             'cache' => $this->getPackageRoot() . '/var/cache/twig',
             'debug' => true,

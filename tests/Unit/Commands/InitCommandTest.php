@@ -97,10 +97,38 @@ class InitCommandTest extends TestCase
             ],
         ]));
 
-        $this->tester->execute([]);
+        $this->tester->setInputs(['2.4.7-p3']);
+        $exit = $this->tester->execute([]);
         $config = Yaml::parseFile($this->tmpRoot . '/.acqc/project.yaml');
 
+        $this->assertSame(0, $exit);
         $this->assertSame('magento2-open-source', $config['project']['platform']);
+        $this->assertSame('2.4.7-p3', $config['project']['platform_version']);
+    }
+
+    public function testConstraintRequiresVersionWithoutInteraction(): void
+    {
+        file_put_contents($this->tmpRoot . '/composer.json', json_encode([
+            'require' => ['magento/product-enterprise-edition' => '^2.4.7'],
+        ]));
+        $this->assertSame(2, $this->tester->execute([], ['interactive' => false]));
+        $this->assertFileDoesNotExist($this->tmpRoot . '/.acqc/project.yaml');
+        $this->assertStringContainsString('--commerce-version', $this->tester->getDisplay());
+    }
+
+    public function testExplicitCommerceVersion(): void
+    {
+        $this->assertSame(0, $this->tester->execute(['--commerce-version' => '2.4.8-p5'], ['interactive' => false]));
+        $config = Yaml::parseFile($this->tmpRoot . '/.acqc/project.yaml');
+        $this->assertSame('2.4.8-p5', $config['project']['platform_version']);
+        $this->assertSame('magento2', $config['project']['platform']);
+        $this->assertStringContainsString('phpmd:setup', $this->tester->getDisplay());
+    }
+
+    public function testExplicitCommerceConstraintIsRejected(): void
+    {
+        $this->assertSame(2, $this->tester->execute(['--commerce-version' => '^2.4.8']));
+        $this->assertFileDoesNotExist($this->tmpRoot . '/.acqc/project.yaml');
     }
 
     public function testFallsBackToUnknownWhenNoComposerJson(): void

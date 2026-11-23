@@ -12,6 +12,11 @@ namespace ACQC\Core\Version;
  */
 class MagentoVersion
 {
+    public static function isValidString(string $version): bool
+    {
+        return preg_match('/^2\.\d+\.\d+(?:-p\d+)?$/D', $version) === 1;
+    }
+
     private int $major;
     private int $minor;
     private int $patch;
@@ -251,4 +256,3 @@ class MagentoVersion
         return time() > $eolDate;
     }
 }
-

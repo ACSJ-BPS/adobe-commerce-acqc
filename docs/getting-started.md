@@ -34,8 +34,9 @@ For App Builder checks, also run `npm install` in the ACQC folder. It builds the
 ### PHP tools for `report`
 
 `acqc report` runs PHP_CodeSniffer, PHPMD, PHPStan and PHPCPD only when it finds the `phpcs`,
-`phpmd`, `phpstan` and `phpcpd` commands on your `PATH`. It does not look in the ACQC `vendor/bin`
-folder. To use the copies that Composer installed:
+`phpmd`, `phpstan` and `phpcpd` commands on your `PATH`. Project-configured PHPMD also falls back
+to ACQC's installed PHPMD package, so `phpmd:setup` needs no PHPMD `PATH` adjustment. The other
+tools do not automatically use the ACQC `vendor/bin` folder. To use those copies:
 
 ```bash
 export PATH="/path/to/acqc/vendor/bin:$PATH"
@@ -66,7 +67,8 @@ Run these from the root of the Adobe Commerce project you want to check.
 ```bash
 cd /path/to/your-project
 
-acqc init          # writes .acqc/project.yaml
+acqc init          # detects or asks for exact Commerce version; writes .acqc/project.yaml
+acqc phpmd:setup    # installs matching Magento PHPMD rules and configures report
 acqc doctor        # checks the setup and lists next steps
 acqc audit .       # quality gate: score, grade, issues, exit code
 acqc report .      # HTML report in ./reports/
@@ -75,6 +77,7 @@ acqc report .      # HTML report in ./reports/
 | Step | What you get |
 |---|---|
 | `acqc init` | `.acqc/project.yaml` with the detected platform, PHP version and rule bundle. Add `--ci=github`, `--ci=gitlab` or `--ci=bitbucket` to also write a starter CI file (see [CI/CD](ci-cd.md)). |
+| `acqc phpmd:setup` | Magento's version-matched curated PHPMD rules, license notices and autoloader bootstrap. Requires the project's `vendor/autoload.php`; see [project setup](project-config.md#automated-magento-phpmd-setup). For noninteractive initialization, pass `acqc init --commerce-version=2.4.8-p5 --no-interaction` when exact detection is unavailable. |
 | `acqc doctor` | A checklist of the project setup (config file, rule bundle, team rules, CI file, suppressions) with a score and the commands to fix gaps. Add `--json` for machine output. |
 | `acqc audit .` | Findings from the built-in analyzers and the YAML rules, a score and a grade. Exit code `0` = pass, `1` = gate failed, `2` = tool error. |
 | `acqc report .` | A self-contained HTML report named `<project>-report_<timestamp>.html` in `./reports/` (see [Reports](reports.md#formats)). |

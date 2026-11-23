@@ -11,10 +11,13 @@ use ACQC\Core\Coverage\CloverXmlGenerator;
 use ACQC\Core\Coverage\PHPUnitTextCoverageParser;
 use ACQC\Core\AI\PredictiveAnalytics;
 use ACQC\Core\Analysis\AnalyzerOrchestrator;
+use ACQC\Core\Analysis\NativeCheckPolicy;
 use ACQC\Core\Scoring\ScoreCalculator;
 use ACQC\Core\Scoring\ScoringConfig;
 use ACQC\Core\Scoring\ScoringConfigLoader;
 use ACQC\Analyzers\AppBuilder\AbqcAnalyzer;
+use ACQC\Analyzers\PHP\PHPCSAnalyzer;
+use ACQC\Analyzers\PHP\PHPMDAnalyzer;
 use ACQC\Core\Platform\PlatformDetector;
 use ACQC\Core\Platform\PlatformRegistry;
 use ACQC\Reports\Generators\HTMLReportGenerator;
@@ -26,6 +29,7 @@ use ACQC\Reports\Generators\SARIFReportGenerator;
 use ACQC\Reports\Generators\AbstractReportGenerator;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -46,6 +50,7 @@ class ReportCommand extends Command
     private array $generators = [];
     private $logger;
     private ?ScoringConfig $scoringConfig = null;
+    private bool $preferExternalChecks = false;
 
     public function __construct()
     {
@@ -288,10 +293,22 @@ Generate comprehensive quality reports in multiple formats for different audienc
         $locator = new ProjectConfigLocator();
         $locatedProject = $locator->loadNearest($target);
         $projectYamlConfig = $locatedProject['config'];
+        if (array_key_exists('phpcs', $projectYamlConfig)) {
+            PHPCSAnalyzer::validateProjectConfiguration($projectYamlConfig['phpcs']);
+        }
+        if (array_key_exists('phpmd', $projectYamlConfig)) {
+            $projectYamlConfig['phpmd'] = PHPMDAnalyzer::resolveProjectConfiguration(
+                $projectYamlConfig['phpmd'],
+                $locatedProject['project_root'] ?? $target
+            );
+        }
         $reportConfig = $projectYamlConfig['report'] ?? [];
         if (!is_array($reportConfig)) {
             throw new \InvalidArgumentException('The report configuration must be a mapping.');
         }
+        $this->preferExternalChecks = NativeCheckPolicy::validate(
+            array_key_exists('prefer_external_checks', $reportConfig) ? $reportConfig['prefer_external_checks'] : false
+        );
         $runPhpunit = $this->shouldRunPhpunit($input, $reportConfig);
         $scoringConfig = (new ScoringConfigLoader(null, $locator))->load($target);
         $this->scoringConfig = $scoringConfig;
@@ -378,6 +395,7 @@ Generate comprehensive quality reports in multiple formats for different audienc
         $io->writeln('Running advanced analyzers (API, GraphQL, Security, Performance)...');
         try {
             $orchestratorConfig = $this->configManager->loadConfig();
+            $orchestratorConfig['prefer_external_checks'] = $this->preferExternalChecks;
             if (!$isMagentoProject) {
                 // performance_server_uptime / performance_opcache read THIS MACHINE's live
                 // load average and php.ini (see ServerUptimeAnalyzer::analyze /
@@ -393,6 +411,18 @@ Generate comprehensive quality reports in multiple formats for different audienc
                     $projectYamlConfig['analyzers']
                 );
             }
+            if (array_key_exists('phpcs', $projectYamlConfig)) {
+                $orchestratorConfig['phpcs'] = array_replace_recursive(
+                    $orchestratorConfig['phpcs'] ?? [],
+                    $projectYamlConfig['phpcs']
+                );
+            }
+            if (array_key_exists('phpmd', $projectYamlConfig)) {
+                $orchestratorConfig['phpmd'] = array_replace(
+                    $orchestratorConfig['phpmd'] ?? [],
+                    $projectYamlConfig['phpmd']
+                );
+            }
             $orchestrator = new AnalyzerOrchestrator(
                 $orchestratorConfig,
                 $this->logger
@@ -400,11 +430,18 @@ Generate comprehensive quality reports in multiple formats for different audienc
 
             $advancedResults = $orchestrator->analyze($phpFiles, [
                 'explicit_scope' => (bool) ($input->getOption('all-modules-paths') || $input->getOption('specific-modules')),
+                'track_native_replacements' => $this->preferExternalChecks,
             ]);
             $data['analysis']['analyzer_results'] = $advancedResults['analyzer_results'];
             foreach ($advancedResults['analyzer_results'] as $name => $result) {
                 if ($result['status'] === 'failed') {
                     $io->warning("Analyzer {$name} failed: " . $result['error']);
+                }
+                if (!empty($result['skipped_files'])) {
+                    $io->warning("Analyzer {$name}: skipped " . count($result['skipped_files']) . ' file(s); coverage is incomplete.');
+                    foreach ($result['skipped_files'] as $skipped) {
+                        $io->writeln('  - ' . OutputFormatter::escape($skipped['file'] . ': ' . $skipped['error']));
+                    }
                 }
             }
             
@@ -425,13 +462,15 @@ Generate comprehensive quality reports in multiple formats for different audienc
                 // Show analyzer-specific counts
                 if (!empty($advancedResults['analyzer_results'])) {
                     foreach ($advancedResults['analyzer_results'] as $analyzerName => $result) {
-                        if ($result['status'] === 'success' && $result['violations'] > 0) {
-                            $io->writeln("  - {$analyzerName}: Found {$result['violations']} violations");
+                        if (in_array($result['status'], ['success', 'partial'], true) && $result['violations'] > 0) {
+                            $label = $this->preferExternalChecks ? 'raw findings before native policy' : 'violations';
+                            $io->writeln("  - {$analyzerName}: Found {$result['violations']} {$label}");
                         }
                     }
                 }
                 
-                $io->writeln('  - Total advanced violations: ' . count($advancedViolations));
+                $io->writeln('  - Total advanced violations: ' . count($advancedViolations)
+                    . ($this->preferExternalChecks ? ' (before native policy)' : ''));
 
             }
 
@@ -462,6 +501,42 @@ Generate comprehensive quality reports in multiple formats for different audienc
                 } else {
                     $io->writeln('  - abqc: no findings (or not built — run `npm install` at the ACQC root)');
                 }
+            }
+
+            if ($this->preferExternalChecks) {
+                try {
+                    $policy = (new NativeCheckPolicy())->apply(
+                        $data['violations']['violations'] ?? [],
+                        $orchestratorConfig,
+                        $advancedResults['analyzer_results'],
+                        $advancedResults['analyzed_files']
+                    );
+                    $data['violations']['violations'] = $policy['violations'];
+                    foreach ($policy['suppressed_by_analyzer'] as $name => $count) {
+                        $result = &$data['analysis']['analyzer_results'][$name];
+                        $result['raw_violations'] = $result['violations'];
+                        $result['violations'] -= $count;
+                        unset($result);
+                    }
+                    $data['analysis']['native_check_policy'] = [
+                        'prefer_external_checks' => true,
+                        'inline_long_method_disabled' => true,
+                        'suppressed_by_rule' => $policy['suppressed_by_rule'],
+                        'fallback_analyzers' => $policy['fallback_analyzers'],
+                    ];
+                    $io->writeln('Native replacement policy: suppressed ' . array_sum($policy['suppressed_by_rule']) . ' redundant native findings.');
+                    if ($policy['fallback_analyzers'] !== []) {
+                        $io->note('Native fallback retained for: ' . implode(', ', $policy['fallback_analyzers']));
+                    }
+                } catch (\RuntimeException $e) {
+                    $io->warning('Native replacement policy could not be verified; native findings retained. ' . $e->getMessage());
+                    $data['analysis']['native_check_policy'] = [
+                        'prefer_external_checks' => true,
+                        'inline_long_method_disabled' => true,
+                        'error' => $e->getMessage(),
+                    ];
+                }
+                $data['violations']['total_count'] = count($data['violations']['violations'] ?? []);
             }
 
             // Update violation counts by severity after merging
@@ -1505,7 +1580,7 @@ Generate comprehensive quality reports in multiple formats for different audienc
     private function checkMaintainabilityViolations(string $line, int $lineNumber, string $filePath, array &$violations): void
     {
         // Long methods
-        if (strpos($line, 'public function') !== false && strlen($line) > 100) {
+        if (!$this->preferExternalChecks && strpos($line, 'public function') !== false && strlen($line) > 100) {
             $violations[] = [
                 'rule' => 'LongMethod',
                 'message' => 'Method signature too long - consider breaking it down.',
@@ -1560,7 +1635,7 @@ Generate comprehensive quality reports in multiple formats for different audienc
     private function checkMaintainabilityViolationsWithModule(string $line, int $lineNumber, string $filePath, array &$violations, string $moduleName): void
     {
         // Long method detection
-        if (strpos($line, 'function') !== false && strpos($line, '{') !== false) {
+        if (!$this->preferExternalChecks && strpos($line, 'function') !== false && strpos($line, '{') !== false) {
             $violations[] = [
                 'rule' => 'LongMethod',
                 'message' => 'Method might be too long. Consider breaking it into smaller methods.',

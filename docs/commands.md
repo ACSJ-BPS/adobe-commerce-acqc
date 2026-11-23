@@ -28,7 +28,7 @@ ACQC has three analysis commands. They use different analyzer sets, so their res
 | Command | Runs | Typical use |
 |---|---|---|
 | `audit` | Built-in Adobe Commerce, security, performance and code-quality analyzers, plus the YAML rules for the selected profile, plus abqc for App Builder and Node.js projects | Quality gate in pre-commit and CI; score and grade |
-| `report` | The analyzer orchestrator: Adobe Commerce, performance, frontend and PHP analyzers. PHP_CodeSniffer (Magento2 standard), PHPMD, PHPStan and PHPCPD only when they are on `PATH` (see [Getting started](getting-started.md#php-tools-for-report)). abqc for App Builder and Node.js projects | Detailed reports for people |
+| `report` | The analyzer orchestrator: Adobe Commerce, performance, frontend and PHP analyzers. PHP_CodeSniffer (Magento2 standard), PHPMD, PHPStan and PHPCPD normally require `PATH`; project-configured PHPMD also uses ACQC's installed package (see [Getting started](getting-started.md#php-tools-for-report)). abqc for App Builder and Node.js projects | Detailed reports for people |
 | `scan` and `analyze` | The analyzer registry (no YAML rules) | Quick console checks of a path or module |
 
 ### audit
@@ -126,7 +126,8 @@ severity or higher is found.
 
 | Command | What it does |
 |---|---|
-| `acqc init [--ci=github\|gitlab\|bitbucket] [--force]` | Writes `.acqc/project.yaml`. With `--ci`, also writes a starter CI file. |
+| `acqc init [--commerce-version=2.4.8-p5] [--ci=github\|gitlab\|bitbucket] [--force]` | Writes `.acqc/project.yaml`. Detects or asks for an exact Commerce version; use the option when detection is unavailable in CI. With `--ci`, also writes a starter CI file. |
+| `acqc phpmd:setup [path] [--commerce-version=2.4.8-p5] [--force]` | Downloads Magento PHPMD resources for `project.platform_version`, validates them and configures `report`. Reuses verified cached files; `--force` preserves old files as a backup. See [Project config](project-config.md#automated-magento-phpmd-setup). |
 | `acqc doctor [--json]` | Checks the project setup and prints a score and next steps. |
 | `acqc validate` | Checks that the ACQC analyzers and rules load correctly (useful after an ACQC update). |
 | `acqc hooks:install` / `hooks:status` / `hooks:uninstall` | Manage the git pre-commit hook. See [Pre-commit gate](pre-commit.md). |

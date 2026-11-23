@@ -66,6 +66,7 @@ class AnalyzerOrchestrator
         
         $allViolations = [];
         $analyzerResults = [];
+        $analyzedFiles = [];
         $externalTools = ['php_phpcs', 'php_phpmd', 'php_phpstan', 'php_phpcpd'];
         
         foreach ($this->analyzers as $name => $analyzer) {
@@ -95,8 +96,16 @@ class AnalyzerOrchestrator
                     'status' => 'success'
                 ];
                 if (in_array($name, $externalTools, true)) {
-                    $analyzerResults[$name]['files_analyzed'] = count($analyzer['instance']->getLastResults()['files'] ?? []);
+                    $lastResults = $analyzer['instance']->getLastResults();
+                    $analyzerResults[$name]['files_analyzed'] = count($lastResults['files'] ?? []);
                     $analyzerResults[$name]['version'] = $analyzer['instance']->getVersion();
+                    if (!empty($lastResults['skipped_files'])) {
+                        $analyzerResults[$name]['status'] = 'partial';
+                        $analyzerResults[$name]['skipped_files'] = $lastResults['skipped_files'];
+                    }
+                    if ($options['track_native_replacements'] ?? false) {
+                        $analyzedFiles[$name] = $lastResults['files'] ?? [];
+                    }
                 }
                 
                 // Apply severity overrides
@@ -113,6 +122,13 @@ class AnalyzerOrchestrator
                     'status' => 'failed',
                     'error' => $e->getMessage()
                 ];
+                if ($name === 'php_phpmd') {
+                    $lastResults = $analyzer['instance']->getLastResults();
+                    if (!empty($lastResults['skipped_files'])) {
+                        $analyzerResults[$name]['files_analyzed'] = 0;
+                        $analyzerResults[$name]['skipped_files'] = $lastResults['skipped_files'];
+                    }
+                }
             }
 
         }
@@ -123,7 +139,7 @@ class AnalyzerOrchestrator
             'violations' => $allViolations,
             'analyzer_results' => $analyzerResults,
             'summary' => $this->generateSummary($allViolations, $analyzerResults)
-        ];
+        ] + (($options['track_native_replacements'] ?? false) ? ['analyzed_files' => $analyzedFiles] : []);
     }
 
     /**

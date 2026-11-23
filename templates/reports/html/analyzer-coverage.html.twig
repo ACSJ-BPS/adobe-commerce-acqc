@@ -1,0 +1,22 @@
+{% for name, result in analyzer_results %}
+    {% if result.status in ['partial', 'failed'] %}
+        <section role="alert" style="margin:80px 20px 20px;padding:16px;border:1px solid #d97706;border-radius:8px;background:#fffbeb;color:#7c2d12;overflow-wrap:anywhere">
+            <h2 style="font-size:18px">Incomplete analyzer coverage: {{ name }} ({{ result.status }})</h2>
+            {% if result.error is defined %}
+                <details><summary>Analyzer error</summary><p>{{ result.error }}</p></details>
+            {% endif %}
+            {% if result.skipped_files|default([])|length > 0 %}
+                <p>{{ result.files_analyzed|default(0) }} files analyzed;
+                    {{ result.skipped_files|length }} files skipped. Other enabled checks still apply.</p>
+                <details>
+                    <summary>Skipped files and errors</summary>
+                    <ul>
+                        {% for skipped in result.skipped_files %}
+                            <li><code>{{ skipped.file }}</code>: {{ skipped.error }}</li>
+                        {% endfor %}
+                    </ul>
+                </details>
+            {% endif %}
+        </section>
+    {% endif %}
+{% endfor %}
